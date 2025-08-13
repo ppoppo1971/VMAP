@@ -2,2328 +2,640 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VMAP</title>
-    <!-- Kakao Maps JavaScript SDK (지도 렌더링용) -->
-    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f1268a7e77f3b182e700b92b45d98082&autoload=false&libraries=services"></script>
+    <title>브이월드 지도 (OpenLayers 버전)</title>
     
+    <!-- OpenLayers CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@8.2.0/ol.css" type="text/css">
     
     <style>
-        html, body {
-            height: 100%;
+        * {
             margin: 0;
             padding: 0;
-        }
-        #map {
-            width: 100vw;
-            height: 100vh;
-            min-height: 100%;
-        }
-        h1 {
-            display: none;
-        }
-        /* 활성 지도 배지 */
-        #activeMapBadge {
-            position: absolute;
-            top: 10px;
-            left: 30px;
-            z-index: 15; /* 사이드 패널(z-index:10) 위 */
-            background: transparent;
-            color: rgba(255, 255, 255, 0.98);
-            border-radius: 0;
-            padding: 0;
-            font-weight: 800;
-            font-size: 1.2rem; /* 약 130% */
-            box-shadow: none;
-            font-family: 'Noto Sans KR', sans-serif;
-        }
-        /* 사이드바 스타일 */
-        #customMapMenu {
-            position: absolute;
-            top: 40px;
-            left: 30px;
-            z-index: 10;
-            width: 220px;
-            background: rgba(255,255,255,0.86);
-            border: 1px solid rgba(255,255,255,0.35);
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.18);
-            padding: 12px 9px 9px 9px;
-            display: flex;
-            flex-direction: column;
-            gap: 9px;
-            font-family: 'Noto Sans KR', sans-serif;
-            backdrop-filter: blur(6px) saturate(110%);
-            -webkit-backdrop-filter: blur(6px) saturate(110%);
-            transition: box-shadow 0.2s, left 0.3s, opacity 0.3s, background-color 0.2s;
-        }
-        #customMapMenu.hide {
-            left: -260px;
-            opacity: 0;
-            pointer-events: none;
-        }
-        #customMapMenu h2 {
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin: 0 0 12px 0;
-            color: #222;
-        }
-        .menu-group {
-            margin-bottom: 5px;
-        }
-        .menu-group label {
-            font-size: 1rem;
-            font-weight: 500;
-            margin-bottom: 6px;
-            display: block;
-            color: #555;
-        }
-        /* 공통 버튼 스타일 */
-        .menu-group button, .toggle-btn {
-            width: 100%;
-            background: #f7f7f7;
-            border: none;
-            border-radius: 8px;
-            padding: 5px 0;
-            margin-bottom: 3px;
-            font-size: 1rem;
-            color: #333;
-            cursor: pointer;
-            transition: background 0.15s, color 0.15s;
-        }
-        .menu-group button:hover, .toggle-btn:hover {
-            background: #e0e7ff;
-            color: #1d4ed8;
-        }
-        .menu-group .submenu {
-            margin-left: 12px;
-            margin-top: 4px;
-        }
-        /* 사이드 패널 토글 버튼 */
-        #menuToggleBtn {
-            position: absolute;
-            top: 50px;
-            left: 18px;
-            z-index: 20;
-            background: #1d4ed8;
-            color: #fff;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 1.3rem;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-            display: none;
-            align-items: center;
-            justify-content: center;
-        }
-        #menuToggleBtn.show {
-            display: flex;
-        }
-        #customMapMenu .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            color: #888;
-            cursor: pointer;
-        }
-        .toggle-btn {
-            text-align: left;
-            font-weight: 600;
-        }
-        /* 하위 옵션 들여쓰기 */
-        .submenu {
-            margin-left: 20px;
-        }
-        .submenu .submenu {
-            margin-left: 20px;
-        }
-        .submenu button {
-            width: 90%;
-            margin-left: 0;
-        }
-        /* 구글맵 하위 옵션 들여쓰기 */
-        #googleMapMenu > .toggle-btn {
-            margin-left: 20px;
-        }
-        /* 법정경계 메뉴 스타일 */
-        #vworldBoundaryMenu {
-            margin-left: 20px;
-        }
-        #vworldBoundaryMenu button {
-            width: 90%;
-            margin-left: 0;
-        }
-        /* 검색 결과 패널 */
-        #searchResultsPanel {
-            display: none;
-            max-height: 320px;
-            overflow-y: auto;
-            background: #fff;
-            border: 1px solid #eee;
-            border-radius: 10px;
-            padding: 8px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-        }
-        .search-results-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 6px;
-            font-weight: 700;
-            color: #222;
-        }
-        .search-results-close {
-            background: none;
-            border: none;
-            font-size: 1rem;
-            color: #888;
-            cursor: pointer;
-        }
-        .search-result-item {
-            padding: 8px;
-            border-radius: 8px;
-            background: #f9fafb;
-            margin-bottom: 6px;
-            cursor: pointer;
-            transition: background 0.15s, color 0.15s;
-        }
-        .search-result-item:hover {
-            background: #e0e7ff;
-            color: #1d4ed8;
-        }
-        .result-title {
-            font-weight: 600;
-            margin: 0 0 2px 0;
-            font-size: 0.95rem;
-        }
-        .result-sub {
-            margin: 0;
-            font-size: 0.85rem;
-            color: #555;
-        }
-        /* 50:50 로드뷰 분할 레이아웃 */
-        #rvWrapper { position: absolute; top: 0; right: 0; width: 50vw; height: 100vh; z-index: 6; display: none; background: #fff; }
-        body.rv-active #rvWrapper { display: block; }
-        #roadview { width: 100%; height: 100%; }
-        #rvWrapper .rv-close { position: absolute; top: 8px; right: 10px; z-index: 7; background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.9rem; }
-        
-        /* 구글맵 정보창 X 버튼 숨기기 */
-        .gm-ui-hover-effect[title="닫기"] {
-            display: none !important;
-        }
-        .gm-style-iw-d + button {
-            display: none !important;
-        }
-        
-        /* 카카오맵 커스텀 정보창 스타일 (구글맵과 동일한 모양) */
-        .custom-info-window {
-            background: white;
-            border-radius: 8px;
-            padding: 10px;
-            min-width: 200px;
-            box-shadow: 0 2px 7px 1px rgba(0, 0, 0, 0.3);
-            position: relative;
-            font-family: Roboto, Arial, sans-serif;
-            font-size: 13px;
-            z-index: 10;
-        }
-        
-        /* 브이월드 지적도 WMS 이미지에 빨간색 필터 적용 */
-        img[src*="api.vworld.kr"][src*="lp_pa_cbnd"] {
-            filter: contrast(1.2) brightness(1.1) hue-rotate(240deg) saturate(2) !important;
-            mix-blend-mode: multiply !important;
-        }
-        
-        /* 구글맵 GroundOverlay 지적도 이미지 */
-        img[src*="api.vworld.kr/req/wms"][src*="LAYERS=lp_pa_cbnd"] {
-            filter: contrast(1.2) brightness(1.1) hue-rotate(240deg) saturate(2) !important;
-            mix-blend-mode: multiply !important;
-        }
-        
-        /* 지적도 관련 모든 이미지에 적용 */
-        .gm-style img[src*="lp_pa_cbnd"] {
-            filter: contrast(1.2) brightness(1.1) hue-rotate(240deg) saturate(2) !important;
-            mix-blend-mode: multiply !important;
-        }
-        
-        /* 지적도근점(dt_d007) WMS를 짙은 마젠타 계열로 보정 (텍스트 포함) */
-        img[src*="api.vworld.kr"][src*="dt_d007"],
-        .gm-style img[src*="dt_d007"] {
-            /* 검정/회색 라벨까지 재착색될 수 있도록 전체 이미지를 컬러라이즈 */
-            filter: invert(14%) sepia(98%) saturate(7479%) hue-rotate(293deg) brightness(82%) contrast(111%) !important;
-        }
-        
-        .custom-info-window::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 12px solid transparent;
-            border-right: 12px solid transparent;
-            border-top: 12px solid white;
-            filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.2));
+            box-sizing: border-box;
         }
 
-        /* 화면 상단 중앙 배너 */
-        #centerTopBanner {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 25;
-            color: rgba(255, 255, 255, 0.98);
-            font-weight: 900;
-            font-size: 3rem;
-            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-            pointer-events: none;
-            font-family: 'Noto Sans KR', sans-serif;
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .controls h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-item label {
+            font-weight: bold;
+            color: #34495e;
+            font-size: 14px;
+        }
+
+        select, button, input {
+            padding: 10px 15px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .map-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+
+        .info-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .info-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .coordinate-display {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+
+        .coordinate-display p {
+            margin: 5px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+            }
+            
+            .control-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            #map {
+                height: 400px;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>테스트</h1>
-    <!-- 지도를 표시할 div 요소 -->
-    <div id="map"></div>
-    <!-- 현재 활성 지도 표시 배지 -->
-    <div id="activeMapBadge" aria-live="polite">구글맵 - 일반</div>
-    <!-- 화면 상단 중앙 배너 -->
-    <div id="centerTopBanner">테스트3</div>
-    <!-- 사이드 패널 토글 버튼 (패널이 숨겨졌을 때만 보임) -->
-    <button id="menuToggleBtn" class="show" onclick="showMenu()" title="메뉴 열기">☰</button>
-    <!-- 왼쪽 고정형 사이드바 메뉴 -->
-    <div id="customMapMenu" class="hide">
-      <button class="close-btn" onclick="hideMenu()" title="닫기">×</button>
-      <h2>지도 유형 선택</h2>
-      <div class="menu-group">
-        <input type="text" id="addressInput" placeholder="장소/주소를 입력하세요" style="width: 98%; margin-bottom: 6px;" onkeydown="if(event.key==='Enter'){searchAddress();}">
-        <div id="searchResultsPanel">
-          <div class="search-results-header">
-            <span>검색 결과</span>
-            <button class="search-results-close" onclick="hideSearchResults()">닫기</button>
-          </div>
-          <div id="searchResultsList"></div>
-        </div>
-      </div>
-      <div class="menu-group">
-        <button id="googleMapToggleBtn" class="toggle-btn" onclick="toggleGoogleMapMenu()">+구글맵</button>
-        <div id="googleMapMenu" style="display:none; margin-top:8px; margin-left:20px;">
-          <button id="roadmapToggleBtn" class="toggle-btn" style="margin-left:0;" onclick="toggleRoadmapMenuAndSetRoadmap()">+일반</button>
-          <div id="roadmapMenu" class="submenu" style="display:none;">
-            <button onclick="setMapType('terrain')">지형</button>
-          </div>
-          <button id="satelliteToggleBtn" class="toggle-btn" style="margin-left:0;" onclick="toggleSatelliteMenuAndSetSatellite()">+위성</button>
-          <div id="satelliteMenu" class="submenu" style="display:none;">
-            <button onclick="setMapType('hybrid')">하이브리드</button>
-          </div>
-        </div>
-      </div>
-      <div class="menu-group">
-        <button id="vworldToggleBtn" class="toggle-btn" onclick="toggleVworldMenu()">+브이월드</button>
-        <div id="vworldMenu" class="submenu" style="display:none;">
-          <button onclick="setMapType('브이월드일반')">일반</button>
-          <button onclick="setMapType('브이월드영상')">영상</button>
-        </div>
-      </div>
-      <div class="menu-group">
-        <button id="kakaoMapToggleBtn" class="toggle-btn" onclick="toggleKakaoMapMenu()">+카카오맵</button>
-      <div id="kakaoMapMenu" style="display:none; margin-top:8px; margin-left:20px;">
-          <button onclick="loadKakaoMap('normal')">일반</button>
-          <button onclick="loadKakaoMap('skyview')">스카이뷰</button>
-          <button onclick="toggleRoadview()">로드뷰</button>
-        </div>
-      </div>
-      <div class="menu-group">
-        <button id="vworldBoundaryToggleBtn" class="toggle-btn" onclick="toggleVworldBoundaryMenu()">+법정경계</button>
-        <div id="vworldBoundaryMenu" class="submenu" style="display:none;">
-          <button onclick="loadVworldBoundary('lt_c_adsigg')">시군구</button>
-          <button onclick="loadVworldBoundary('lt_c_ademd')">읍면동</button>
-          <button onclick="loadVworldBoundary('lt_c_adri')">리</button>
-          <button onclick="clearVworldBoundary()">경계제거</button>
-        </div>
-      </div>
-      <div class="menu-group">
-        <button id="cadastralToggleBtn" class="toggle-btn" onclick="toggleCadastralOverlay()">연속지적도</button>
-        <button id="controlPointToggleBtn" class="toggle-btn" onclick="toggleControlPointOverlay()">지적도근점</button>
-      </div>
+    <div class="header">
+        <h1>🗺️ 브이월드 지도 웹페이지 (OpenLayers)</h1>
+        <p>OpenLayers를 이용한 브이월드 지도 서비스</p>
     </div>
-    <div id="kakaoMapContainer" style="display:none; width:100vw; height:100vh; position:absolute; top:0; left:0; z-index:5;">
-      <div id="kakaoMapDiv" style="width:100%; height:100%;"></div>
+
+    <div class="container">
+        <div class="controls">
+            <h3>지도 설정</h3>
+            <div class="control-group">
+                <div class="control-item">
+                    <label for="mapType">지도 종류</label>
+                    <select id="mapType">
+                        <option value="Base">기본지도</option>
+                        <option value="Satellite">위성지도</option>
+                        <option value="Hybrid">하이브리드</option>
+                        <option value="Gray">회색지도</option>
+                    </select>
+                </div>
+                
+                <div class="control-item">
+                    <label for="overlayType">지적정보 레이어</label>
+                    <select id="overlayType">
+                        <option value="">선택안함</option>
+                        <option value="cadastral">연속지적도</option>
+                        <option value="controlpoint">지적도근점</option>
+                        <option value="both">모두 표시</option>
+                    </select>
+                </div>
+                
+                <div class="control-item">
+                    <label for="searchLocation">위치 검색</label>
+                    <input type="text" id="searchLocation" placeholder="예: 서울시청" />
+                </div>
+                
+                <button onclick="searchAndMove()">위치 이동</button>
+                <button onclick="getCurrentLocation()">현재 위치</button>
+                <button onclick="resetView()">초기 화면</button>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+
+        <div class="info-panel">
+            <h3>지도 정보</h3>
+            <div class="coordinate-display">
+                <p><strong>현재 중심점:</strong></p>
+                <p>위도: <span id="currentLat">37.5665</span></p>
+                <p>경도: <span id="currentLng">126.9780</span></p>
+                <p>줌 레벨: <span id="currentZoom">10</span></p>
+                <p><strong>활성 레이어:</strong> <span id="activeLayer">기본지도</span></p>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #e8f4fd; border-radius: 5px; font-size: 12px;">
+                <h4 style="margin-bottom: 8px; color: #2c3e50;">💡 사용 팁</h4>
+                <p>• 지적도근점/연속지적도를 선택하면 해당 레이어가 표시됩니다</p>
+                <p>• 지적정보를 클릭하면 상세 정보를 확인할 수 있습니다</p>
+                <p>• 줌 레벨이 높을수록 더 많은 정보가 로드됩니다</p>
+            </div>
+        </div>
     </div>
-    <!-- 50:50 우측 로드뷰 패널 -->
-    <div id="rvWrapper">
-      <button class="rv-close" onclick="closeRoadviewAll()" title="로드뷰 닫기">×</button>
-      <div id="roadview"></div>
-    </div>
+
+    <!-- OpenLayers JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/ol@8.2.0/dist/ol.js"></script>
+    
     <script>
-      // 전역 변수들
-      let map, kakaoMap, kakaoRoadview, kakaoRoadviewClient;
-      let vworldBoundaryOverlay = null, currentBoundaryLayer = null, cadastralOverlay = null;
-      let controlPointOverlay = null; // 지적도근점(구글)
-      let addressMarkers = [], kakaoMarkers = [], lastSearchResults = [];
-      let lastSearchMode = 'keyword';
-      let kakaoCadastralOverlayEl = null, cadastralOverlayMode = null;
-      let kakaoControlPointOverlayEl = null, controlPointOverlayMode = null; // 지적도근점(카카오)
-      let cadastralUpdateTimer = null, boundaryUpdateTimer = null;
-      let isRoadviewClickMode = false, roadviewOverlayOn = false, roadviewMarker = null;
-      let addressInfoWindow = null, addressInfoMarker = null;
-      let googleAddressInfoWindow = null, googleAddressInfoMarker = null;
-      
-      // DOM 캐시
-      let cachedElements = {};
-      function getElement(id) {
-        if (!cachedElements[id]) {
-          cachedElements[id] = document.getElementById(id);
-        }
-        return cachedElements[id];
-      }
-      
-      // API 설정 상수
-      const CONFIG = {
-        VWORLD_API_KEY: '46F4304E-84DC-3F56-92F1-6A98A0370A31',
-        KAKAO_API_KEY: 'KakaoAK c27024d37ac99abf233b12f0efa39099',
-        VWORLD_API_URL: 'https://api.vworld.kr/req/wms',
-        VWORLD_WFS_BOUNDARY_URL: 'https://api.vworld.kr/ned/wfs/getAdresSpceWFS',
-        VWORLD_WFS_CADASTRAL_URL: 'https://api.vworld.kr/ned/wfs/getCtnlgsSpceWFS',
-        VWORLD_WFS_CONTROLPOINT_URL: 'https://api.vworld.kr/ned/wfs/getLgstspSpceWFS',
-        VWORLD_CONTROL_POINT_WMS_URL: 'https://api.vworld.kr/ned/wms/LgstspSpceService',
-        KAKAO_LOCAL_API_URL: 'https://dapi.kakao.com/v2/local',
-        SERVICE_DOMAIN: 'https://ppoppo1971.github.io/VMAP/index.html',
-        MAX_BOUNDARY_ZOOM: 32,
-        MAX_CADASTRAL_ZOOM: 32,
-        DEBOUNCE_DELAY: 1000
-      };
-      
-      // WFS용 데이터 레이어 (구글 맵 전용)
-      const wfsDataLayers = {
-        boundary: null,
-        cadastral: null,
-        controlPoint: null
-      };
-
-      // Kakao WFS 도형 관리
-      const kakaoWfsLayers = {
-        boundary: [],
-        cadastral: [],
-        controlPoint: []
-      };
-      // 디바운스 헬퍼 함수
-      function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-          const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-          };
-          clearTimeout(timeout);
-          timeout = setTimeout(later, wait);
+        let map;
+        let vectorSource;
+        let vectorLayer;
+        let cadastralLayer;
+        let controlPointLayer;
+        let wfsLayers = {};
+        
+        // VWorld 지도 레이어들
+        const vworldLayers = {
+            Base: new ol.layer.Tile({
+                source: new ol.source.XYZ({
+                    url: 'http://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/Base/{z}/{y}/{x}.png'
+                })
+            }),
+            Satellite: new ol.layer.Tile({
+                source: new ol.source.XYZ({
+                    url: 'http://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/Satellite/{z}/{y}/{x}.jpeg'
+                })
+            }),
+            Hybrid: new ol.layer.Group({
+                layers: [
+                    new ol.layer.Tile({
+                        source: new ol.source.XYZ({
+                            url: 'http://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/Satellite/{z}/{y}/{x}.jpeg'
+                        })
+                    }),
+                    new ol.layer.Tile({
+                        source: new ol.source.XYZ({
+                            url: 'http://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/Hybrid/{z}/{y}/{x}.png'
+                        })
+                    })
+                ]
+            }),
+            Gray: new ol.layer.Tile({
+                source: new ol.source.XYZ({
+                    url: 'http://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/gray/{z}/{y}/{x}.png'
+                })
+            })
         };
-      }
-      
-      // API URL 빌더 함수
-      function buildApiUrl(baseUrl, params) {
-        const urlParams = new URLSearchParams();
-        Object.entries(params).forEach(([key, value]) => {
-          urlParams.set(key, value);
-        });
-        return `${baseUrl}?${urlParams.toString()}`;
-      }
 
-      // 공통 오류 알림
-      function showWfsError(context, error) {
-        try {
-          let message = `[${context}] WFS 요청 실패`;
-          if (error && typeof error === 'object') {
-            if (error.name === 'TypeError') {
-              message += `\n네트워크 또는 CORS 문제일 수 있습니다.`;
-            }
-            if (error.status) {
-              message += `\nHTTP ${error.status}`;
-              if (error.status === 401 || error.status === 403) {
-                message += `\nAPI 키 또는 서비스 URL(도메인) 등록을 확인하세요.`;
-              }
-            }
-            if (error.message) {
-              message += `\n${error.message}`;
-            }
-          } else if (typeof error === 'string') {
-            message += `\n${error}`;
-          }
-          alert(message);
-        } catch (e) {
-          alert(`[${context}] WFS 요청 실패`);
-        }
-      }
+        // WFS 레이어 생성 함수
+        function createWFSLayer(layerName, typeName, styleConfig) {
+            const vectorSource = new ol.source.Vector({
+                format: new ol.format.GeoJSON(),
+                url: function(extent) {
+                    const bbox = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
+                    return `http://api.vworld.kr/req/data?service=wfs&version=1.0.0&request=GetFeature&typename=${typeName}&outputformat=application/json&srsname=EPSG:4326&bbox=${bbox.join(',')}&apikey=46F4304E-84DC-3F56-92F1-6A98A0370A31`;
+                },
+                strategy: ol.loadingstrategy.bbox
+            });
 
-      // 구글맵 Data 레이어 유틸
-      function clearDataLayer(name) {
-        try {
-          const layer = wfsDataLayers[name];
-          if (layer && layer.setMap) {
-            layer.setMap(null);
-          }
-        } catch (e) { /* ignore */ }
-        wfsDataLayers[name] = null;
-      }
-      function ensureDataLayer(name) {
-        if (!map) return null;
-        if (!wfsDataLayers[name]) {
-          wfsDataLayers[name] = new google.maps.Data({ map });
-        } else if (!wfsDataLayers[name].getMap || !wfsDataLayers[name].getMap()) {
-          wfsDataLayers[name].setMap(map);
+            return new ol.layer.Vector({
+                source: vectorSource,
+                style: styleConfig,
+                visible: false
+            });
         }
-        return wfsDataLayers[name];
-      }
-      function resetAndAddGeoJson(name, geojson, styleFn) {
-        const layer = ensureDataLayer(name);
-        if (!layer) return;
-        try {
-          layer.forEach(f => layer.remove(f));
-        } catch (e) { /* ignore */ }
-        try {
-          layer.addGeoJson(geojson);
-        } catch (e) {
-          showWfsError(name, 'GeoJSON 파싱 실패');
-          return;
-        }
-        if (typeof styleFn === 'function') {
-          layer.setStyle(styleFn);
-        }
-      }
-      
-      // VWorld WMS 파라미터 생성
-      function createVworldWmsParams(layerType, bbox, width, height) {
-        return {
-          key: CONFIG.VWORLD_API_KEY,
-          service: 'WMS',
-          request: 'GetMap',
-          version: '1.3.0',
-          layers: layerType,
-          styles: '',
-          crs: 'EPSG:4326',
-          bbox: bbox,
-          width: width,
-          height: height,
-          format: 'image/png',
-          transparent: 'true',
-          exceptions: 'text/xml'
-        };
-      }
-      
-      // 지적도 파라미터 생성
-      function createCadastralParams(bbox, width, height) {
-        return {
-          KEY: CONFIG.VWORLD_API_KEY,
-          SERVICE: 'WMS',
-          REQUEST: 'GetMap',
-          VERSION: '1.3.0',
-          LAYERS: 'lp_pa_cbnd_bonbun,lp_pa_cbnd_bubun',
-          STYLES: '',
-          CRS: 'EPSG:4326',
-          BBOX: bbox,
-          WIDTH: width,
-          HEIGHT: height,
-          FORMAT: 'image/png',
-          TRANSPARENT: 'true',
-          BGCOLOR: '0xFFFFFF',
-          DPI: '96',
-          EXCEPTIONS: 'text/xml'
-        };
-      }
-      
-      // 활성 지도 배지 갱신
-      function setActiveMapBadge(text) {
-        const el = getElement('activeMapBadge');
-        if (el && el.textContent !== text) el.textContent = text;
-      }
-      function updateActiveMapLabel() {
-        try {
-          if (isKakaoVisible() && kakaoMap) {
-            const mt = kakaoMap.getMapTypeId && kakaoMap.getMapTypeId();
-            const label = (mt === kakao.maps.MapTypeId.SKYVIEW) ? '카카오맵 - 스카이뷰' : '카카오맵 - 일반';
-            setActiveMapBadge(label);
-            return;
-          }
-          
-          if (map && map.getMapTypeId) {
-            const t = map.getMapTypeId();
-            let label = '구글맵 - 일반';
-            switch (t) {
-              case 'roadmap': label = '구글맵 - 일반'; break;
-              case 'terrain': label = '구글맵 - 지형'; break;
-              case 'satellite': label = '구글맵 - 위성'; break;
-              case 'hybrid': label = '구글맵 - 하이브리드'; break;
-              case '브이월드일반': label = '브이월드 - 일반'; break;
-              case '브이월드영상': label = '브이월드 - 영상'; break;
-            }
-            setActiveMapBadge(label);
-          }
-        } catch (e) { 
-          // 활성 지도 라벨 업데이트 오류 무시
-        }
-      }
-      // 구글 줌 <-> 카카오 레벨 변환 유틸리티
-      function getGoogleZoom() {
-        try {
-          if (map && map.getZoom) {
-            return map.getZoom();
-          }
-          return null;
-        } catch (e) {
-          // 구글맵 줌 레벨 가져오기 오류 무시
-          return null;
-        }
-      }
-      function googleZoomToKakaoLevel(googleZoom) {
-        if (googleZoom == null) return 5;
-        const level = 21 - googleZoom; // 대략적 대응식
-        return Math.min(14, Math.max(1, level));
-      }
-      function kakaoLevelToGoogleZoom(kakaoLevel) {
-        if (kakaoLevel == null) return 12;
-        const zoom = 21 - kakaoLevel;
-        return Math.min(21, Math.max(3, zoom));
-      }
-      // 구글 맵 초기화 함수
-      function initMap() {
-        // 서울 시청의 위도, 경도 좌표를 중심으로 설정
-        var center = { lat: 37.5665, lng: 126.9780 }; // 서울 시청 좌표
-        // 구글 맵 객체 생성 및 옵션 설정
-        map = new google.maps.Map(document.getElementById('map'), {
-          zoom: 12, // 초기 확대 레벨
-          center: center, // 지도 중심 좌표
-          mapTypeControl: false, // 기본 가로 지도 타입 메뉴 비활성화
-          mapTypeControlOptions: {
-            // 지도 타입 선택 컨트롤에 표시할 지도 타입 목록
-            mapTypeIds: ['roadmap', 'terrain', 'satellite', 'hybrid', '브이월드일반', '브이월드영상'],
-            style: google.maps.MapTypeControlStyle.VERTICAL_BAR, // 세로 메뉴
-            position: google.maps.ControlPosition.LEFT_TOP // 원하는 위치
-          }
-        });
-        // REST 방식 사용이므로 별도 초기화 불필요
 
-        // 브이월드 일반 지도(기본 지도) 타일 레이어 정의
-        var cadastralMapType = new google.maps.ImageMapType({
-          // 각 타일의 URL을 반환하는 함수
-          getTileUrl: function(coord, zoom) {
-            // 브이월드 일반 지도 타일 서버 URL
-            return 'https://xdworld.vworld.kr/2d/Base/service/' + zoom + '/' + coord.x + '/' + coord.y + '.png';
-          },
-          tileSize: new google.maps.Size(256, 256), // 타일 크기 지정
-          name: '브이월드일반', // 지도 타입 이름
-          maxZoom: 19 // 최대 확대 레벨
+        // 지적도근점 스타일
+        const controlPointStyle = new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 4,
+                fill: new ol.style.Fill({
+                    color: '#ff0000'
+                }),
+                stroke: new ol.style.Stroke({
+                    color: '#ffffff',
+                    width: 2
+                })
+            }),
+            text: new ol.style.Text({
+                font: '12px Arial',
+                fill: new ol.style.Fill({
+                    color: '#000000'
+                }),
+                stroke: new ol.style.Stroke({
+                    color: '#ffffff',
+                    width: 2
+                }),
+                offsetY: -15
+            })
         });
 
-        // 브이월드 영상 지도(위성 지도) 타일 레이어 정의
-        var vworldSatelliteMapType = new google.maps.ImageMapType({
-          // 각 타일의 URL을 반환하는 함수
-          getTileUrl: function(coord, zoom) {
-            // 브이월드 영상 지도 타일 서버 URL
-            return 'https://xdworld.vworld.kr/2d/Satellite/service/' + zoom + '/' + coord.x + '/' + coord.y + '.jpeg';
-          },
-          tileSize: new google.maps.Size(256, 256), // 타일 크기 지정
-          name: '브이월드영상', // 지도 타입 이름
-          maxZoom: 19 // 최대 확대 레벨
+        // 연속지적도 스타일
+        const cadastralStyle = new ol.style.Style({
+            stroke: new ol.style.Stroke({
+                color: '#0066cc',
+                width: 1.5
+            }),
+            fill: new ol.style.Fill({
+                color: 'rgba(0, 102, 204, 0.1)'
+            })
         });
 
-        // 사용자 정의 지도 타입(브이월드 일반, 브이월드 영상)을 구글 맵에 추가
-        map.mapTypes.set('브이월드일반', cadastralMapType);
-        map.mapTypes.set('브이월드영상', vworldSatelliteMapType);
-        // 기본 지도 타입을 'roadmap'으로 설정
-        map.setMapTypeId('roadmap');
-        
-        // 디바운스된 업데이트 함수들
-        const debouncedBoundaryUpdate = debounce(() => {
-          if (currentBoundaryLayer && vworldBoundaryOverlay) updateBoundaryOverlay();
-        }, CONFIG.DEBOUNCE_DELAY);
-        
-        const debouncedCadastralUpdate = debounce(() => {
-          if (cadastralOverlay) updateCadastralOverlay();
-        }, CONFIG.DEBOUNCE_DELAY);
-        const debouncedControlPointUpdate = debounce(() => {
-          if (controlPointOverlay) updateControlPointOverlay();
-        }, CONFIG.DEBOUNCE_DELAY);
-        
-        // 지도 이동 이벤트 리스너 추가
-        map.addListener('bounds_changed', function() {
-          debouncedBoundaryUpdate();
-          debouncedCadastralUpdate();
-          debouncedControlPointUpdate();
-        });
-        // 초기 활성 지도 배지 갱신
-        updateActiveMapLabel();
-        // 구글맵 우클릭 주소 정보창 리스너 부착
-        attachGoogleMapRightClick();
-      }
-      function setMapType(type) {
-        // 카카오맵이 활성화된 상태라면 구글맵으로 전환
-        const wasKakaoVisible = isKakaoVisible();
-        if (wasKakaoVisible) {
-          showGoogleMap();
-        }
-        // 지도 타입 설정
-        if (map && map.setMapTypeId) {
-          map.setMapTypeId(type);
-        }
-        updateActiveMapLabel();
-        
-        // 카카오에서 구글로 전환 시 지적도 상태 확인 및 로드
-        if (wasKakaoVisible && (cadastralOverlayMode === 'kakao' || kakaoCadastralOverlayEl)) {
-          setTimeout(() => {
-            loadCadastralOverlay();
-          }, 300);
-        }
-      }
-      // 최적화된 메뉴 토글 함수
-      function toggleMenu(menuId, btnId, menuName, subMenus = []) {
-        const menu = getElement(menuId);
-        const btn = getElement(btnId);
-        const isHidden = menu.style.display === 'none';
-        
-        menu.style.display = isHidden ? 'block' : 'none';
-        btn.textContent = isHidden ? `-${menuName}` : `+${menuName}`;
-        
-        if (!isHidden && subMenus.length) {
-          subMenus.forEach(({menuId, btnId, btnText}) => {
-            getElement(menuId).style.display = 'none';
-            getElement(btnId).textContent = btnText;
-          });
-        }
-      }
-      
-      // 구글맵 메뉴 토글
-      function toggleGoogleMapMenu() {
-        toggleMenu('googleMapMenu', 'googleMapToggleBtn', '구글맵', [
-          {menuId: 'roadmapMenu', btnId: 'roadmapToggleBtn', btnText: '+일반'},
-          {menuId: 'satelliteMenu', btnId: 'satelliteToggleBtn', btnText: '+위성'}
-        ]);
-      }
-      // +일반 클릭 시 바로 일반지도를 로드하고, 하위에 지형만 보이도록
-      function toggleRoadmapMenuAndSetRoadmap() {
-        const menu = document.getElementById('roadmapMenu');
-        const btn = document.getElementById('roadmapToggleBtn');
-        if(menu.style.display === 'none') {
-          setMapType('roadmap');
-          menu.style.display = 'block';
-          btn.textContent = '-일반';
-        } else {
-          menu.style.display = 'none';
-          btn.textContent = '+일반';
-        }
-      }
-      // +위성 클릭 시 바로 위성지도를 로드하고, 하위에 하이브리드만 보이도록
-      function toggleSatelliteMenuAndSetSatellite() {
-        const menu = document.getElementById('satelliteMenu');
-        const btn = document.getElementById('satelliteToggleBtn');
-        if(menu.style.display === 'none') {
-          setMapType('satellite');
-          menu.style.display = 'block';
-          btn.textContent = '-위성';
-        } else {
-          menu.style.display = 'none';
-          btn.textContent = '+위성';
-        }
-      }
-      // 브이월드 메뉴 토글
-      function toggleVworldMenu() {
-        toggleMenu('vworldMenu', 'vworldToggleBtn', '브이월드');
-      }
-      
-      // 카카오맵 메뉴 토글
-      function toggleKakaoMapMenu() {
-        toggleMenu('kakaoMapMenu', 'kakaoMapToggleBtn', '카카오맵');
-      }
-      function loadKakaoMap(type) {
-        const container = document.getElementById('kakaoMapContainer');
-        const googleDiv = document.getElementById('map');
-        
-        if (!container || !googleDiv) {
-          console.log('카카오맵 컨테이너 또는 구글맵 div를 찾을 수 없습니다.');
-          return;
-        }
-        
-        const wasVisible = container.style.display !== 'none';
-        
-        // 컨테이너 전환
-        googleDiv.style.display = 'none';
-        container.style.display = 'block';
-        
-        // Kakao SDK 비동기 로드 후 지도 생성/업데이트
-        if (window.kakao && kakao.maps && kakao.maps.load) {
-          kakao.maps.load(function() {
-            try {
-              // 처음 카카오로 전환되는 순간에만 구글 중심/배율을 강제 동기화
-              createOrUpdateKakaoMap(type, !wasVisible);
-              updateActiveMapLabel();
-              ensureRoadviewInitialized();
-              attachOrDetachRoadviewClick();
-            } catch (e) {
-              console.log('카카오맵 생성/업데이트 오류:', e);
-            }
-          });
-        } else {
-          console.log('카카오맵 SDK가 로드되지 않았습니다.');
-        }
-      }
-      function showGoogleMap() {
-        const kakaoContainer = document.getElementById('kakaoMapContainer');
-        const googleDiv = document.getElementById('map');
-        
-        if (!googleDiv) return;
-        
-        // 카카오에서 구글로 전환 시 중심/배율 동기화
-        if (kakaoMap && kakaoContainer && kakaoContainer.style.display !== 'none') {
-          try {
-            const kc = kakaoMap.getCenter();
-            const kl = kakaoMap.getLevel();
-            const gZoom = kakaoLevelToGoogleZoom(kl);
-            if (map && map.setCenter && map.setZoom) {
-              map.setCenter({ lat: kc.getLat(), lng: kc.getLng() });
-              map.setZoom(gZoom);
-            }
-                  } catch (e) { 
-          // 카카오맵에서 구글맵으로 전환 시 동기화 오류 무시
-        }
-        }
-        
-        // 컨테이너 전환
-        if (kakaoContainer) kakaoContainer.style.display = 'none';
-        googleDiv.style.display = 'block';
-        
-        // 카카오맵 전환 시 정보창 제거
-        clearAddressInfoWindow();
-        
-        // 활성 지도 배지 업데이트
-        updateActiveMapLabel();
-        
-        // 구글로 전환 시 로드뷰 감춤
-        hideRoadview();
-        
-        // 카카오맵에서 지적도가 활성화되어 있었다면 구글맵에도 로드
-        if (cadastralOverlayMode === 'kakao' || kakaoCadastralOverlayEl) {
-          setTimeout(() => {
-            loadCadastralOverlay();
-          }, 500);
+        // WFS 레이어들 초기화
+        function initWFSLayers() {
+            // 지적도근점 레이어
+            controlPointLayer = createWFSLayer('controlpoint', 'lt_c_uq115', function(feature) {
+                const style = controlPointStyle.clone();
+                // 도근점 번호 표시
+                const pointNo = feature.get('point_no') || feature.get('cp_no') || '';
+                style.getText().setText(pointNo);
+                return style;
+            });
+
+            // 연속지적도 레이어
+            cadastralLayer = createWFSLayer('cadastral', 'lt_c_upis213', cadastralStyle);
+
+            wfsLayers = {
+                controlpoint: controlPointLayer,
+                cadastral: cadastralLayer
+            };
         }
 
-        // 카카오맵에서 지적도근점이 활성 상태였다면 구글맵에도 로드
-        if (controlPointOverlayMode === 'kakao' || kakaoControlPointOverlayEl) {
-          setTimeout(() => {
-            loadControlPointOverlay();
-          }, 600);
-        }
-      }
-      function isKakaoVisible() {
-        const container = document.getElementById('kakaoMapContainer');
-        return container && container.style.display !== 'none';
-      }
-      function createOrUpdateKakaoMap(type, syncFromGoogle) {
-        try {
-          const mapTypeId = (type === 'skyview') ? kakao.maps.MapTypeId.SKYVIEW : kakao.maps.MapTypeId.ROADMAP;
-          const centerFromGoogle = getCurrentCenter();
-          const gZoom = getGoogleZoom();
-          const levelFromGoogle = googleZoomToKakaoLevel(gZoom);
-          
-          if (!kakaoMap) {
-            const container = document.getElementById('kakaoMapDiv');
-            if (!container) {
-              console.log('카카오맵 div를 찾을 수 없습니다.');
-              return;
-            }
+        // 지도 초기화
+        function initMap() {
+            console.log('OpenLayers 지도 초기화 시작');
             
-            kakaoMap = new kakao.maps.Map(container, {
-              center: new kakao.maps.LatLng(centerFromGoogle.lat, centerFromGoogle.lng),
-              level: levelFromGoogle,
-              mapTypeId: mapTypeId
-            });
+            // WFS 레이어들 초기화
+            initWFSLayers();
             
-            attachOrDetachRoadviewClick();
-            // 우클릭 이벤트 리스너 추가
-            attachKakaoMapRightClick();
-          } else {
-            if (kakaoMap.setMapTypeId) {
-              kakaoMap.setMapTypeId(mapTypeId);
-            }
-            
-            if (syncFromGoogle && kakaoMap.setCenter && kakaoMap.setLevel) {
-              kakaoMap.setCenter(new kakao.maps.LatLng(centerFromGoogle.lat, centerFromGoogle.lng));
-              kakaoMap.setLevel(levelFromGoogle);
-            }
-          }
-          
-          // 컨테이너 표시 직후 리레이아웃
-          setTimeout(() => { 
-            if (kakaoMap && kakaoMap.relayout) {
-              kakaoMap.relayout(); 
-            }
-          }, 0);
-          
-          // 지적도가 활성 상태였다면 카카오에도 표시
-          if (cadastralOverlay || cadastralOverlayMode === 'google' || 
-              (cadastralOverlayMode === null && cadastralOverlay)) {
-            loadCadastralOverlayKakao();
-          }
-
-          // 지적도근점이 활성 상태였다면 카카오에도 표시
-          if (controlPointOverlay || controlPointOverlayMode === 'google' ||
-              (controlPointOverlayMode === null && controlPointOverlay)) {
-            loadControlPointOverlayKakao();
-          }
-          
-          // 구글에서 존재하는 마커를 카카오로 동기화
-          syncMarkersToKakao();
-          updateActiveMapLabel();
-          
-        } catch (e) {
-          console.log('카카오맵 생성/업데이트 중 오류:', e);
-        }
-      }
-
-      // 로드뷰 초기화/토글/갱신
-      function ensureRoadviewInitialized() {
-        const rvContainer = document.getElementById('roadview');
-        if (!rvContainer) return;
-        if (!kakaoRoadviewClient) kakaoRoadviewClient = new kakao.maps.RoadviewClient();
-        if (!kakaoRoadview) {
-          kakaoRoadview = new kakao.maps.Roadview(rvContainer);
-          // 로드뷰 위치 변화 시 지도/마커 동기화
-          kakao.maps.event.addListener(kakaoRoadview, 'position_changed', function() {
-            try {
-              const pos = kakaoRoadview.getPosition();
-              if (pos && kakaoMap) {
-                updateRoadviewMarkerPosition(pos);
-              }
-            } catch (e) { /* ignore */ }
-          });
-        }
-      }
-      function showRoadviewAtLatLng(lat, lng) {
-        ensureRoadviewInitialized();
-        if (!kakaoRoadviewClient || !kakaoRoadview) return;
-        const position = new kakao.maps.LatLng(lat, lng);
-        kakaoRoadviewClient.getNearestPanoId(position, 50, function(panoId) {
-          if (!!panoId) {
-            document.body.classList.add('rv-active');
-            kakaoRoadview.setPanoId(panoId, position);
-            updateRoadviewMarkerPosition(position);
-          } else {
-            alert('해당 위치 주변에 로드뷰가 없습니다.');
-          }
-        });
-      }
-      function toggleRoadview() {
-        if (!isKakaoVisible()) { alert('카카오맵을 먼저 활성화하세요.'); return; }
-        if (!isRoadviewClickMode) { openRoadview(); } else { closeRoadviewAll(); }
-      }
-      function openRoadview() {
-        isRoadviewClickMode = true;
-        document.body.classList.add('rv-active');
-        toggleRoadviewOverlay(true);
-        attachOrDetachRoadviewClick();
-      }
-      function closeRoadviewAll() {
-        isRoadviewClickMode = false;
-        document.body.classList.remove('rv-active');
-        toggleRoadviewOverlay(false);
-        attachOrDetachRoadviewClick();
-      }
-      
-      function hideRoadview() {
-        document.body.classList.remove('rv-active');
-      }
-      function attachOrDetachRoadviewClick() {
-        if (!kakaoMap) return;
-        // 기존 핸들러 제거 후 필요 시 부착
-        kakao.maps.event.removeListener(kakaoMap, 'click', onKakaoMapClickForRoadview);
-        kakao.maps.event.removeListener(kakaoMap, 'click', onKakaoMapClickForAddressInfo);
-        
-        if (isKakaoVisible() && isRoadviewClickMode) {
-          kakao.maps.event.addListener(kakaoMap, 'click', onKakaoMapClickForRoadview);
-        } else {
-          // 로드뷰 모드가 아닐 때만 주소 정보창 닫기 이벤트 추가
-          kakao.maps.event.addListener(kakaoMap, 'click', onKakaoMapClickForAddressInfo);
-        }
-      }
-      
-      // 카카오맵 우클릭 이벤트 리스너 부착
-      function attachKakaoMapRightClick() {
-        if (!kakaoMap) return;
-        kakao.maps.event.addListener(kakaoMap, 'rightclick', onKakaoMapRightClick);
-      }
-      // 구글맵 우클릭 이벤트 리스너 부착
-      function attachGoogleMapRightClick() {
-        if (!map || !map.addListener) return;
-        map.addListener('rightclick', onGoogleMapRightClick);
-        // 일반 클릭 시 정보창 닫기
-        map.addListener('click', function() {
-          clearAddressInfoWindow();
-        });
-      }
-      
-      // 카카오맵 클릭 핸들러 (주소 정보창 닫기용)
-      function onKakaoMapClickForAddressInfo() {
-        clearAddressInfoWindow();
-      }
-      
-      // 카카오맵 우클릭 이벤트 핸들러
-      function onKakaoMapRightClick(mouseEvent) {
-        const latlng = mouseEvent.latLng;
-        if (!latlng) return;
-        
-        // 기존 정보창과 마커 제거
-        clearAddressInfoWindow();
-        
-        // 클릭한 위치에 마커 표시
-        addressInfoMarker = new kakao.maps.Marker({
-          position: latlng,
-          map: kakaoMap
-        });
-        
-        // 주소 검색
-        searchAddressFromCoordinates(latlng.getLat(), latlng.getLng());
-      }
-      // 구글맵 우클릭 이벤트 핸들러
-      function onGoogleMapRightClick(mouseEvent) {
-        const latlng = mouseEvent && mouseEvent.latLng;
-        if (!latlng) return;
-        // 기존 정보창과 마커 제거
-        clearAddressInfoWindow();
-        // 클릭한 위치에 마커 표시
-        googleAddressInfoMarker = new google.maps.Marker({
-          position: latlng,
-          map: map
-        });
-        // 주소 검색
-        const lat = typeof latlng.lat === 'function' ? latlng.lat() : latlng.lat;
-        const lng = typeof latlng.lng === 'function' ? latlng.lng() : latlng.lng;
-        searchAddressFromCoordinates(lat, lng);
-      }
-      
-      // 한국 좌표계 변환 함수들
-      function determineKoreanCoordinateZone(longitude) {
-        // 경도에 따른 원점 자동 판별 (국토지리정보원 표준 2002년 이후)
-        if (longitude < 126) {
-          return { 
-            zone: '서부원점', 
-            centralMeridian: 125, 
-            epsg: 5185, 
-            name: 'Korea 2000 / West Belt',
-            y0: 600000 // falseY: 60000
-          };
-        } else if (longitude < 128) {
-          return { 
-            zone: '중부원점', 
-            centralMeridian: 127, 
-            epsg: 5186, 
-            name: 'Korea 2000 / Central Belt',
-            y0: 600000 // falseY: 60000
-          };
-        } else if (longitude < 130) {
-          return { 
-            zone: '동부원점', 
-            centralMeridian: 129, 
-            epsg: 5187, 
-            name: 'Korea 2000 / East Belt',
-            y0: 600000 // falseY: 60000
-          };
-        } else {
-          return { 
-            zone: '동해원점', 
-            centralMeridian: 131, 
-            epsg: 5188, 
-            name: 'Korea 2000 / East Sea Belt',
-            y0: 600000 // falseY: 60000
-          };
-        }
-      }
-      
-      function convertWGS84ToKoreanTM(latitude, longitude) {
-        // WGS84 경위도를 한국 TM 좌표계로 변환 (정확한 공식)
-        const zoneInfo = determineKoreanCoordinateZone(longitude);
-        
-        // GRS80 타원체 상수
-        const a = 6378137.0; // 장반경 (m)
-        const f = 1 / 298.257222101; // 편평률
-        const e2 = 2 * f - f * f; // 제1이심률의 제곱
-        
-        // TM 투영 상수
-        const k0 = 1.0; // 축척계수
-        const x0 = 200000; // falseEasting (m)
-        const y0 = zoneInfo.y0; // falseNorthing (m)
-        const lat0 = 38.0; // 원점 위도 (도)
-        
-        // 라디안 변환
-        const phi = latitude * Math.PI / 180; // 위도 (라디안)
-        const lambda = longitude * Math.PI / 180; // 경도 (라디안)
-        const lambda0 = zoneInfo.centralMeridian * Math.PI / 180; // 중앙경선 (라디안)
-        const phi0 = lat0 * Math.PI / 180; // 원점 위도 (라디안)
-        
-        // 경도차
-        const deltaLambda = lambda - lambda0;
-        
-        // 보조 함수들
-        const sin_phi = Math.sin(phi);
-        const cos_phi = Math.cos(phi);
-        const tan_phi = Math.tan(phi);
-        
-        const sin2_phi = sin_phi * sin_phi;
-        const cos2_phi = cos_phi * cos_phi;
-        const tan2_phi = tan_phi * tan_phi;
-        
-        // 곡률반경
-        const nu = a / Math.sqrt(1 - e2 * sin2_phi); // 주곡률반경
-        const rho = a * (1 - e2) / Math.pow(1 - e2 * sin2_phi, 1.5); // 자오선곡률반경
-        
-        // 보조 변수
-        const eta2 = (e2 * cos2_phi) / (1 - e2);
-        
-        // 자오선호장 계산 (M)
-        const A0 = a * (1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256);
-        const A2 = a * (3*e2/8 + 3*e2*e2/32 + 45*e2*e2*e2/1024);
-        const A4 = a * (15*e2*e2/256 + 45*e2*e2*e2/1024);
-        const A6 = a * (35*e2*e2*e2/3072);
-        
-        const M = A0 * phi - A2 * Math.sin(2*phi) + A4 * Math.sin(4*phi) - A6 * Math.sin(6*phi);
-        const M0 = A0 * phi0 - A2 * Math.sin(2*phi0) + A4 * Math.sin(4*phi0) - A6 * Math.sin(6*phi0);
-        
-        // TM 투영 계산
-        const T1 = (M - M0) * k0;
-        const T2 = nu * sin_phi * cos_phi * k0 / 2;
-        const T3 = nu * sin_phi * cos2_phi * cos_phi * k0 * (5 - tan2_phi + 9*eta2 + 4*eta2*eta2) / 24;
-        const T4 = nu * sin_phi * cos2_phi * cos2_phi * cos_phi * k0 * 
-                   (61 - 58*tan2_phi + tan2_phi*tan2_phi + 600*eta2 - 330*eta2*tan2_phi) / 720;
-        
-        const T5 = nu * cos_phi * k0;
-        const T6 = nu * cos2_phi * cos_phi * k0 * (1 - tan2_phi + eta2) / 6;
-        const T7 = nu * cos2_phi * cos2_phi * cos_phi * k0 * 
-                   (5 - 18*tan2_phi + tan2_phi*tan2_phi + 72*eta2 - 58*eta2*tan2_phi) / 120;
-        
-        // 최종 좌표 계산
-        const x = x0 + T5 * deltaLambda + T6 * Math.pow(deltaLambda, 3) + T7 * Math.pow(deltaLambda, 5);
-        const y = y0 + T1 + T2 * deltaLambda * deltaLambda + T3 * Math.pow(deltaLambda, 4) + T4 * Math.pow(deltaLambda, 6);
-        
-        return {
-          x: Math.round(x * 1000) / 1000, // 소수점 셋째자리까지
-          y: Math.round(y * 1000) / 1000,
-          zone: zoneInfo.zone,
-          epsg: zoneInfo.epsg,
-          centralMeridian: zoneInfo.centralMeridian
-        };
-      }
-      
-      // 테스트용 좌표 변환 검증 함수
-      function testCoordinateConversion() {
-        const testLat = 37.617300;
-        const testLng = 126.719286;
-        const expectedX = 175216.503;
-        const expectedY = 557560.991;
-        
-        const result = convertWGS84ToKoreanTM(testLat, testLng);
-        console.log('테스트 결과:');
-        console.log(`입력: 위도 ${testLat}, 경도 ${testLng}`);
-        console.log(`출력: X ${result.x}, Y ${result.y}`);
-        console.log(`예상: X ${expectedX}, Y ${expectedY}`);
-        console.log(`차이: X ${Math.abs(result.x - expectedX).toFixed(3)}, Y ${Math.abs(result.y - expectedY).toFixed(3)}`);
-        console.log(`사용된 원점: ${result.zone} (EPSG:${result.epsg})`);
-        
-        return result;
-      }
-      
-      // 페이지 로드 시 테스트 실행
-      window.addEventListener('load', function() {
-        setTimeout(testCoordinateConversion, 1000);
-      });
-      
-      // 좌표로 주소 검색
-      async function searchAddressFromCoordinates(lat, lng) {
-        try {
-          const response = await fetch(`https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${lng}&y=${lat}`, {
-            headers: { 
-              'Authorization': 'KakaoAK c27024d37ac99abf233b12f0efa39099' 
-            }
-          });
-          
-          if (!response.ok) throw new Error('HTTP ' + response.status);
-          
-          const data = await response.json();
-          if (data.documents && data.documents.length > 0) {
-            const doc = data.documents[0];
-            showAddressInfoWindow(lat, lng, doc);
-          } else {
-            showAddressInfoWindow(lat, lng, null);
-          }
-        } catch (error) {
-          console.log('주소 검색 오류:', error);
-          showAddressInfoWindow(lat, lng, null);
-        }
-      }
-      
-      // 주소 정보창 표시 (카카오/구글 공용)
-      function showAddressInfoWindow(lat, lng, addressDoc) {
-        // 기존 정보창 제거
-        clearAddressInfoWindow();
-        
-        // 한국 좌표계로 변환
-        const koreanCoords = convertWGS84ToKoreanTM(lat, lng);
-        
-        // 정보창 내용 생성 (공통)
-        let innerContent = `
-            <div style="font-weight: bold; margin-bottom: 8px; color: #000;">
-              클릭한 위치
-            </div>
-            <div style="font-size: 12px; color: #000; margin-bottom: 8px;">
-              <strong>${koreanCoords.zone}:</strong><br>
-              X: ${koreanCoords.x.toLocaleString()} m<br>
-              Y: ${koreanCoords.y.toLocaleString()} m<br>
-              <span style="color: #666; font-size: 11px;">EPSG:${koreanCoords.epsg}</span>
-            </div>
-        `;
-        
-        if (addressDoc) {
-          const jibun = addressDoc.address && addressDoc.address.address_name;
-          innerContent += `
-            <div style="border-top: 1px solid #000; padding-top: 8px;">
-              <div style="font-weight: bold; color: #000; margin-bottom: 4px;">
-                지번명 주소
-              </div>
-              <div style="font-size: 12px; color: #000;">
-                ${jibun || '주소 정보 없음'}
-              </div>
-            </div>
-          `;
-        } else {
-          innerContent += `
-            <div style="border-top: 1px solid #000; padding-top: 8px;">
-              <div style="font-size: 12px; color: #000;">
-                주소 정보를 찾을 수 없습니다.
-              </div>
-            </div>
-          `;
-        }
-        
-        // 모든 맵에서 카카오맵 스타일 사용 (CustomOverlay 형식)
-        const customContent = `<div class="custom-info-window">${innerContent}</div>`;
-        
-        // 활성 맵에 맞춰 정보창 생성 및 표시
-        if (isKakaoVisible() && kakaoMap) {
-          // 카카오맵에서 CustomOverlay 사용
-          addressInfoWindow = new kakao.maps.CustomOverlay({
-            content: customContent,
-            position: new kakao.maps.LatLng(lat, lng),
-            yAnchor: 1,
-            xAnchor: 0.5,
-            zIndex: 10
-          });
-          addressInfoWindow.setMap(kakaoMap);
-        } else if (map) {
-          // 구글맵에서도 카카오맵과 동일한 CustomOverlay 스타일 구현
-          class GoogleCustomOverlay extends google.maps.OverlayView {
-            constructor(position, content) {
-              super();
-              this.position = position;
-              this.content = content;
-              this.div = null;
-            }
-            
-            onAdd() {
-              const div = document.createElement('div');
-              div.innerHTML = this.content;
-              div.style.position = 'absolute';
-              div.style.zIndex = '1000';
-              div.id = 'googleCustomInfoWindow';
-              
-              this.div = div;
-              const panes = this.getPanes();
-              panes.overlayMouseTarget.appendChild(div);
-            }
-            
-            draw() {
-              const overlayProjection = this.getProjection();
-              const point = overlayProjection.fromLatLngToDivPixel(this.position);
-              
-              if (point && this.div) {
-                this.div.style.left = (point.x - 100) + 'px'; // 중앙 정렬
-                this.div.style.top = (point.y - this.div.offsetHeight - 15) + 'px'; // 마커 위에 표시
-              }
-            }
-            
-            onRemove() {
-              if (this.div && this.div.parentNode) {
-                this.div.parentNode.removeChild(this.div);
-                this.div = null;
-              }
-            }
-          }
-          
-          // 기존 오버레이 제거
-          if (googleAddressInfoWindow && googleAddressInfoWindow.setMap) {
-            googleAddressInfoWindow.setMap(null);
-          }
-          
-          // 새 커스텀 오버레이 생성
-          googleAddressInfoWindow = new GoogleCustomOverlay(
-            new google.maps.LatLng(lat, lng),
-            customContent
-          );
-          googleAddressInfoWindow.setMap(map);
-        }
-      }
-      
-      // 주소 정보창 제거 (카카오/구글 공용)
-      function clearAddressInfoWindow() {
-        // 카카오
-        if (addressInfoWindow) {
-          addressInfoWindow.setMap(null);
-          addressInfoWindow = null;
-        }
-        if (addressInfoMarker) {
-          addressInfoMarker.setMap(null);
-          addressInfoMarker = null;
-        }
-        // 구글 (CustomOverlay 제거)
-        if (googleAddressInfoWindow) {
-          if (googleAddressInfoWindow.setMap) {
-            googleAddressInfoWindow.setMap(null);
-          } else if (googleAddressInfoWindow.close) {
-            googleAddressInfoWindow.close();
-          }
-          googleAddressInfoWindow = null;
-        }
-        
-        if (googleAddressInfoMarker) {
-          googleAddressInfoMarker.setMap(null);
-          googleAddressInfoMarker = null;
-        }
-      }
-      function onKakaoMapClickForRoadview(mouseEvent) {
-        const latlng = mouseEvent.latLng;
-        if (!latlng) return;
-        showRoadviewAtLatLng(latlng.getLat(), latlng.getLng());
-      }
-
-      // 지도 위 로드뷰 오버레이/마커
-      function toggleRoadviewOverlay(active) {
-        if (!kakaoMap) return;
-        if (active) {
-          if (!roadviewOverlayOn) {
-            kakaoMap.addOverlayMapTypeId(kakao.maps.MapTypeId.ROADVIEW);
-            roadviewOverlayOn = true;
-          }
-          // 마커 준비
-          if (!roadviewMarker) {
-            const markImage = new kakao.maps.MarkerImage(
-              'https://t1.daumcdn.net/localimg/localimages/07/2018/pc/roadview_minimap_wk_2018.png',
-              new kakao.maps.Size(26, 46),
-              {
-                spriteSize: new kakao.maps.Size(1666, 168),
-                spriteOrigin: new kakao.maps.Point(705, 114),
-                offset: new kakao.maps.Point(13, 46)
-              }
-            );
-            roadviewMarker = new kakao.maps.Marker({ image: markImage, draggable: true });
-            kakao.maps.event.addListener(roadviewMarker, 'dragend', function() {
-              const pos = roadviewMarker.getPosition();
-              if (pos) showRoadviewAtLatLng(pos.getLat(), pos.getLng());
+            // 마커용 벡터 소스와 레이어
+            vectorSource = new ol.source.Vector();
+            vectorLayer = new ol.layer.Vector({
+                source: vectorSource,
+                style: new ol.style.Style({
+                    image: new ol.style.Icon({
+                        anchor: [0.5, 1],
+                        src: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDOC4xMyAyIDUgNS4xMyA1IDlDNSAxNC4yNSAxMiAyMiAxMiAyMkMxMiAyMiAxOSAxNC4yNSAxOSA5QzE5IDUuMTMgMTUuODcgMiAxMiAyWk0xMiAxMS41QzEwLjYyIDExLjUgOS41IDEwLjM4IDkuNSA5QzkuNSA3LjYyIDEwLjYyIDYuNSAxMiA2LjVDMTMuMzggNi41IDE0LjUgNy42MiAxNC41IDlDMTQuNSAxMC4zOCAxMy4zOCAxMS41IDEyIDExLjVaIiBmaWxsPSIjZTc0YzNjIi8+Cjwvc3ZnPgo=',
+                        scale: 1.5
+                    })
+                })
             });
-          }
-          if (roadviewMarker && !roadviewMarker.getMap()) {
-            roadviewMarker.setMap(kakaoMap);
-            roadviewMarker.setPosition(kakaoMap.getCenter());
-          }
-        } else {
-          if (roadviewOverlayOn) {
-            kakaoMap.removeOverlayMapTypeId(kakao.maps.MapTypeId.ROADVIEW);
-            roadviewOverlayOn = false;
-          }
-          if (roadviewMarker) roadviewMarker.setMap(null);
-          hideRoadview();
-        }
-      }
-      function updateRoadviewMarkerPosition(latlng) {
-        if (!kakaoMap) return;
-        if (roadviewMarker && roadviewOverlayOn) {
-          roadviewMarker.setMap(kakaoMap);
-          roadviewMarker.setPosition(latlng);
-        }
-      }
-      function syncMarkersToKakao() {
-        try {
-          if (!kakaoMap) return;
-          
-          // 기존 카카오 마커 제거
-          if (kakaoMarkers && kakaoMarkers.length) {
-            kakaoMarkers.forEach(m => {
-              try {
-                if (m && m.setMap) m.setMap(null);
-              } catch (e) { /* ignore individual marker errors */ }
+
+            // 지도 생성
+            map = new ol.Map({
+                target: 'map',
+                layers: [
+                    vworldLayers.Base,  // 기본 레이어
+                    cadastralLayer,     // 연속지적도 레이어
+                    controlPointLayer,  // 지적도근점 레이어
+                    vectorLayer         // 마커 레이어
+                ],
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([126.9780, 37.5665]), // 서울시청
+                    zoom: 10
+                })
             });
-            kakaoMarkers = [];
-          }
-          
-          // 구글 마커를 카카오 마커로 복제
-          if (addressMarkers && addressMarkers.length) {
-            addressMarkers.forEach(gm => {
-              try {
-                if (!gm || !gm.getPosition) return;
+
+            // 지도 클릭 이벤트
+            map.on('click', function(evt) {
+                const coordinate = evt.coordinate;
+                const lonLat = ol.proj.toLonLat(coordinate);
                 
-                const pos = gm.getPosition();
-                if (!pos) return;
+                updateCoordinateDisplay(lonLat[0], lonLat[1]);
                 
-                const lat = typeof pos.lat === 'function' ? pos.lat() : (pos.lat || null);
-                const lng = typeof pos.lng === 'function' ? pos.lng() : (pos.lng || null);
+                // 클릭된 피처 확인
+                const features = map.getFeaturesAtPixel(evt.pixel);
                 
-                if (lat == null || lng == null) return;
-                
-                const marker = new kakao.maps.Marker({
-                  position: new kakao.maps.LatLng(lat, lng),
-                  map: kakaoMap
-                });
-                
-                kakao.maps.event.addListener(marker, 'click', function() { 
-                  removeSpecificKakaoMarker(marker); 
-                });
-                
-                kakaoMarkers.push(marker);
-              } catch (e) { 
-                console.log('개별 마커 동기화 오류:', e);
-              }
-            });
-          }
-        } catch (e) {
-          console.log('마커 동기화 중 오류:', e);
-        }
-      }
-      function getCurrentCenter() {
-        let centerLat = 37.5665;
-        let centerLng = 126.9780;
-        
-        try {
-          if (map && map.getCenter) {
-            const c = map.getCenter();
-            if (c) {
-              centerLat = (typeof c.lat === 'function') ? c.lat() : c.lat;
-              centerLng = (typeof c.lng === 'function') ? c.lng() : c.lng;
-            }
-          }
-        } catch (e) {
-          console.log('구글맵 중심점 가져오기 오류:', e);
-        }
-        
-        return { lat: centerLat, lng: centerLng };
-      }
-      async function searchAddress() {
-        const query = document.getElementById('addressInput').value;
-        if (!query) {
-          alert('검색어를 입력하세요.');
-          return;
-        }
-
-        try {
-          // 1) 장소(키워드) 검색을 우선 시도
-          let centerLng = null;
-          let centerLat = null;
-          if (map && map.getCenter) {
-            const c = map.getCenter();
-            if (c) {
-              centerLat = typeof c.lat === 'function' ? c.lat() : c.lat;
-              centerLng = typeof c.lng === 'function' ? c.lng() : c.lng;
-            }
-          }
-
-          const keywordParams = new URLSearchParams({ query, size: '15' });
-          if (centerLng != null && centerLat != null) {
-            keywordParams.set('x', String(centerLng));
-            keywordParams.set('y', String(centerLat));
-            keywordParams.set('radius', '20000'); // 20km 우선
-          }
-          const keywordUrl = 'https://dapi.kakao.com/v2/local/search/keyword.json?' + keywordParams.toString();
-          let res = await fetch(keywordUrl, {
-            headers: { Authorization: 'KakaoAK c27024d37ac99abf233b12f0efa39099' }
-          });
-          if (!res.ok) throw new Error('HTTP ' + res.status + ' (keyword)');
-          let data = await res.json();
-          let documents = Array.isArray(data && data.documents) ? data.documents : [];
-          let usedMode = 'keyword';
-
-          // 2) 키워드 결과가 없으면 지도 위치 제약 없이 전국 검색 재시도
-          if (documents.length === 0) {
-            const globalKeywordUrl = 'https://dapi.kakao.com/v2/local/search/keyword.json?query=' + encodeURIComponent(query) + '&size=15';
-            res = await fetch(globalKeywordUrl, {
-              headers: { Authorization: 'KakaoAK c27024d37ac99abf233b12f0efa39099' }
-            });
-            if (!res.ok) throw new Error('HTTP ' + res.status + ' (keyword-global)');
-            data = await res.json();
-            documents = Array.isArray(data && data.documents) ? data.documents : [];
-          }
-
-          // 3) 그래도 없으면 주소 검색으로 폴백
-          if (documents.length === 0) {
-            const addressUrl = 'https://dapi.kakao.com/v2/local/search/address.json?query=' + encodeURIComponent(query);
-            res = await fetch(addressUrl, {
-              headers: { Authorization: 'KakaoAK c27024d37ac99abf233b12f0efa39099' }
-            });
-            if (!res.ok) throw new Error('HTTP ' + res.status + ' (address)');
-            data = await res.json();
-            documents = Array.isArray(data && data.documents) ? data.documents : [];
-            usedMode = 'address';
-          }
-
-          if (!documents || documents.length === 0) {
-            alert('검색 결과가 없습니다.');
-            return;
-          }
-
-          // 3) 결과 목록을 패널에 렌더링하고 사용자 선택을 기다림
-          showSearchResults(documents, usedMode);
-        } catch (e) {
-          alert('검색 중 오류가 발생했습니다: ' + e.message);
-        }
-      }
-
-      function showSearchResults(documents, mode) {
-        lastSearchResults = documents.slice(0, 20);
-        lastSearchMode = mode;
-        const list = document.getElementById('searchResultsList');
-        if (!list) return;
-        list.innerHTML = '';
-        lastSearchResults.forEach((doc, idx) => {
-          const item = document.createElement('div');
-          item.className = 'search-result-item';
-          item.dataset.index = String(idx);
-          const title = mode === 'keyword' ? (doc.place_name || '') : (doc.address_name || '');
-          const sub = mode === 'keyword' ? (doc.road_address_name || doc.address_name || '') : ((doc.road_address && doc.road_address.address_name) || '');
-          item.innerHTML = `
-            <p class="result-title">${idx + 1}. ${title || '(이름 없음)'}</p>
-            <p class="result-sub">${sub}</p>
-          `;
-          item.addEventListener('click', () => selectSearchResult(idx));
-          list.appendChild(item);
-        });
-        const panel = document.getElementById('searchResultsPanel');
-        if (panel) panel.style.display = 'block';
-      }
-
-      function hideSearchResults() {
-        const panel = document.getElementById('searchResultsPanel');
-        if (panel) panel.style.display = 'none';
-        const list = document.getElementById('searchResultsList');
-        if (list) list.innerHTML = '';
-        lastSearchResults = [];
-      }
-
-      function selectSearchResult(index) {
-        const doc = lastSearchResults[index];
-        if (!doc) return;
-        const lat = parseFloat(doc.y);
-        const lng = parseFloat(doc.x);
-        if (isNaN(lat) || isNaN(lng)) return;
-        const position = { lat, lng };
-
-        const title = lastSearchMode === 'keyword' ? (doc.place_name || '') : (doc.address_name || '');
-
-        if (isKakaoVisible() && kakaoMap) {
-          kakaoMap.setCenter(new kakao.maps.LatLng(position.lat, position.lng));
-          // 구글 줌 16과 유사한 카카오 레벨로 설정
-          kakaoMap.setLevel(googleZoomToKakaoLevel(16));
-          const marker = new kakao.maps.Marker({
-            position: new kakao.maps.LatLng(position.lat, position.lng),
-            map: kakaoMap,
-            title
-          });
-          kakao.maps.event.addListener(marker, 'click', function() { removeSpecificKakaoMarker(marker); });
-          kakaoMarkers.push(marker);
-        } else {
-          map.setCenter(position);
-          map.setZoom(16);
-          const newMarker = new google.maps.Marker({
-            position,
-            map,
-            title,
-            animation: google.maps.Animation.DROP
-          });
-          newMarker.addListener('click', function () { removeSpecificMarker(newMarker); });
-          addressMarkers.push(newMarker);
-        }
-
-        hideSearchResults();
-      }
-      
-      // 특정 마커 제거 함수
-      function removeSpecificMarker(marker) {
-        if (marker) {
-          marker.setMap(null);
-          // 배열에서 해당 마커 제거
-          const index = addressMarkers.indexOf(marker);
-          if (index > -1) {
-            addressMarkers.splice(index, 1);
-          }
-        }
-      }
-      function removeSpecificKakaoMarker(marker) {
-        if (marker) {
-          marker.setMap && marker.setMap(null);
-          const idx = kakaoMarkers.indexOf(marker);
-          if (idx > -1) kakaoMarkers.splice(idx, 1);
-        }
-      }
-      
-      // 모든 주소 마커 제거 함수
-      function clearAllAddressMarkers() {
-        addressMarkers.forEach(marker => {
-          marker.setMap(null);
-        });
-        addressMarkers = [];
-        if (kakaoMarkers && kakaoMarkers.length) {
-          kakaoMarkers.forEach(m => m.setMap && m.setMap(null));
-          kakaoMarkers = [];
-        }
-        document.getElementById('addressInput').value = '';
-      }
-      // 사이드 패널 토글 함수
-      function hideMenu() {
-        getElement('customMapMenu').classList.add('hide');
-        getElement('menuToggleBtn').classList.add('show');
-      }
-      function showMenu() {
-        getElement('customMapMenu').classList.remove('hide');
-        getElement('menuToggleBtn').classList.remove('show');
-      }
-      
-      // 브이월드 경계 메뉴 토글
-      function toggleVworldBoundaryMenu() {
-        toggleMenu('vworldBoundaryMenu', 'vworldBoundaryToggleBtn', '법정경계');
-      }
-      
-      // 브이월드 경계 로드 함수
-      function loadVworldBoundary(layerType) {
-        if (!map) {
-          alert('지도가 아직 준비되지 않았습니다.');
-          return;
-        }
-        
-        // WFS로 전환: 법정경계 GeoJSON 불러오기
-        showGoogleMap();
-        clearVworldBoundary();
-        clearDataLayer('boundary');
-
-        const bounds = map.getBounds();
-        if (!bounds) { alert('지도 영역을 확정할 수 없습니다. 지도를 이동한 후 다시 시도해주세요.'); return; }
-        const ne = bounds.getNorthEast();
-        const sw = bounds.getSouthWest();
-        const bboxWgs84 = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`; // WFS 규격에 맞춤
-
-        const params = new URLSearchParams({
-          key: CONFIG.VWORLD_API_KEY,
-          typename: layerType === 'lt_c_adsigg' ? 'dt_d001_sig' : (layerType === 'lt_c_ademd' ? 'dt_d001_emd' : 'dt_d001_ri'),
-          bbox: bboxWgs84,
-          srsName: 'EPSG:4326',
-          maxFeatures: '1000',
-          resultType: 'results',
-          output: 'application/json',
-          domain: CONFIG.SERVICE_DOMAIN
-        });
-        const url = `${CONFIG.VWORLD_WFS_BOUNDARY_URL}?${params.toString()}`;
-
-        fetch(url)
-          .then(async (res) => {
-            if (!res.ok) throw { status: res.status, message: 'HTTP 오류' };
-            const data = await res.json();
-            if (!data || !data.features) throw { message: '유효하지 않은 WFS 응답(GeoJSON 아님)' };
-            resetAndAddGeoJson('boundary', data, () => ({
-              fillColor: '#3b82f6', fillOpacity: 0.08,
-              strokeColor: '#1d4ed8', strokeWeight: 1.2
-            }));
-            currentBoundaryLayer = layerType;
-            updateBoundaryMenuState(layerType);
-          })
-          .catch(err => {
-            showWfsError('법정경계', err);
-          });
-      }
-      
-      // 브이월드 경계 제거 함수
-      function clearVworldBoundary() {
-        if (vworldBoundaryOverlay) {
-          vworldBoundaryOverlay.setMap(null);
-          vworldBoundaryOverlay = null;
-        }
-        currentBoundaryLayer = null;
-        updateBoundaryMenuState(null);
-      }
-      
-      // 경계 메뉴 상태 업데이트
-      function updateBoundaryMenuState(activeLayer) {
-        const buttons = document.querySelectorAll('#vworldBoundaryMenu button');
-        buttons.forEach(btn => {
-          btn.style.background = '#f7f7f7';
-          btn.style.color = '#333';
-        });
-        
-        if (activeLayer) {
-          const activeBtn = document.querySelector(`#vworldBoundaryMenu button[onclick*="${activeLayer}"]`);
-          if (activeBtn) {
-            activeBtn.style.background = '#e0e7ff';
-            activeBtn.style.color = '#1d4ed8';
-          }
-        }
-      }
-      
-      // 경계 오버레이 업데이트 함수
-      function updateBoundaryOverlay() {
-        // 경계는 이제 WFS로 갱신
-        if (!currentBoundaryLayer || !map) return;
-        const bounds = map.getBounds();
-        if (!bounds) return;
-        const ne = bounds.getNorthEast();
-        const sw = bounds.getSouthWest();
-        const bboxWgs84 = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`;
-        const typename = currentBoundaryLayer === 'lt_c_adsigg' ? 'dt_d001_sig' : (currentBoundaryLayer === 'lt_c_ademd' ? 'dt_d001_emd' : 'dt_d001_ri');
-        const params = new URLSearchParams({
-          key: CONFIG.VWORLD_API_KEY,
-          typename: typename,
-          bbox: bboxWgs84,
-          srsName: 'EPSG:4326',
-          maxFeatures: '1000',
-          resultType: 'results',
-          output: 'application/json',
-          domain: CONFIG.SERVICE_DOMAIN
-        });
-        const url = `${CONFIG.VWORLD_WFS_BOUNDARY_URL}?${params.toString()}`;
-        fetch(url)
-          .then(async (res) => {
-            if (!res.ok) throw { status: res.status, message: 'HTTP 오류' };
-            const data = await res.json();
-            if (!data || !data.features) throw { message: '유효하지 않은 WFS 응답(GeoJSON 아님)' };
-            resetAndAddGeoJson('boundary', data, () => ({
-              fillColor: '#3b82f6', fillOpacity: 0.08,
-              strokeColor: '#1d4ed8', strokeWeight: 1.2
-            }));
-          })
-          .catch(err => showWfsError('법정경계(갱신)', err));
-      }
-      function loadCadastralOverlay() {
-        // 카카오맵이 보이는 경우 기존 카카오 방식은 유지(요구시 별도 전환)
-        if (isKakaoVisible()) { loadCadastralOverlayKakao(); return; }
-        if (!map) { alert('지도가 아직 준비되지 않았습니다.'); return; }
-        clearCadastralOverlay();
-        clearDataLayer('cadastral');
-
-        const bounds = map.getBounds();
-        if (!bounds) { alert('지도 영역을 확정할 수 없습니다. 지도를 이동한 후 다시 시도해주세요.'); return; }
-        const ne = bounds.getNorthEast();
-        const sw = bounds.getSouthWest();
-        const bboxWgs84 = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`;
-
-        const params = new URLSearchParams({
-          key: CONFIG.VWORLD_API_KEY,
-          typename: 'dt_d002',
-          bbox: bboxWgs84,
-          srsName: 'EPSG:4326',
-          maxFeatures: '1000',
-          resultType: 'results',
-          output: 'application/json',
-          domain: CONFIG.SERVICE_DOMAIN
-        });
-        const url = `${CONFIG.VWORLD_WFS_CADASTRAL_URL}?${params.toString()}`;
-        fetch(url)
-          .then(async (res) => {
-            if (!res.ok) throw { status: res.status, message: 'HTTP 오류' };
-            const data = await res.json();
-            if (!data || !data.features) throw { message: '유효하지 않은 WFS 응답(GeoJSON 아님)' };
-            resetAndAddGeoJson('cadastral', data, () => ({
-              fillColor: '#ef4444', fillOpacity: 0.05,
-              strokeColor: '#b91c1c', strokeWeight: 1
-            }));
-            cadastralOverlayMode = null;
-            updateCadastralButtonState(true);
-          })
-          .catch(err => showWfsError('연속지적도', err));
-      }
-      function clearCadastralOverlay() {
-        // 카카오 지적도 제거 우선 처리
-        if (kakaoCadastralOverlayEl) {
-          clearCadastralOverlayKakao();
-        }
-        if (cadastralOverlay) {
-          cadastralOverlay.setMap(null);
-          cadastralOverlay = null;
-        }
-        // 구글 지적도 모드 해제
-        if (cadastralOverlayMode === 'google') {
-          cadastralOverlayMode = null;
-        }
-        // 버튼 상태 업데이트
-        updateCadastralButtonState(false);
-      }
-      
-      // 연속지적도 토글 함수
-      function toggleCadastralOverlay() {
-        if (isKakaoVisible()) {
-          // 카카오맵 표시 상태
-          if (kakaoCadastralOverlayEl) {
-            clearCadastralOverlayKakao();
-          } else {
-            loadCadastralOverlayKakao();
-          }
-        } else {
-          // 구글맵 표시 상태
-          if (cadastralOverlay) {
-            clearCadastralOverlay();
-          } else {
-            loadCadastralOverlay();
-          }
-        }
-      }
-      
-      // 연속지적도 버튼 상태 업데이트 함수
-      function updateCadastralButtonState(isLoaded) {
-        const btn = document.getElementById('cadastralToggleBtn');
-        if (isLoaded) {
-          btn.textContent = '-지적도제거';
-          btn.style.background = '#e0e7ff';
-          btn.style.color = '#1d4ed8';
-        } else {
-          btn.textContent = '+연속지적도';
-          btn.style.background = '#f7f7f7';
-          btn.style.color = '#333';
-        }
-      }
-
-      // 지적도근점 토글/로드/제거/갱신 (구글)
-      function toggleControlPointOverlay() {
-        if (isKakaoVisible()) {
-          if (kakaoControlPointOverlayEl) {
-            clearControlPointOverlayKakao();
-          } else {
-            loadControlPointOverlayKakao();
-          }
-        } else {
-          if (controlPointOverlay) {
-            clearControlPointOverlay();
-          } else {
-            loadControlPointOverlay();
-          }
-        }
-      }
-
-      function updateControlPointButtonState(isLoaded) {
-        const btn = document.getElementById('controlPointToggleBtn');
-        if (!btn) return;
-        if (isLoaded) {
-          btn.textContent = '-지적도근점제거';
-          btn.style.background = '#e0e7ff';
-          btn.style.color = '#1d4ed8';
-        } else {
-          btn.textContent = '+지적도근점';
-          btn.style.background = '#f7f7f7';
-          btn.style.color = '#333';
-        }
-      }
-
-      function loadControlPointOverlay() {
-        if (!map) { alert('지도가 아직 준비되지 않았습니다.'); return; }
-        const bounds = map.getBounds();
-        if (!bounds) { alert('지도 영역을 확정할 수 없습니다. 지도를 이동한 후 다시 시도해주세요.'); return; }
-
-        clearControlPointOverlay();
-        clearDataLayer('controlPoint');
-
-        const ne = bounds.getNorthEast();
-        const sw = bounds.getSouthWest();
-        const bboxWgs84 = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`;
-
-        const params = new URLSearchParams({
-          key: CONFIG.VWORLD_API_KEY,
-          typename: 'dt_d007',
-          bbox: bboxWgs84,
-          srsName: 'EPSG:4326',
-          maxFeatures: '1000',
-          resultType: 'results',
-          output: 'application/json',
-          domain: CONFIG.SERVICE_DOMAIN
-        });
-        const url = `${CONFIG.VWORLD_WFS_CONTROLPOINT_URL}?${params.toString()}`;
-
-        fetch(url)
-          .then(async (res) => {
-            if (!res.ok) throw { status: res.status, message: 'HTTP 오류' };
-            const data = await res.json();
-            if (!data || !data.features) throw { message: '유효하지 않은 WFS 응답(GeoJSON 아님)' };
-            resetAndAddGeoJson('controlPoint', data, (feature) => ({
-              icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 3,
-                fillColor: '#a21caf',
-                fillOpacity: 1,
-                strokeColor: '#701a75',
-                strokeWeight: 1
-              }
-            }));
-            controlPointOverlayMode = null;
-            updateControlPointButtonState(true);
-          })
-          .catch(err => showWfsError('지적도근점', err));
-      }
-
-      function updateControlPointOverlay() {
-        if (!map || !controlPointOverlay) return;
-        const bounds = map.getBounds();
-        if (!bounds) return;
-        const ne = bounds.getNorthEast();
-        const sw = bounds.getSouthWest();
-        const bbox = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()}`;
-        const mapDiv = document.getElementById('map');
-        const width = mapDiv.offsetWidth;
-        const height = mapDiv.offsetHeight;
-
-        const params = new URLSearchParams({
-          key: CONFIG.VWORLD_API_KEY,
-          layers: 'dt_d007',
-          crs: 'EPSG:4326',
-          bbox: bbox,
-          width: String(width),
-          height: String(height),
-          format: 'image/png',
-          transparent: 'true'
-        });
-        const fullUrl = `${CONFIG.VWORLD_CONTROL_POINT_WMS_URL}?${params.toString()}`;
-
-        controlPointOverlay.setMap(null);
-        const imageBounds = new google.maps.LatLngBounds(
-          new google.maps.LatLng(sw.lat(), sw.lng()),
-          new google.maps.LatLng(ne.lat(), ne.lng())
-        );
-        controlPointOverlay = new google.maps.GroundOverlay(fullUrl, imageBounds, {
-          opacity: 1.0,
-          clickable: false
-        });
-        controlPointOverlay.setMap(map);
-        // 구글 GroundOverlay 이미지에 마젠타 필터 적용
-        applyControlPointMagentaFilter();
-      }
-
-      function clearControlPointOverlay() {
-        if (controlPointOverlay) {
-          controlPointOverlay.setMap(null);
-          controlPointOverlay = null;
-        }
-        if (controlPointOverlayMode === 'google') controlPointOverlayMode = null;
-        updateControlPointButtonState(false);
-      }
-
-      // 지적도근점(카카오)
-      function loadControlPointOverlayKakao() {
-        if (!kakaoMap) { alert('카카오맵이 아직 준비되지 않았습니다.'); return; }
-        const mapDiv = document.getElementById('kakaoMapDiv');
-        if (!mapDiv) return;
-        const bounds = kakaoMap.getBounds();
-        if (!bounds) return;
-        const sw = bounds.getSouthWest();
-        const ne = bounds.getNorthEast();
-        const bbox = `${sw.getLat()},${sw.getLng()},${ne.getLat()},${ne.getLng()}`; // EPSG:4326
-        const width = mapDiv.offsetWidth;
-        const height = mapDiv.offsetHeight;
-
-        const params = new URLSearchParams({
-          key: CONFIG.VWORLD_API_KEY,
-          layers: 'dt_d007',
-          crs: 'EPSG:4326',
-          bbox: bbox,
-          width: String(width),
-          height: String(height),
-          format: 'image/png',
-          transparent: 'true'
-        });
-        const fullUrl = `${CONFIG.VWORLD_CONTROL_POINT_WMS_URL}?${params.toString()}`;
-
-        if (!kakaoControlPointOverlayEl) {
-          const overlay = document.createElement('div');
-          overlay.id = 'kakaoControlPointOverlay';
-          overlay.style.position = 'absolute';
-          overlay.style.top = '0';
-          overlay.style.left = '0';
-          overlay.style.width = '100%';
-          overlay.style.height = '100%';
-          overlay.style.pointerEvents = 'none';
-          overlay.style.zIndex = '7';
-          const img = document.createElement('img');
-          img.id = 'kakaoControlPointImage';
-          img.style.width = '100%';
-          img.style.height = '100%';
-          img.style.imageRendering = 'crisp-edges';
-          overlay.appendChild(img);
-          const container = document.getElementById('kakaoMapContainer');
-          container && container.appendChild(overlay);
-          kakaoControlPointOverlayEl = overlay;
-
-          kakao.maps.event.addListener(kakaoMap, 'idle', function() {
-            if (controlPointOverlayMode === 'kakao') {
-              setTimeout(() => updateControlPointOverlayKakao(), 800);
-            }
-          });
-        }
-
-        const imgEl = document.getElementById('kakaoControlPointImage');
-        if (imgEl) {
-          imgEl.src = fullUrl;
-          // 카카오 이미지에 마젠타 필터 적용 (텍스트까지 재착색)
-          imgEl.style.filter = 'invert(14%) sepia(98%) saturate(7479%) hue-rotate(293deg) brightness(82%) contrast(111%)';
-        }
-        controlPointOverlayMode = 'kakao';
-        updateControlPointButtonState(true);
-      }
-
-      function updateControlPointOverlayKakao() {
-        if (!kakaoMap || !kakaoControlPointOverlayEl) return;
-        const mapDiv = document.getElementById('kakaoMapDiv');
-        if (!mapDiv) return;
-        const bounds = kakaoMap.getBounds();
-        if (!bounds) return;
-        const sw = bounds.getSouthWest();
-        const ne = bounds.getNorthEast();
-        const bbox = `${sw.getLat()},${sw.getLng()},${ne.getLat()},${ne.getLng()}`;
-        const width = mapDiv.offsetWidth;
-        const height = mapDiv.offsetHeight;
-
-        const params = new URLSearchParams({
-          key: CONFIG.VWORLD_API_KEY,
-          layers: 'dt_d007',
-          crs: 'EPSG:4326',
-          bbox: bbox,
-          width: String(width),
-          height: String(height),
-          format: 'image/png',
-          transparent: 'true'
-        });
-        const fullUrl = `${CONFIG.VWORLD_CONTROL_POINT_WMS_URL}?${params.toString()}`;
-        const imgEl = document.getElementById('kakaoControlPointImage');
-        if (imgEl) {
-          imgEl.src = fullUrl;
-          // 카카오 이미지에 마젠타 필터 적용(업데이트 시에도 유지, 텍스트 포함)
-          imgEl.style.filter = 'invert(14%) sepia(98%) saturate(7479%) hue-rotate(293deg) brightness(82%) contrast(111%)';
-        }
-      }
-
-      // 구글 GroundOverlay에 나타나는 지적도근점 이미지에 마젠타 필터를 적용
-      function applyControlPointMagentaFilter() {
-        try {
-          let attempts = 0;
-          const maxAttempts = 10;
-          const tryApply = () => {
-            attempts++;
-            const imgs = document.querySelectorAll('img[src*="api.vworld.kr"]');
-            let applied = false;
-            imgs.forEach(img => {
-              const src = img.getAttribute('src') || '';
-              if (src.includes('dt_d007')) {
-                img.style.filter = 'invert(14%) sepia(98%) saturate(7479%) hue-rotate(293deg) brightness(82%) contrast(111%)';
-                applied = true;
-              }
-            });
-            if (!applied && attempts < maxAttempts) {
-              setTimeout(tryApply, 400);
-            }
-          };
-          tryApply();
-
-          // 변화 감지 중 짧게 유지
-          const mapEl = document.getElementById('map');
-          if (!mapEl) return;
-          const observer = new MutationObserver(muts => {
-            muts.forEach(m => {
-              m.addedNodes.forEach(n => {
-                if (n.nodeType === 1) {
-                  if (n.tagName === 'IMG') {
-                    const src = n.getAttribute('src') || '';
-                    if (src.includes('api.vworld.kr') && src.includes('dt_d007')) {
-                      n.style.filter = 'invert(14%) sepia(98%) saturate(7479%) hue-rotate(293deg) brightness(82%) contrast(111%)';
-                    }
-                  } else if (n.querySelectorAll) {
-                    n.querySelectorAll('img[src*="api.vworld.kr"]').forEach(img => {
-                      const src = img.getAttribute('src') || '';
-                      if (src.includes('dt_d007')) {
-                        img.style.filter = 'invert(14%) sepia(98%) saturate(7479%) hue-rotate(293deg) brightness(82%) contrast(111%)';
-                      }
+                if (features.length > 0) {
+                    const feature = features[0];
+                    const properties = feature.getProperties();
+                    
+                    // 지적정보 팝업 표시
+                    showFeatureInfo(properties, lonLat);
+                } else {
+                    // 기존 마커 제거
+                    vectorSource.clear();
+                    
+                    // 새 마커 추가
+                    const marker = new ol.Feature({
+                        geometry: new ol.geom.Point(coordinate)
                     });
-                  }
+                    
+                    vectorSource.addFeature(marker);
                 }
-              });
             });
-          });
-          observer.observe(mapEl, { childList: true, subtree: true });
-          setTimeout(() => observer.disconnect(), 5000);
-        } catch (e) {
-          // 무시
-        }
-      }
 
-      function clearControlPointOverlayKakao() {
-        if (kakaoControlPointOverlayEl) {
-          kakaoControlPointOverlayEl.remove();
-          kakaoControlPointOverlayEl = null;
-        }
-        if (controlPointOverlayMode === 'kakao') controlPointOverlayMode = null;
-        updateControlPointButtonState(false);
-      }
-      // 지도 이동 시 연속지적도 오버레이도 갱신
-      map && map.addListener && map.addListener('bounds_changed', function() {
-        if (cadastralOverlay) {
-                      setTimeout(() => {
-            updateCadastralOverlay();
-          }, 1000);
-        }
-      });
-      function updateCadastralOverlay() {
-        // 카카오 지적도 모드
-        if (cadastralOverlayMode === 'kakao') {
-          updateCadastralOverlayKakao();
-          return;
-        }
-        if (!map || !cadastralOverlay) return;
-        const zoom = map.getZoom();
-        const MAX_CADASTRAL_ZOOM = 32;
-        if (zoom > MAX_CADASTRAL_ZOOM) {
-          clearCadastralOverlay();
-          alert('이 지적도는 더 이상 확대할 수 없습니다. (최대 허용 zoom: ' + MAX_CADASTRAL_ZOOM + ')');
-          return;
-        }
-        const bounds = map.getBounds();
-        if (!bounds) return;
-        const ne = bounds.getNorthEast();
-        const sw = bounds.getSouthWest();
-        const bbox = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()}`;
-        const mapDiv = document.getElementById('map');
-        const width = mapDiv.offsetWidth;
-        const height = mapDiv.offsetHeight;
-        const apiUrl = 'https://api.vworld.kr/req/wms';
-        const params = new URLSearchParams({
-          KEY: '46F4304E-84DC-3F56-92F1-6A98A0370A31',
-          SERVICE: 'WMS',
-          REQUEST: 'GetMap',
-          VERSION: '1.3.0',
-          LAYERS: 'lp_pa_cbnd_bonbun,lp_pa_cbnd_bubun',
-          STYLES: '',
-          CRS: 'EPSG:4326',
-          BBOX: bbox,
-          WIDTH: width,
-          HEIGHT: height,
-          FORMAT: 'image/png',
-          TRANSPARENT: 'true',
-          BGCOLOR: '0xFFFFFF',
-          DPI: '96',
-          EXCEPTIONS: 'text/xml'
-        });
-        const fullUrl = `${apiUrl}?${params.toString()}`;
-        if (cadastralOverlay) {
-          cadastralOverlay.setMap(null);
-        }
-        const imageBounds = new google.maps.LatLngBounds(
-          new google.maps.LatLng(sw.lat(), sw.lng()),
-          new google.maps.LatLng(ne.lat(), ne.lng())
-        );
-        
-        cadastralOverlay = new google.maps.GroundOverlay(fullUrl, imageBounds, {
-          opacity: 0.95,
-          clickable: false
-        });
-        cadastralOverlay.setMap(map);
-        
-        // 지적도 이미지에 빨간색 필터 적용
-        applyCadastralRedFilter();
-      }
-      // 카카오 지적도 로드/업데이트/제거
-      function loadCadastralOverlayKakao() {
-        if (!kakaoMap) { alert('카카오맵이 아직 준비되지 않았습니다.'); return; }
-        const mapDiv = document.getElementById('kakaoMapDiv');
-        if (!mapDiv) return;
-        const bounds = kakaoMap.getBounds();
-        if (!bounds) return;
-        const sw = bounds.getSouthWest();
-        const ne = bounds.getNorthEast();
-        const bbox = `${sw.getLat()},${sw.getLng()},${ne.getLat()},${ne.getLng()}`;
-        const width = mapDiv.offsetWidth;
-        const height = mapDiv.offsetHeight;
-        const apiUrl = 'https://api.vworld.kr/req/wms';
-        const params = new URLSearchParams({
-          KEY: '46F4304E-84DC-3F56-92F1-6A98A0370A31',
-          SERVICE: 'WMS',
-          REQUEST: 'GetMap',
-          VERSION: '1.3.0',
-          LAYERS: 'lp_pa_cbnd_bonbun,lp_pa_cbnd_bubun',
-          STYLES: '',
-          CRS: 'EPSG:4326',
-          BBOX: bbox,
-          WIDTH: String(width),
-          HEIGHT: String(height),
-          FORMAT: 'image/png',
-          TRANSPARENT: 'true',
-          BGCOLOR: '0xFFFFFF',
-          DPI: '96',
-          EXCEPTIONS: 'text/xml'
-        });
-        const fullUrl = `${apiUrl}?${params.toString()}`;
+            // 지도 이동 이벤트
+            map.on('moveend', function() {
+                const view = map.getView();
+                const center = view.getCenter();
+                const lonLat = ol.proj.toLonLat(center);
+                const zoom = view.getZoom();
+                
+                updateCoordinateDisplay(lonLat[0], lonLat[1], Math.round(zoom));
+            });
 
-        if (!kakaoCadastralOverlayEl) {
-          const overlay = document.createElement('div');
-          overlay.id = 'kakaoCadastralOverlay';
-          overlay.style.position = 'absolute';
-          overlay.style.top = '0';
-          overlay.style.left = '0';
-          overlay.style.width = '100%';
-          overlay.style.height = '100%';
-          overlay.style.pointerEvents = 'none';
-          overlay.style.zIndex = '6';
-          const img = document.createElement('img');
-          img.id = 'kakaoCadastralImage';
-          img.style.width = '100%';
-          img.style.height = '100%';
-          img.style.imageRendering = 'crisp-edges';
-          img.style.filter = 'contrast(1.2) brightness(1.1) hue-rotate(240deg) saturate(2)';
-          img.style.mixBlendMode = 'multiply';
-          overlay.appendChild(img);
-          const container = document.getElementById('kakaoMapContainer');
-          container && container.appendChild(overlay);
-          kakaoCadastralOverlayEl = overlay;
-
-          // 지도 이동/확대 시 갱신
-          kakao.maps.event.addListener(kakaoMap, 'idle', function() {
-            if (cadastralOverlayMode === 'kakao') {
-              setTimeout(() => updateCadastralOverlayKakao(), 1000);
-            }
-          });
-        }
-        const imgEl = document.getElementById('kakaoCadastralImage');
-        if (imgEl) imgEl.src = fullUrl;
-        cadastralOverlayMode = 'kakao';
-        updateCadastralButtonState(true);
-      }
-      function updateCadastralOverlayKakao() {
-        if (!kakaoMap || !kakaoCadastralOverlayEl) return;
-        const mapDiv = document.getElementById('kakaoMapDiv');
-        if (!mapDiv) return;
-        const bounds = kakaoMap.getBounds();
-        if (!bounds) return;
-        const sw = bounds.getSouthWest();
-        const ne = bounds.getNorthEast();
-        const bbox = `${sw.getLat()},${sw.getLng()},${ne.getLat()},${ne.getLng()}`;
-        const width = mapDiv.offsetWidth;
-        const height = mapDiv.offsetHeight;
-        const apiUrl = 'https://api.vworld.kr/req/wms';
-        const params = new URLSearchParams({
-          KEY: '46F4304E-84DC-3F56-92F1-6A98A0370A31',
-          SERVICE: 'WMS',
-          REQUEST: 'GetMap',
-          VERSION: '1.3.0',
-          LAYERS: 'lp_pa_cbnd_bonbun,lp_pa_cbnd_bubun',
-          STYLES: '',
-          CRS: 'EPSG:4326',
-          BBOX: bbox,
-          WIDTH: String(width),
-          HEIGHT: String(height),
-          FORMAT: 'image/png',
-          TRANSPARENT: 'true',
-          BGCOLOR: '0xFFFFFF',
-          DPI: '96',
-          EXCEPTIONS: 'text/xml'
-        });
-        const fullUrl = `${apiUrl}?${params.toString()}`;
-        const imgEl = document.getElementById('kakaoCadastralImage');
-        if (imgEl) imgEl.src = fullUrl;
-      }
-      function clearCadastralOverlayKakao() {
-        if (kakaoCadastralOverlayEl) {
-          kakaoCadastralOverlayEl.remove();
-          kakaoCadastralOverlayEl = null;
-        }
-        if (cadastralOverlayMode === 'kakao') {
-          cadastralOverlayMode = null;
-        }
-        updateCadastralButtonState(false);
-      }
-      
-      // 지적도 빨간색 필터 적용 함수
-      function applyCadastralRedFilter() {
-        // 여러 번 시도하여 DOM 요소를 찾아 스타일 적용
-        let attempts = 0;
-        const maxAttempts = 10;
-        
-        const applyFilter = () => {
-          attempts++;
-          
-          // 구글맵의 GroundOverlay 이미지 찾기
-          const overlayElements = document.querySelectorAll('img[src*="api.vworld.kr"]');
-          let found = false;
-          
-          overlayElements.forEach(img => {
-            if (img.src.includes('lp_pa_cbnd')) {
-              img.style.filter = 'contrast(1.2) brightness(1.1) hue-rotate(240deg) saturate(2)';
-              img.style.mixBlendMode = 'multiply';
-              found = true;
-            }
-          });
-          
-          // MutationObserver를 사용하여 새로 추가되는 이미지 감지
-          if (!found && attempts < maxAttempts) {
-            setTimeout(applyFilter, 500);
-          } else if (found) {
-            // 성공적으로 적용됨
-            console.log('지적도 빨간색 필터 적용 완료');
-          }
-        };
-        
-        // 즉시 시도
-        applyFilter();
-        
-        // MutationObserver로 DOM 변화 감지
-        const observer = new MutationObserver((mutations) => {
-          mutations.forEach((mutation) => {
-            mutation.addedNodes.forEach((node) => {
-              if (node.nodeType === 1 && node.tagName === 'IMG') {
-                const img = node;
-                if (img.src && img.src.includes('api.vworld.kr') && img.src.includes('lp_pa_cbnd')) {
-                  img.style.filter = 'contrast(1.2) brightness(1.1) hue-rotate(240deg) saturate(2)';
-                  img.style.mixBlendMode = 'multiply';
-                }
-              }
-              // 하위 img 요소들도 확인
-              if (node.nodeType === 1 && node.querySelectorAll) {
-                const imgs = node.querySelectorAll('img[src*="api.vworld.kr"]');
-                imgs.forEach(img => {
-                  if (img.src.includes('lp_pa_cbnd')) {
-                    img.style.filter = 'contrast(1.2) brightness(1.1) hue-rotate(240deg) saturate(2)';
-                    img.style.mixBlendMode = 'multiply';
-                  }
+            // 지도 타입 변경 이벤트
+            document.getElementById('mapType').addEventListener('change', function() {
+                const selectedType = this.value;
+                
+                // 기존 지도 레이어 제거 (WFS 레이어와 마커 레이어 제외)
+                map.getLayers().forEach(function(layer) {
+                    if (layer !== vectorLayer && layer !== cadastralLayer && layer !== controlPointLayer) {
+                        map.removeLayer(layer);
+                    }
                 });
-              }
+                
+                // 새 지도 레이어 추가 (가장 아래에)
+                map.getLayers().insertAt(0, vworldLayers[selectedType]);
             });
-          });
-        });
-        
-        // 지도 영역 관찰 시작
-        const mapElement = document.getElementById('map');
-        if (mapElement) {
-          observer.observe(mapElement, {
-            childList: true,
-            subtree: true
-          });
-          
-          // 5초 후 관찰 중지
-          setTimeout(() => {
-            observer.disconnect();
-          }, 5000);
+
+            // 지적정보 레이어 변경 이벤트
+            document.getElementById('overlayType').addEventListener('change', function() {
+                const selectedType = this.value;
+                
+                // 모든 WFS 레이어 숨기기
+                cadastralLayer.setVisible(false);
+                controlPointLayer.setVisible(false);
+                
+                // 선택된 레이어만 표시
+                switch(selectedType) {
+                    case 'cadastral':
+                        cadastralLayer.setVisible(true);
+                        updateActiveLayerDisplay('기본지도 + 연속지적도');
+                        console.log('연속지적도 레이어 활성화');
+                        break;
+                    case 'controlpoint':
+                        controlPointLayer.setVisible(true);
+                        updateActiveLayerDisplay('기본지도 + 지적도근점');
+                        console.log('지적도근점 레이어 활성화');
+                        break;
+                    case 'both':
+                        cadastralLayer.setVisible(true);
+                        controlPointLayer.setVisible(true);
+                        updateActiveLayerDisplay('기본지도 + 지적정보');
+                        console.log('모든 지적정보 레이어 활성화');
+                        break;
+                    default:
+                        updateActiveLayerDisplay('기본지도');
+                        console.log('지적정보 레이어 비활성화');
+                }
+            });
+
+            // 초기 좌표 표시
+            updateCoordinateDisplay(126.9780, 37.5665, 10);
+            
+            console.log('OpenLayers 지도 초기화 완료');
         }
-      }
+
+        // 좌표 표시 업데이트
+        function updateCoordinateDisplay(lng, lat, zoom) {
+            document.getElementById('currentLat').textContent = lat.toFixed(6);
+            document.getElementById('currentLng').textContent = lng.toFixed(6);
+            if (zoom !== undefined) {
+                document.getElementById('currentZoom').textContent = zoom;
+            }
+        }
+
+        // 활성 레이어 표시 업데이트
+        function updateActiveLayerDisplay(layerInfo) {
+            document.getElementById('activeLayer').textContent = layerInfo;
+        }
+
+        // 피처 정보 표시
+        function showFeatureInfo(properties, coordinate) {
+            let infoContent = '<div style="max-width: 300px;">';
+            infoContent += '<h4 style="margin-bottom: 10px; color: #2c3e50;">📍 지적정보</h4>';
+            
+            // 속성 정보 표시
+            Object.keys(properties).forEach(function(key) {
+                if (key !== 'geometry' && properties[key] !== null && properties[key] !== '') {
+                    const value = properties[key];
+                    const displayKey = getDisplayName(key);
+                    infoContent += `<p><strong>${displayKey}:</strong> ${value}</p>`;
+                }
+            });
+            
+            infoContent += `<p><strong>좌표:</strong> ${coordinate[1].toFixed(6)}, ${coordinate[0].toFixed(6)}</p>`;
+            infoContent += '</div>';
+            
+            // 알림으로 표시 (실제 프로젝트에서는 팝업 오버레이 사용 권장)
+            alert(infoContent.replace(/<[^>]*>/g, '\n').replace(/&nbsp;/g, ' '));
+        }
+
+        // 속성명을 한글로 변환
+        function getDisplayName(key) {
+            const nameMap = {
+                'point_no': '도근점번호',
+                'cp_no': '도근점번호',
+                'instl_de': '설치일자',
+                'manage_no': '관리번호',
+                'pnu': '필지고유번호',
+                'jibun': '지번',
+                'bchk': '법정동코드',
+                'sgg_oid': '시군구코드',
+                'col_adm_se': '관할청구분',
+                'geometry': '공간정보'
+            };
+            
+            return nameMap[key] || key;
+        }
+
+        // 위치 검색 및 이동
+        function searchAndMove() {
+            const location = document.getElementById('searchLocation').value.trim();
+            
+            if (!location) {
+                alert('검색할 위치를 입력해주세요.');
+                return;
+            }
+
+            const locations = {
+                '서울시청': { lat: 37.5665, lng: 126.9780 },
+                '부산시청': { lat: 35.1796, lng: 129.0756 },
+                '대구시청': { lat: 35.8714, lng: 128.6014 },
+                '인천시청': { lat: 37.4563, lng: 126.7052 },
+                '광주시청': { lat: 35.1595, lng: 126.8526 },
+                '대전시청': { lat: 36.3504, lng: 127.3845 },
+                '울산시청': { lat: 35.5384, lng: 129.3114 },
+                '세종시청': { lat: 36.4800, lng: 127.2890 },
+                '경기도청': { lat: 37.2636, lng: 127.0286 },
+                '강원도청': { lat: 37.8228, lng: 128.1555 },
+                '충청북도청': { lat: 36.6424, lng: 127.4890 },
+                '충청남도청': { lat: 36.5184, lng: 126.8000 },
+                '전라북도청': { lat: 35.7175, lng: 127.1530 },
+                '전라남도청': { lat: 34.8679, lng: 126.9910 },
+                '경상북도청': { lat: 36.4919, lng: 128.8889 },
+                '경상남도청': { lat: 35.4606, lng: 128.2132 },
+                '제주도청': { lat: 33.4890, lng: 126.4983 }
+            };
+
+            const coords = locations[location];
+            
+            if (coords) {
+                moveToLocation(coords.lng, coords.lat);
+                document.getElementById('searchLocation').value = '';
+            } else {
+                alert('해당 위치를 찾을 수 없습니다. 지원되는 위치:\n' + Object.keys(locations).join(', '));
+            }
+        }
+
+        // 특정 위치로 이동
+        function moveToLocation(lng, lat, zoom = 15) {
+            const coordinate = ol.proj.fromLonLat([lng, lat]);
+            
+            map.getView().animate({
+                center: coordinate,
+                zoom: zoom,
+                duration: 1000
+            });
+            
+            // 마커 추가
+            vectorSource.clear();
+            const marker = new ol.Feature({
+                geometry: new ol.geom.Point(coordinate)
+            });
+            vectorSource.addFeature(marker);
+        }
+
+        // 현재 위치 가져오기
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        moveToLocation(lng, lat);
+                        alert(`현재 위치로 이동했습니다.\n위도: ${lat.toFixed(6)}, 경도: ${lng.toFixed(6)}`);
+                    },
+                    function(error) {
+                        alert('현재 위치를 가져올 수 없습니다: ' + error.message);
+                    }
+                );
+            } else {
+                alert('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+            }
+        }
+
+        // 초기 화면으로 돌아가기
+        function resetView() {
+            moveToLocation(126.9780, 37.5665, 10);
+            document.getElementById('mapType').value = 'Base';
+            
+            // 기본 지도로 변경
+            map.getLayers().forEach(function(layer) {
+                if (layer !== vectorLayer && layer !== cadastralLayer && layer !== controlPointLayer) {
+                    map.removeLayer(layer);
+                }
+            });
+            map.getLayers().insertAt(0, vworldLayers.Base);
+            
+            // 지적정보 레이어 초기화
+            document.getElementById('overlayType').value = '';
+            cadastralLayer.setVisible(false);
+            controlPointLayer.setVisible(false);
+        }
+
+        // Enter 키로 검색
+        document.getElementById('searchLocation').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchAndMove();
+            }
+        });
+
+        // 페이지 로드 후 지도 초기화
+        window.onload = function() {
+            console.log('페이지 로드 완료 - OpenLayers 초기화');
+            try {
+                initMap();
+            } catch (error) {
+                console.error('지도 초기화 오류:', error);
+                document.getElementById('map').innerHTML = 
+                    '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8f9fa; color: #666; flex-direction: column; padding: 20px; text-align: center;">' +
+                    '<h3 style="color: #e74c3c; margin-bottom: 20px;">지도 로드 오류</h3>' +
+                    '<p>지도를 로드하는 중 오류가 발생했습니다.</p>' +
+                    '<p>브라우저 개발자 도구를 확인해주세요.</p>' +
+                    '</div>';
+            }
+        };
     </script>
-    <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg&callback=initMap" async defer></script>
 </body>
 </html>
-
