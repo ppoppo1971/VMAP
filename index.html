@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>VWorld WFS 연속지적도</title>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.5.2/ol.css" />
+	<style>
+		html, body, #map { margin:0; padding:0; width:100%; height:100%; }
+	</style>
+</head>
+<body>
+	<div id="map"></div>
+
+	<script type="module">
+		import Map from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/Map.js';
+		import View from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/View.js';
+		import TileLayer from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/layer/Tile.js';
+		import VectorLayer from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/layer/Vector.js';
+		import OSM from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/source/OSM.js';
+		import VectorSource from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/source/Vector.js';
+		import GeoJSON from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/format/GeoJSON.js';
+		import { bbox as bboxStrategy } from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/loadingstrategy.js';
+		import Style from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/style/Style.js';
+		import Stroke from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/style/Stroke.js';
+		import { fromLonLat } from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/proj.js';
+
+		const API_KEY = '46F4304E-84DC-3F56-92F1-6A98A0370A31';
+		const DOMAIN = 'ppoppo1971.github.io';
+		const TYPENAME = 'dt_d002'; // 연속지적도 타입네임
+
+		const wfsUrlForExtent = (extent) => {
+			const params = new URLSearchParams({
+				SERVICE: 'WFS',
+				REQUEST: 'GetFeature',
+				TYPENAME: TYPENAME,
+				VERSION: '1.1.0',
+				SRSNAME: 'EPSG:900913',
+				OUTPUT: 'application/json',
+				EXCEPTIONS: 'text/xml',
+				MAXFEATURES: '2000',
+				BBOX: extent.join(','),
+				KEY: API_KEY,
+				DOMAIN: DOMAIN
+			});
+			return `https://api.vworld.kr/ned/wfs/getCtnlgsSpceWFS?${params.toString()}`;
+		};
+
+		const cadastralSource = new VectorSource({
+			format: new GeoJSON(),
+			url: wfsUrlForExtent,
+			strategy: bboxStrategy
+		});
+
+		const cadastralLayer = new VectorLayer({
+			source: cadastralSource,
+			style: new Style({
+				stroke: new Stroke({ color: 'rgba(255,0,0,0.7)', width: 1 })
+			})
+		});
+
+		new Map({
+			target: 'map',
+			layers: [
+				new TileLayer({ source: new OSM() }),
+				cadastralLayer
+			],
+			view: new View({
+				center: fromLonLat([127.5, 36.5]),
+				zoom: 13
+			})
+		});
+	</script>
+</body>
+</html>
+
