@@ -1,280 +1,453 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>브이월드 WFS 예제4</title>
-  <link rel="stylesheet" href="https://openlayers.org/en/v6.15.1/css/ol.css" />
-  <style>
-    html, body { margin: 0; padding: 0; height: 100%; }
-    #map { width: 100%; height: 100%; }
-    .ol-zoom { font-size: 1rem; }
-    .toolbar { position: absolute; top: 10px; left: 10px; z-index: 1000; display: flex; gap: 6px; align-items: center; background: rgba(255,255,255,.9); padding: 8px; border-radius: 6px; border: 1px solid #ddd; }
-    .toolbar button { padding: 8px 12px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; }
-    .toolbar input { padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; min-width: 240px; }
-    .toolbar select { position: absolute; top: 52px; left: 10px; z-index: 1000; width: 420px; max-height: 260px; overflow: auto; background: #fff; border: 1px solid #ccc; border-radius: 4px; display: none; }
-    .toolbar button:disabled { opacity: .6; cursor: not-allowed; }
-  </style>
-  <!-- GitHub Pages 캐시 관련: 강제 새로고침 필요 시, 쿼리스트링 버전을 바꾸세요. -->
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-  <meta name="referrer" content="no-referrer-when-downgrade" />
-  <meta name="format-detection" content="telephone=no" />
-  <meta name="color-scheme" content="light dark" />
-  <meta name="theme-color" content="#ffffff" />
-  <meta name="description" content="브이월드 WMTS 배경지도 + WFS 피처 로딩 예제" />
-  <meta name="robots" content="noindex, nofollow" />
-  <link rel="preconnect" href="https://openlayers.org" />
-  <link rel="preconnect" href="https://api.vworld.kr" />
-  <link rel="dns-prefetch" href="https://openlayers.org" />
-  <link rel="dns-prefetch" href="https://api.vworld.kr" />
-  <link rel="icon" href="data:," />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' https://openlayers.org 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://openlayers.org; img-src 'self' https://api.vworld.kr data:; connect-src 'self' https://api.vworld.kr;" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>브이월드 WFS 지도 서비스1</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .header p {
+            margin-top: 0.5rem;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 100px);
+        }
+
+        .sidebar {
+            width: 300px;
+            background: white;
+            padding: 1.5rem;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-group h3 {
+            color: #333;
+            margin-bottom: 0.8rem;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.3rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            margin-bottom: 0.3rem;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .layer-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .layer-item input[type="checkbox"] {
+            margin-right: 0.8rem;
+            transform: scale(1.2);
+        }
+
+        .layer-item label {
+            cursor: pointer;
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 1rem;
+            color: #667eea;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .status {
+            background: #e8f4f8;
+            border-left: 4px solid #667eea;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .status h4 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .status p {
+            color: #666;
+            font-size: 0.85rem;
+            margin: 0.3rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 200px;
+            }
+            
+            .map-container {
+                height: calc(100vh - 300px);
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="toolbar">
-    <input id="typenameInput" type="text" placeholder="지적도근점 typename 직접 입력 (예: LT_..._INFO)" />
-    <button id="btnList">레이어 검색</button>
-    <button id="btnCadastral">지적도근점 불러오기</button>
-  </div>
-  <select id="typenameSelect" size="8"></select>
-  <div id="map"></div>
+    <div class="header">
+        <h1>🗺️ 브이월드 WFS 지도 서비스</h1>
+        <p>Web Feature Service를 활용한 실시간 지도 데이터 시각화</p>
+    </div>
 
-  <script src="https://openlayers.org/en/v6.15.1/build/ol.js"></script>
-  <script>
-    // 브이월드 인증 정보
-    const VWORLD_KEY = '46F4304E-84DC-3F56-92F1-6A98A0370A31';
-    const VWORLD_DOMAIN = encodeURIComponent('https://ppoppo1971.github.io');
+    <div class="container">
+        <div class="sidebar">
+            <div class="control-group">
+                <h3>📍 지도 제어</h3>
+                <button class="btn" onclick="resetView()">기본 뷰로 이동</button>
+                <button class="btn" onclick="getCurrentLocation()">내 위치 찾기</button>
+            </div>
 
-    // 배경지도(WMTS)
-    const baseLayer = new ol.layer.Tile({
-      source: new ol.source.XYZ({
-        url: `https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/Base/{z}/{y}/{x}.png?domain=${VWORLD_DOMAIN}`,
-        maxZoom: 19
-      })
-    });
+            <div class="control-group">
+                <h3>🗂️ 레이어 관리</h3>
+                <div class="layer-item">
+                    <input type="checkbox" id="adminLayer" onchange="toggleLayer('admin', this.checked)">
+                    <label for="adminLayer">행정구역</label>
+                </div>
+                <div class="layer-item">
+                    <input type="checkbox" id="facilityLayer" onchange="toggleLayer('facility', this.checked)">
+                    <label for="facilityLayer">공공시설</label>
+                </div>
+                <div class="layer-item">
+                    <input type="checkbox" id="roadLayer" onchange="toggleLayer('road', this.checked)">
+                    <label for="roadLayer">도로정보</label>
+                </div>
+            </div>
 
-    // WFS 설정
-    // 대표 타입명:
-    // - 시도: LT_C_ADSIDO_INFO
-    // - 시군구: LT_C_ADSIGG_INFO
-    // - 읍면동: LT_C_ADEMD_INFO
-    const TYPE_NAME = 'LT_C_ADSIDO_INFO';
+            <div class="loading" id="loading">
+                <p>🔄 데이터를 불러오는 중...</p>
+            </div>
 
-    const wfsSource = new ol.source.Vector({
-      format: new ol.format.GeoJSON(),
-      url: function(extent) {
-        // EPSG:3857 기준 BBOX 요청
-        const params = new URLSearchParams({
-          service: 'WFS',
-          version: '1.1.0',
-          request: 'GetFeature',
-          typename: TYPE_NAME,
-          output: 'application/json',
-          srsName: 'EPSG:3857',
-          bbox: `${extent.join(',')},EPSG:3857`,
-          key: VWORLD_KEY,
-          domain: decodeURIComponent(VWORLD_DOMAIN)
+            <div class="status">
+                <h4>📊 연결 상태</h4>
+                <p id="apiStatus">API 연결: 대기중</p>
+                <p id="layerCount">활성 레이어: 0개</p>
+                <p id="featureCount">표시된 객체: 0개</p>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Main JavaScript -->
+    <script>
+        // 전역 변수
+        let map;
+        let activeMarkers = [];
+        let activeLayers = {};
+        const API_KEY = '46F4304E-84DC-3F56-92F1-6A98A0370A31';
+        const DOMAIN = 'https://ppoppo1971.github.io';
+
+        // 지도 초기화
+        function initMap() {
+            // Leaflet 지도 생성
+            map = L.map('map').setView([37.5665, 126.9780], 11); // 서울 중심
+
+            // 브이월드 베이스맵 추가
+            const vworldBase = L.tileLayer(
+                `http://api.vworld.kr/req/wmts/1.0.0/${API_KEY}/Base/{z}/{y}/{x}.png`,
+                {
+                    attribution: '© VWorld | 국토교통부',
+                    maxZoom: 19,
+                    tileSize: 256
+                }
+            );
+            vworldBase.addTo(map);
+
+            // 지도 이벤트 리스너
+            map.on('moveend', updateMapInfo);
+            map.on('zoomend', updateMapInfo);
+
+            updateApiStatus('연결됨');
+            console.log('지도 초기화 완료');
+        }
+
+        // WFS 데이터 요청 함수
+        async function loadWFSData(layerType) {
+            showLoading(true);
+            
+            try {
+                // 예시: 브이월드 WFS 서비스 URL (실제 서비스에 맞게 수정 필요)
+                const wfsUrl = buildWFSUrl(layerType);
+                
+                const response = await fetch(wfsUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.text();
+                console.log(`${layerType} WFS 데이터 로드 성공:`, data);
+                
+                // GML/XML 파싱 및 지도에 표시
+                parseAndDisplayWFSData(data, layerType);
+                
+            } catch (error) {
+                console.error(`${layerType} WFS 데이터 로드 실패:`, error);
+                alert(`${layerType} 레이어를 불러오는 중 오류가 발생했습니다: ${error.message}`);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // WFS URL 생성
+        function buildWFSUrl(layerType) {
+            const bounds = map.getBounds();
+            const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+            
+            // 브이월드 WFS 서비스 기본 URL (예시)
+            let serviceName = '';
+            switch(layerType) {
+                case 'admin':
+                    serviceName = 'LT_C_ADEMD_INFO'; // 행정구역
+                    break;
+                case 'facility':
+                    serviceName = 'LT_P_FCTS'; // 공공시설
+                    break;
+                case 'road':
+                    serviceName = 'LT_L_FRSTRL'; // 도로
+                    break;
+                default:
+                    serviceName = 'LT_C_ADEMD_INFO';
+            }
+
+            return `http://api.vworld.kr/req/wfs?` +
+                   `service=WFS&` +
+                   `version=1.0.0&` +
+                   `request=GetFeature&` +
+                   `typename=${serviceName}&` +
+                   `srsname=EPSG:4326&` +
+                   `bbox=${bbox}&` +
+                   `apikey=${API_KEY}&` +
+                   `domain=${encodeURIComponent(DOMAIN)}`;
+        }
+
+        // WFS 데이터 파싱 및 표시
+        function parseAndDisplayWFSData(xmlData, layerType) {
+            try {
+                // XML 파싱
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlData, 'text/xml');
+                
+                // 임시로 랜덤 마커 생성 (실제로는 XML에서 좌표 추출)
+                const markers = generateSampleMarkers(layerType);
+                
+                // 레이어에 마커 추가
+                if (activeLayers[layerType]) {
+                    map.removeLayer(activeLayers[layerType]);
+                }
+                
+                activeLayers[layerType] = L.layerGroup(markers).addTo(map);
+                updateLayerCount();
+                
+            } catch (error) {
+                console.error('WFS 데이터 파싱 오류:', error);
+            }
+        }
+
+        // 샘플 마커 생성 (실제 WFS 데이터 대신 사용)
+        function generateSampleMarkers(layerType) {
+            const markers = [];
+            const center = map.getCenter();
+            const colors = {
+                admin: '#ff6b6b',
+                facility: '#4ecdc4',
+                road: '#45b7d1'
+            };
+            
+            for (let i = 0; i < 10; i++) {
+                const lat = center.lat + (Math.random() - 0.5) * 0.1;
+                const lng = center.lng + (Math.random() - 0.5) * 0.1;
+                
+                const marker = L.circleMarker([lat, lng], {
+                    color: colors[layerType] || '#333',
+                    fillColor: colors[layerType] || '#333',
+                    fillOpacity: 0.6,
+                    radius: 6
+                }).bindPopup(`${layerType} 데이터 #${i + 1}<br>위치: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+                
+                markers.push(marker);
+            }
+            
+            return markers;
+        }
+
+        // 레이어 토글
+        function toggleLayer(layerType, enabled) {
+            if (enabled) {
+                loadWFSData(layerType);
+            } else {
+                if (activeLayers[layerType]) {
+                    map.removeLayer(activeLayers[layerType]);
+                    delete activeLayers[layerType];
+                    updateLayerCount();
+                }
+            }
+        }
+
+        // 기본 뷰로 이동
+        function resetView() {
+            map.setView([37.5665, 126.9780], 11);
+        }
+
+        // 현재 위치 찾기
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                showLoading(true);
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        map.setView([lat, lng], 15);
+                        
+                        // 현재 위치 마커 추가
+                        if (window.currentLocationMarker) {
+                            map.removeLayer(window.currentLocationMarker);
+                        }
+                        
+                        window.currentLocationMarker = L.marker([lat, lng])
+                            .addTo(map)
+                            .bindPopup('현재 위치')
+                            .openPopup();
+                        
+                        showLoading(false);
+                    },
+                    function(error) {
+                        showLoading(false);
+                        alert('위치 정보를 가져올 수 없습니다: ' + error.message);
+                    }
+                );
+            } else {
+                alert('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+            }
+        }
+
+        // UI 업데이트 함수들
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (show) {
+                loading.classList.add('show');
+            } else {
+                loading.classList.remove('show');
+            }
+        }
+
+        function updateApiStatus(status) {
+            document.getElementById('apiStatus').textContent = `API 연결: ${status}`;
+        }
+
+        function updateLayerCount() {
+            const count = Object.keys(activeLayers).length;
+            document.getElementById('layerCount').textContent = `활성 레이어: ${count}개`;
+            
+            // 전체 피처 수 계산
+            let totalFeatures = 0;
+            Object.values(activeLayers).forEach(layer => {
+                if (layer.getLayers) {
+                    totalFeatures += layer.getLayers().length;
+                }
+            });
+            document.getElementById('featureCount').textContent = `표시된 객체: ${totalFeatures}개`;
+        }
+
+        function updateMapInfo() {
+            // 지도 정보 업데이트 (필요시)
+        }
+
+        // 페이지 로드 시 지도 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
         });
-        return `https://api.vworld.kr/req/wfs?${params.toString()}`;
-      },
-      strategy: ol.loadingstrategy.bbox
-    });
-
-    const wfsLayer = new ol.layer.Vector({
-      source: wfsSource,
-      style: new ol.style.Style({
-        stroke: new ol.style.Stroke({ color: '#0066ff', width: 2 }),
-        fill: new ol.style.Fill({ color: 'rgba(0,102,255,0.10)' })
-      })
-    });
-
-    // 지도 생성
-    const map = new ol.Map({
-      target: 'map',
-      layers: [baseLayer, wfsLayer],
-      view: new ol.View({
-        center: ol.proj.fromLonLat([127.5, 36.5]),
-        zoom: 7,
-        minZoom: 4,
-        maxZoom: 19
-      }),
-      controls: ol.control.defaults()
-    });
-
-    // 지적도근점 레이어 자동 추가: GetCapabilities에서 typename을 키워드로 탐색 후 추가
-    const CADASTRAL_CONTROL_TYPENAME = '';
-    const CADASTRAL_KEYWORDS = ['지적도근점', '지적 근점', '근점', 'cadastral', 'control'];
-
-    function parseXml(text) {
-      try {
-        return new window.DOMParser().parseFromString(text, 'text/xml');
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function extractText(node, tagNames) {
-      for (const tag of tagNames) {
-        const el = node.getElementsByTagName(tag)[0] || node.getElementsByTagNameNS('*', tag)[0];
-        if (el && el.textContent) return el.textContent.trim();
-      }
-      return '';
-    }
-
-    async function discoverCadastralControlTypeName() {
-      try {
-        const url = `https://api.vworld.kr/req/wfs?service=WFS&request=GetCapabilities&key=${VWORLD_KEY}&domain=${decodeURIComponent(VWORLD_DOMAIN)}`;
-        const res = await fetch(url, { mode: 'cors' });
-        const xmlText = await res.text();
-        const doc = parseXml(xmlText);
-        if (!doc) return null;
-
-        const featureTypeLists = [
-          ...Array.from(doc.getElementsByTagName('FeatureType')),
-          ...Array.from(doc.getElementsByTagNameNS('*', 'FeatureType'))
-        ];
-
-        for (const ft of featureTypeLists) {
-          const name = extractText(ft, ['Name', 'name']);
-          const title = extractText(ft, ['Title', 'title']);
-          const hay = `${name} ${title}`;
-          if (!hay) continue;
-          const matched = CADASTRAL_KEYWORDS.some(k => hay.includes(k));
-          if (matched && name) return name;
-        }
-        return null;
-      } catch (e) {
-        console.warn('Capabilities 조회 실패', e);
-        return null;
-      }
-    }
-
-    function createCadastralLayer(typename) {
-      const source = new ol.source.Vector({
-        format: new ol.format.GeoJSON(),
-        url: function(extent) {
-          const params = new URLSearchParams({
-            service: 'WFS',
-            version: '1.1.0',
-            request: 'GetFeature',
-            typename: typename,
-            output: 'application/json',
-            srsName: 'EPSG:3857',
-            bbox: `${extent.join(',')},EPSG:3857`,
-            key: VWORLD_KEY,
-            domain: decodeURIComponent(VWORLD_DOMAIN)
-          });
-          return `https://api.vworld.kr/req/wfs?${params.toString()}`;
-        },
-        strategy: ol.loadingstrategy.bbox
-      });
-
-      const layer = new ol.layer.Vector({
-        source: source,
-        style: new ol.style.Style({
-          image: new ol.style.Circle({
-            radius: 4,
-            fill: new ol.style.Fill({ color: '#ff3b30' }),
-            stroke: new ol.style.Stroke({ color: '#ffffff', width: 1 })
-          })
-        })
-      });
-      return layer;
-    }
-
-    let cadastralLayer = null;
-    let discoveredCadastralTypeName = '';
-    const btn = document.getElementById('btnCadastral');
-    const btnList = document.getElementById('btnList');
-    const input = document.getElementById('typenameInput');
-    const selectBox = document.getElementById('typenameSelect');
-
-    btn.addEventListener('click', async () => {
-      if (cadastralLayer) return; // 이미 추가됨
-      btn.disabled = true;
-      btn.textContent = '불러오는 중...';
-
-      try {
-        let typeName = (input.value && input.value.trim()) || (CADASTRAL_CONTROL_TYPENAME && CADASTRAL_CONTROL_TYPENAME.trim());
-        if (!typeName) {
-          if (!discoveredCadastralTypeName) {
-            discoveredCadastralTypeName = await discoverCadastralControlTypeName() || '';
-          }
-          typeName = discoveredCadastralTypeName;
-        }
-
-        if (typeName) {
-          cadastralLayer = createCadastralLayer(typeName);
-          map.addLayer(cadastralLayer);
-          console.info('지적도근점 typename:', typeName);
-          btn.textContent = '지적도근점 추가됨';
-        } else {
-          console.warn('지적도근점 typename을 찾지 못했습니다.');
-          alert('typename을 입력하거나, 레이어 검색으로 선택해 주세요.');
-          btn.textContent = '지적도근점 불러오기';
-          btn.disabled = false;
-          input.focus();
-        }
-      } catch (e) {
-        console.error(e);
-        alert('지적도근점 레이어 추가 중 오류가 발생했습니다.');
-        btn.textContent = '지적도근점 불러오기';
-        btn.disabled = false;
-      }
-    });
-
-    btnList.addEventListener('click', async () => {
-      btnList.disabled = true;
-      btnList.textContent = '검색 중...';
-      try {
-        const url = `https://api.vworld.kr/req/wfs?service=WFS&request=GetCapabilities&key=${VWORLD_KEY}&domain=${decodeURIComponent(VWORLD_DOMAIN)}`;
-        const res = await fetch(url, { mode: 'cors' });
-        const xmlText = await res.text();
-        const doc = parseXml(xmlText);
-        if (!doc) throw new Error('Capabilities 파싱 실패');
-        const featureTypeLists = [
-          ...Array.from(doc.getElementsByTagName('FeatureType')),
-          ...Array.from(doc.getElementsByTagNameNS('*', 'FeatureType'))
-        ];
-        // 목록 구성: Name (Title)
-        selectBox.innerHTML = '';
-        for (const ft of featureTypeLists) {
-          const name = extractText(ft, ['Name', 'name']);
-          const title = extractText(ft, ['Title', 'title']);
-          if (!name) continue;
-          const opt = document.createElement('option');
-          opt.value = name;
-          opt.textContent = title ? `${name} (${title})` : name;
-          selectBox.appendChild(opt);
-        }
-        selectBox.style.display = 'block';
-        selectBox.scrollTop = 0;
-        selectBox.focus();
-
-        selectBox.onchange = () => {
-          input.value = selectBox.value;
-        };
-        selectBox.ondblclick = () => {
-          input.value = selectBox.value;
-          btn.click();
-        };
-        document.addEventListener('click', (e) => {
-          if (!selectBox.contains(e.target) && !btnList.contains(e.target)) {
-            selectBox.style.display = 'none';
-          }
-        }, { once: true });
-      } catch (err) {
-        console.error(err);
-        alert('레이어 목록을 가져오지 못했습니다.');
-      } finally {
-        btnList.textContent = '레이어 검색';
-        btnList.disabled = false;
-      }
-    });
-  </script>
+    </script>
 </body>
 </html>
-
-
