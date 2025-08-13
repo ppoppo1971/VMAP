@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>브이월드 WFS 예제1</title>
+  <title>브이월드 WFS 예제2</title>
   <link rel="stylesheet" href="https://openlayers.org/en/v6.15.1/css/ol.css" />
   <style>
     html, body { margin: 0; padding: 0; height: 100%; }
@@ -91,6 +91,101 @@
       }),
       controls: ol.control.defaults()
     });
+
+    // 지적도근점 레이어 자동 추가: GetCapabilities에서 typename을 키워드로 탐색 후 추가
+    const CADASTRAL_CONTROL_TYPENAME = '';
+    const CADASTRAL_KEYWORDS = ['지적도근점', '지적 근점', '근점', 'cadastral', 'control'];
+
+    function parseXml(text) {
+      try {
+        return new window.DOMParser().parseFromString(text, 'text/xml');
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function extractText(node, tagNames) {
+      for (const tag of tagNames) {
+        const el = node.getElementsByTagName(tag)[0] || node.getElementsByTagNameNS('*', tag)[0];
+        if (el && el.textContent) return el.textContent.trim();
+      }
+      return '';
+    }
+
+    async function discoverCadastralControlTypeName() {
+      try {
+        const url = `https://api.vworld.kr/req/wfs?service=WFS&request=GetCapabilities&key=${VWORLD_KEY}&domain=${decodeURIComponent(VWORLD_DOMAIN)}`;
+        const res = await fetch(url, { mode: 'cors' });
+        const xmlText = await res.text();
+        const doc = parseXml(xmlText);
+        if (!doc) return null;
+
+        const featureTypeLists = [
+          ...Array.from(doc.getElementsByTagName('FeatureType')),
+          ...Array.from(doc.getElementsByTagNameNS('*', 'FeatureType'))
+        ];
+
+        for (const ft of featureTypeLists) {
+          const name = extractText(ft, ['Name', 'name']);
+          const title = extractText(ft, ['Title', 'title']);
+          const hay = `${name} ${title}`;
+          if (!hay) continue;
+          const matched = CADASTRAL_KEYWORDS.some(k => hay.includes(k));
+          if (matched && name) return name;
+        }
+        return null;
+      } catch (e) {
+        console.warn('Capabilities 조회 실패', e);
+        return null;
+      }
+    }
+
+    function createCadastralLayer(typename) {
+      const source = new ol.source.Vector({
+        format: new ol.format.GeoJSON(),
+        url: function(extent) {
+          const params = new URLSearchParams({
+            service: 'WFS',
+            version: '1.1.0',
+            request: 'GetFeature',
+            typename: typename,
+            output: 'application/json',
+            srsName: 'EPSG:3857',
+            bbox: `${extent.join(',')},EPSG:3857`,
+            key: VWORLD_KEY,
+            domain: decodeURIComponent(VWORLD_DOMAIN)
+          });
+          return `https://api.vworld.kr/req/wfs?${params.toString()}`;
+        },
+        strategy: ol.loadingstrategy.bbox
+      });
+
+      const layer = new ol.layer.Vector({
+        source: source,
+        style: new ol.style.Style({
+          image: new ol.style.Circle({
+            radius: 4,
+            fill: new ol.style.Fill({ color: '#ff3b30' }),
+            stroke: new ol.style.Stroke({ color: '#ffffff', width: 1 })
+          })
+        })
+      });
+      return layer;
+    }
+
+    (async function addCadastralControlPointsLayer() {
+      let typeName = CADASTRAL_CONTROL_TYPENAME && CADASTRAL_CONTROL_TYPENAME.trim();
+      if (!typeName) {
+        typeName = await discoverCadastralControlTypeName();
+      }
+      if (typeName) {
+        const layer = createCadastralLayer(typeName);
+        map.addLayer(layer);
+        console.info('지적도근점 typename:', typeName);
+      } else {
+        console.warn('지적도근점 typename을 찾지 못했습니다. Capabilities에서 키워드 검색 실패');
+      }
+    })();
   </script>
 </body>
 </html>
