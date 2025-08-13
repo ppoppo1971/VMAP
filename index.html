@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>브이월드 WFS 지도 서비스6</title>
+    <title>브이월드 WFS 지도 서비스7</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -299,6 +299,22 @@
              try {
                  const wfsUrl = buildWFSUrl(layerType);
                  addDebugInfo(`📍 요청 URL: ${wfsUrl}`);
+                 
+                 // URL 유효성 검증
+                 if (!wfsUrl.includes('key=') || !wfsUrl.includes('domain=')) {
+                     addDebugInfo(`❌ URL 구성 오류: key 또는 domain 누락`, 'error');
+                 }
+                 
+                 // URL 길이 체크
+                 if (wfsUrl.length > 2000) {
+                     addDebugInfo(`⚠️ URL 길이가 너무 긺: ${wfsUrl.length} chars`, 'warning');
+                 }
+                 
+                 addDebugInfo(`🔗 URL 구성 요소 확인:`);
+                 addDebugInfo(`  • API 키: ${API_KEY ? '✅' : '❌'}`);
+                 addDebugInfo(`  • 도메인: ${DOMAIN ? '✅' : '❌'}`);
+                 addDebugInfo(`  • 서비스명: ${layerType === 'cadastral' ? 'LP_PA_CBND_BUBUN' : '기타'}`);
+                 
                  console.log(`${layerType} WFS 요청 URL:`, wfsUrl);
                  
                  // CORS 우회를 위한 프록시 사용 또는 JSONP 방식 시도
@@ -324,7 +340,34 @@
                          addDebugInfo(`📊 응답 상태: ${response.status} ${response.statusText}`);
                          
                          if (!response.ok) {
-                             throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                             let errorMessage = `HTTP ${response.status} - ${response.statusText}`;
+                             
+                             // 상태 코드별 상세 설명
+                             switch(response.status) {
+                                 case 400:
+                                     errorMessage += ' (잘못된 요청: 파라미터 확인 필요)';
+                                     addDebugInfo(`🔍 400 오류 해결법: URL 파라미터, bbox, typename 확인`, 'warning');
+                                     break;
+                                 case 401:
+                                     errorMessage += ' (인증 실패: API 키 확인 필요)';
+                                     addDebugInfo(`🔑 401 오류 해결법: API 키가 올바른지 확인`, 'warning');
+                                     break;
+                                 case 403:
+                                     errorMessage += ' (접근 거부: 도메인 등록 확인 필요)';
+                                     addDebugInfo(`🌐 403 오류 해결법: 브이월드에서 도메인 등록 상태 확인`, 'warning');
+                                     break;
+                                 case 404:
+                                     errorMessage += ' (서비스 없음: 서비스명 확인 필요)';
+                                     addDebugInfo(`📋 404 오류 해결법: typename=LP_PA_CBND_BUBUN 확인`, 'warning');
+                                     break;
+                                 case 500:
+                                     errorMessage += ' (서버 오류: 브이월드 서비스 장애)';
+                                     addDebugInfo(`🔧 500 오류: 브이월드 서버 문제, 잠시 후 재시도`, 'warning');
+                                     break;
+                             }
+                             
+                             addDebugInfo(`📊 HTTP 상태 분석: ${errorMessage}`, 'error');
+                             throw new Error(errorMessage);
                          }
                          
                          const contentType = response.headers.get('content-type');
@@ -351,9 +394,43 @@
                                      throw new Error('JSONP 응답 없음');
                                  }
                              } catch (jsonpError) {
-                                 addDebugInfo(`❌ JSONP 요청도 실패: ${jsonpError.message}`, 'error');
+                                                              addDebugInfo(`❌ JSONP 요청도 실패: ${jsonpError.message}`, 'error');
+                             
+                             // 연속지적도 대안 서비스명 시도
+                             if (layerType === 'cadastral') {
+                                 addDebugInfo(`🔄 대안 서비스명 시도 중...`, 'info');
+                                 const alternativeServices = [
+                                     'lp_pa_cbnd_bubun',  // 소문자
+                                     'LP_PA_CBND',        // 축약형
+                                     'cadastral',         // 영문명
+                                     'PARCEL_BASIC'       // 기본 필지
+                                 ];
+                                 
+                                 for (const altService of alternativeServices) {
+                                     try {
+                                         const altUrl = wfsUrl.replace('LP_PA_CBND_BUBUN', altService);
+                                         addDebugInfo(`  🔍 시도: ${altService}`, 'info');
+                                         const altResponse = await fetch(altUrl, { 
+                                             method: 'GET', 
+                                             mode: 'cors',
+                                             headers: { 'Content-Type': 'application/json' }
+                                         });
+                                         
+                                         if (altResponse.ok) {
+                                             data = await altResponse.json();
+                                             addDebugInfo(`✅ 대안 서비스 성공: ${altService}`, 'success');
+                                             break;
+                                         }
+                                     } catch (altError) {
+                                         addDebugInfo(`  ❌ ${altService} 실패`, 'warning');
+                                     }
+                                 }
+                             }
+                             
+                             if (!data) {
                                  addDebugInfo(`🔧 해결 방법: 프록시 서버 사용 또는 서버 사이드 요청 필요`, 'warning');
                                  data = null;
+                             }
                              }
                          } else {
                              addDebugInfo(`🔧 API 키나 도메인 설정을 확인하세요`, 'warning');
@@ -423,35 +500,38 @@
                      serviceName = 'LT_L_FRSTRL'; // 도로
                      break;
                  case 'cadastral':
-                     serviceName = 'lp_pa_cbnd_bubun'; // 연속지적도 부분 (소문자)
+                     // 브이월드 연속지적도 서비스명 (여러 가능성 시도)
+                     serviceName = 'LP_PA_CBND_BUBUN'; // 연속지적도 부분
                      version = '1.1.0'; // 지적도는 1.1.0 버전 사용
                      break;
                  default:
                      serviceName = 'LT_C_ADEMD_INFO';
              }
 
-             // 연속지적도의 경우 특별한 파라미터 구성
+             // 브이월드 안내서에 따른 올바른 URL 형식
              if (layerType === 'cadastral') {
+                 // 연속지적도: key와 domain을 먼저 배치
                  return `https://api.vworld.kr/req/wfs?` +
+                        `key=${API_KEY}&` +
+                        `domain=${DOMAIN}&` +
                         `service=WFS&` +
                         `version=${version}&` +
                         `request=GetFeature&` +
                         `typename=${serviceName}&` +
                         `srsname=EPSG:4326&` +
                         `outputFormat=application/json&` +
-                        `bbox=${bbox}&` +
-                        `key=${API_KEY}&` +
-                        `domain=${DOMAIN}`;
+                        `bbox=${bbox}`;
              } else {
+                 // 다른 레이어: apikey 사용
                  return `https://api.vworld.kr/req/wfs?` +
+                        `key=${API_KEY}&` +
+                        `domain=${DOMAIN}&` +
                         `service=WFS&` +
                         `version=${version}&` +
                         `request=GetFeature&` +
                         `typename=${serviceName}&` +
                         `srsname=EPSG:4326&` +
-                        `bbox=${bbox}&` +
-                        `apikey=${API_KEY}&` +
-                        `domain=${DOMAIN}`;
+                        `bbox=${bbox}`;
              }
          }
 
