@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>브이월드 WFS 지도 서비스1</title>
+    <title>브이월드 WFS 지도 서비스2</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -197,6 +197,10 @@
                     <input type="checkbox" id="roadLayer" onchange="toggleLayer('road', this.checked)">
                     <label for="roadLayer">도로정보</label>
                 </div>
+                <div class="layer-item">
+                    <input type="checkbox" id="cadastralLayer" onchange="toggleLayer('cadastral', this.checked)">
+                    <label for="cadastralLayer">연속지적도</label>
+                </div>
             </div>
 
             <div class="loading" id="loading">
@@ -284,21 +288,24 @@
             const bounds = map.getBounds();
             const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
             
-            // 브이월드 WFS 서비스 기본 URL (예시)
-            let serviceName = '';
-            switch(layerType) {
-                case 'admin':
-                    serviceName = 'LT_C_ADEMD_INFO'; // 행정구역
-                    break;
-                case 'facility':
-                    serviceName = 'LT_P_FCTS'; // 공공시설
-                    break;
-                case 'road':
-                    serviceName = 'LT_L_FRSTRL'; // 도로
-                    break;
-                default:
-                    serviceName = 'LT_C_ADEMD_INFO';
-            }
+                         // 브이월드 WFS 서비스 기본 URL (예시)
+             let serviceName = '';
+             switch(layerType) {
+                 case 'admin':
+                     serviceName = 'LT_C_ADEMD_INFO'; // 행정구역
+                     break;
+                 case 'facility':
+                     serviceName = 'LT_P_FCTS'; // 공공시설
+                     break;
+                 case 'road':
+                     serviceName = 'LT_L_FRSTRL'; // 도로
+                     break;
+                 case 'cadastral':
+                     serviceName = 'LP_PA_CBND_BUBUN'; // 연속지적도 부분
+                     break;
+                 default:
+                     serviceName = 'LT_C_ADEMD_INFO';
+             }
 
             return `http://api.vworld.kr/req/wfs?` +
                    `service=WFS&` +
@@ -311,51 +318,209 @@
                    `domain=${encodeURIComponent(DOMAIN)}`;
         }
 
-        // WFS 데이터 파싱 및 표시
-        function parseAndDisplayWFSData(xmlData, layerType) {
-            try {
-                // XML 파싱
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlData, 'text/xml');
-                
-                // 임시로 랜덤 마커 생성 (실제로는 XML에서 좌표 추출)
-                const markers = generateSampleMarkers(layerType);
-                
-                // 레이어에 마커 추가
-                if (activeLayers[layerType]) {
-                    map.removeLayer(activeLayers[layerType]);
-                }
-                
-                activeLayers[layerType] = L.layerGroup(markers).addTo(map);
-                updateLayerCount();
-                
-            } catch (error) {
-                console.error('WFS 데이터 파싱 오류:', error);
-            }
-        }
+                 // WFS 데이터 파싱 및 표시
+         function parseAndDisplayWFSData(xmlData, layerType) {
+             try {
+                 // XML 파싱
+                 const parser = new DOMParser();
+                 const xmlDoc = parser.parseFromString(xmlData, 'text/xml');
+                 
+                 let features = [];
+                 
+                 // 연속지적도의 경우 실제 WFS 데이터 파싱 시도
+                 if (layerType === 'cadastral') {
+                     features = parseCadastralWFS(xmlDoc);
+                 }
+                 
+                 // 실제 데이터가 없거나 다른 레이어의 경우 샘플 데이터 사용
+                 if (features.length === 0) {
+                     features = generateSampleMarkers(layerType);
+                 }
+                 
+                 // 레이어에 피처 추가
+                 if (activeLayers[layerType]) {
+                     map.removeLayer(activeLayers[layerType]);
+                 }
+                 
+                 activeLayers[layerType] = L.layerGroup(features).addTo(map);
+                 updateLayerCount();
+                 
+             } catch (error) {
+                 console.error('WFS 데이터 파싱 오류:', error);
+                 // 오류 발생 시 샘플 데이터로 대체
+                 const fallbackFeatures = generateSampleMarkers(layerType);
+                 if (activeLayers[layerType]) {
+                     map.removeLayer(activeLayers[layerType]);
+                 }
+                 activeLayers[layerType] = L.layerGroup(fallbackFeatures).addTo(map);
+                 updateLayerCount();
+             }
+         }
 
-        // 샘플 마커 생성 (실제 WFS 데이터 대신 사용)
-        function generateSampleMarkers(layerType) {
-            const markers = [];
-            const center = map.getCenter();
-            const colors = {
-                admin: '#ff6b6b',
-                facility: '#4ecdc4',
-                road: '#45b7d1'
-            };
+         // 연속지적도 WFS 데이터 파싱
+         function parseCadastralWFS(xmlDoc) {
+             const features = [];
+             
+             try {
+                 // WFS 응답에서 피처 요소 찾기
+                 const featureMembers = xmlDoc.getElementsByTagName('gml:featureMember') || 
+                                      xmlDoc.getElementsByTagName('featureMember');
+                 
+                 for (let i = 0; i < featureMembers.length; i++) {
+                     const feature = featureMembers[i];
+                     
+                     // 지적 정보 추출
+                     const pnu = getElementText(feature, 'pnu') || `지적-${i+1}`;
+                     const jibun = getElementText(feature, 'jibun') || '정보없음';
+                     const addr = getElementText(feature, 'addr') || '주소정보없음';
+                     
+                     // 좌표 정보 추출 (GML 좌표)
+                     const coords = extractCoordinates(feature);
+                     
+                     if (coords && coords.length > 0) {
+                         // 폴리곤인 경우
+                         if (coords.length > 2) {
+                             const polygon = L.polygon(coords, {
+                                 color: '#ff9500',
+                                 fillColor: '#ff9500',
+                                 fillOpacity: 0.3,
+                                 weight: 2
+                             }).bindPopup(`
+                                 <strong>연속지적도</strong><br>
+                                 PNU: ${pnu}<br>
+                                 지번: ${jibun}<br>
+                                 주소: ${addr}
+                             `);
+                             features.push(polygon);
+                         } else {
+                             // 포인트인 경우
+                             const marker = L.circleMarker(coords[0], {
+                                 color: '#ff9500',
+                                 fillColor: '#ff9500',
+                                 fillOpacity: 0.6,
+                                 radius: 8
+                             }).bindPopup(`
+                                 <strong>연속지적도</strong><br>
+                                 PNU: ${pnu}<br>
+                                 지번: ${jibun}<br>
+                                 주소: ${addr}
+                             `);
+                             features.push(marker);
+                         }
+                     }
+                 }
+                 
+                 console.log(`연속지적도 ${features.length}개 파싱 완료`);
+                 
+             } catch (error) {
+                 console.error('연속지적도 파싱 오류:', error);
+             }
+             
+             return features;
+         }
+
+         // XML 요소에서 텍스트 추출
+         function getElementText(parent, tagName) {
+             const elements = parent.getElementsByTagName(tagName);
+             return elements.length > 0 ? elements[0].textContent : null;
+         }
+
+         // GML 좌표 추출
+         function extractCoordinates(feature) {
+             try {
+                 // 다양한 GML 좌표 형식 지원
+                 const posLists = feature.getElementsByTagName('gml:posList') || 
+                                feature.getElementsByTagName('posList');
+                 const coordinates = feature.getElementsByTagName('gml:coordinates') || 
+                                   feature.getElementsByTagName('coordinates');
+                 const positions = feature.getElementsByTagName('gml:pos') || 
+                                 feature.getElementsByTagName('pos');
+                 
+                 let coords = [];
+                 
+                 // posList 형식
+                 if (posLists.length > 0) {
+                     const posText = posLists[0].textContent.trim();
+                     const values = posText.split(/\s+/);
+                     for (let i = 0; i < values.length; i += 2) {
+                         if (i + 1 < values.length) {
+                             coords.push([parseFloat(values[i+1]), parseFloat(values[i])]);
+                         }
+                     }
+                 }
+                 // coordinates 형식
+                 else if (coordinates.length > 0) {
+                     const coordText = coordinates[0].textContent.trim();
+                     const pairs = coordText.split(/\s+/);
+                     pairs.forEach(pair => {
+                         const xy = pair.split(',');
+                         if (xy.length >= 2) {
+                             coords.push([parseFloat(xy[1]), parseFloat(xy[0])]);
+                         }
+                     });
+                 }
+                 // pos 형식 (단일 포인트)
+                 else if (positions.length > 0) {
+                     const posText = positions[0].textContent.trim();
+                     const xy = posText.split(/\s+/);
+                     if (xy.length >= 2) {
+                         coords.push([parseFloat(xy[1]), parseFloat(xy[0])]);
+                     }
+                 }
+                 
+                 return coords;
+             } catch (error) {
+                 console.error('좌표 추출 오류:', error);
+                 return [];
+             }
+         }
+
+                 // 샘플 마커 생성 (실제 WFS 데이터 대신 사용)
+         function generateSampleMarkers(layerType) {
+             const markers = [];
+             const center = map.getCenter();
+             const colors = {
+                 admin: '#ff6b6b',
+                 facility: '#4ecdc4',
+                 road: '#45b7d1',
+                 cadastral: '#ff9500'
+             };
             
             for (let i = 0; i < 10; i++) {
                 const lat = center.lat + (Math.random() - 0.5) * 0.1;
                 const lng = center.lng + (Math.random() - 0.5) * 0.1;
                 
-                const marker = L.circleMarker([lat, lng], {
-                    color: colors[layerType] || '#333',
-                    fillColor: colors[layerType] || '#333',
-                    fillOpacity: 0.6,
-                    radius: 6
-                }).bindPopup(`${layerType} 데이터 #${i + 1}<br>위치: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-                
-                markers.push(marker);
+                                 let marker;
+                 if (layerType === 'cadastral') {
+                     // 연속지적도는 사각형 폴리곤으로 표시
+                     const size = 0.003; // 약 300m
+                     const bounds = [
+                         [lat - size, lng - size],
+                         [lat - size, lng + size],
+                         [lat + size, lng + size],
+                         [lat + size, lng - size]
+                     ];
+                     marker = L.polygon(bounds, {
+                         color: colors[layerType] || '#333',
+                         fillColor: colors[layerType] || '#333',
+                         fillOpacity: 0.3,
+                         weight: 2
+                     }).bindPopup(`
+                         <strong>연속지적도 샘플</strong><br>
+                         지번: ${i + 1}번지<br>
+                         위치: ${lat.toFixed(4)}, ${lng.toFixed(4)}<br>
+                         면적: 약 300㎡
+                     `);
+                 } else {
+                     marker = L.circleMarker([lat, lng], {
+                         color: colors[layerType] || '#333',
+                         fillColor: colors[layerType] || '#333',
+                         fillOpacity: 0.6,
+                         radius: 6
+                     }).bindPopup(`${layerType} 데이터 #${i + 1}<br>위치: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+                 }
+                 
+                 markers.push(marker);
             }
             
             return markers;
