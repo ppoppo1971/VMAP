@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>브이월드 WFS 지도 서비스3</title>
+    <title>브이월드 WFS 지도 서비스4</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -216,6 +216,16 @@
                      💡 CORS 정책으로 인해 일부 데이터는 샘플로 표시됩니다.
                  </p>
              </div>
+
+             <div class="control-group">
+                 <h3>🔍 디버깅 정보</h3>
+                 <div id="debugInfo" style="background: #f8f9fa; padding: 0.8rem; border-radius: 4px; font-size: 0.8rem; max-height: 200px; overflow-y: auto;">
+                     <p style="color: #666;">레이어를 선택하면 상세 정보가 표시됩니다...</p>
+                 </div>
+                 <button class="btn" onclick="clearDebugInfo()" style="margin-top: 0.5rem; padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                     디버깅 정보 지우기
+                 </button>
+             </div>
         </div>
 
         <div class="map-container">
@@ -262,16 +272,20 @@
                  // WFS 데이터 요청 함수
          async function loadWFSData(layerType) {
              showLoading(true);
+             addDebugInfo(`🚀 ${layerType} 레이어 로딩 시작...`);
              
              try {
                  const wfsUrl = buildWFSUrl(layerType);
+                 addDebugInfo(`📍 요청 URL: ${wfsUrl}`);
                  console.log(`${layerType} WFS 요청 URL:`, wfsUrl);
                  
                  // CORS 우회를 위한 프록시 사용 또는 JSONP 방식 시도
                  let response;
                  let data;
+                 const startTime = Date.now();
                  
                  if (layerType === 'cadastral') {
+                     addDebugInfo(`📡 연속지적도 JSON 요청 시작...`);
                      // 연속지적도는 JSON 형식으로 요청
                      try {
                          response = await fetch(wfsUrl, {
@@ -282,43 +296,69 @@
                              }
                          });
                          
+                         const responseTime = Date.now() - startTime;
+                         addDebugInfo(`⏱️ 응답 시간: ${responseTime}ms`);
+                         addDebugInfo(`📊 응답 상태: ${response.status} ${response.statusText}`);
+                         
                          if (!response.ok) {
-                             throw new Error(`HTTP error! status: ${response.status}`);
+                             throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
                          }
                          
+                         const contentType = response.headers.get('content-type');
+                         addDebugInfo(`📄 응답 타입: ${contentType}`);
+                         
                          data = await response.json();
+                         addDebugInfo(`✅ JSON 파싱 성공: ${data.features ? data.features.length : 0}개 피처`);
                          console.log(`${layerType} WFS 데이터 로드 성공 (JSON):`, data);
                          
                      } catch (corsError) {
+                         const responseTime = Date.now() - startTime;
+                         addDebugInfo(`❌ 오류 발생 (${responseTime}ms): ${corsError.message}`, 'error');
+                         if (corsError.name === 'TypeError' && corsError.message.includes('fetch')) {
+                             addDebugInfo(`🚫 CORS 정책 또는 네트워크 오류로 추정`, 'warning');
+                         }
                          console.warn('CORS 오류로 인해 샘플 데이터를 사용합니다:', corsError);
                          // CORS 오류 시 샘플 데이터 생성
                          data = null;
                      }
                  } else {
+                     addDebugInfo(`📡 ${layerType} XML 요청 시작...`);
                      // 다른 레이어는 XML 형식
                      try {
                          response = await fetch(wfsUrl);
+                         const responseTime = Date.now() - startTime;
+                         addDebugInfo(`⏱️ 응답 시간: ${responseTime}ms`);
+                         addDebugInfo(`📊 응답 상태: ${response.status} ${response.statusText}`);
+                         
                          if (!response.ok) {
-                             throw new Error(`HTTP error! status: ${response.status}`);
+                             throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
                          }
                          data = await response.text();
+                         addDebugInfo(`✅ XML 응답 수신: ${data.length} bytes`);
                          console.log(`${layerType} WFS 데이터 로드 성공 (XML):`, data);
                      } catch (corsError) {
+                         const responseTime = Date.now() - startTime;
+                         addDebugInfo(`❌ 오류 발생 (${responseTime}ms): ${corsError.message}`, 'error');
                          console.warn('CORS 오류로 인해 샘플 데이터를 사용합니다:', corsError);
                          data = null;
                      }
                  }
                  
                  // 데이터 파싱 및 지도에 표시
+                 if (data === null) {
+                     addDebugInfo(`🔄 샘플 데이터로 대체하여 표시합니다`, 'warning');
+                 }
                  parseAndDisplayWFSData(data, layerType);
                  
              } catch (error) {
+                 addDebugInfo(`💥 치명적 오류: ${error.message}`, 'error');
                  console.error(`${layerType} WFS 데이터 로드 실패:`, error);
                  console.warn('샘플 데이터를 대신 표시합니다.');
                  // 오류 발생 시 샘플 데이터로 대체
                  parseAndDisplayWFSData(null, layerType);
              } finally {
                  showLoading(false);
+                 addDebugInfo(`🏁 ${layerType} 레이어 로딩 완료\n`);
              }
          }
 
@@ -378,19 +418,26 @@
          function parseAndDisplayWFSData(data, layerType) {
              try {
                  let features = [];
+                 addDebugInfo(`🔍 ${layerType} 데이터 파싱 시작...`);
                  
                  // 데이터가 있는 경우 파싱 시도
                  if (data) {
+                     addDebugInfo(`📄 데이터 타입: ${typeof data}`);
+                     
                      if (layerType === 'cadastral') {
+                         addDebugInfo(`🏠 연속지적도 파싱 시도...`);
                          // 연속지적도는 JSON (GeoJSON) 형식
                          if (typeof data === 'object') {
+                             addDebugInfo(`📊 JSON 객체 파싱...`);
                              features = parseCadastralGeoJSON(data);
                          } else {
                              // 문자열인 경우 JSON 파싱 시도
                              try {
+                                 addDebugInfo(`🔤 문자열 JSON 파싱 시도...`);
                                  const jsonData = JSON.parse(data);
                                  features = parseCadastralGeoJSON(jsonData);
                              } catch (e) {
+                                 addDebugInfo(`❌ JSON 파싱 실패, XML 파싱 시도`, 'warning');
                                  console.warn('JSON 파싱 실패, XML 파싱 시도');
                                  const parser = new DOMParser();
                                  const xmlDoc = parser.parseFromString(data, 'text/xml');
@@ -398,30 +445,39 @@
                              }
                          }
                      } else {
+                         addDebugInfo(`📋 ${layerType} XML 파싱 시도...`);
                          // 다른 레이어는 XML 형식
                          const parser = new DOMParser();
                          const xmlDoc = parser.parseFromString(data, 'text/xml');
                          features = parseXMLWFS(xmlDoc, layerType);
                      }
+                 } else {
+                     addDebugInfo(`❓ 데이터가 null/undefined`, 'warning');
                  }
                  
                  // 실제 데이터가 없거나 파싱 실패 시 샘플 데이터 사용
                  if (features.length === 0) {
+                     addDebugInfo(`🔄 실제 피처 없음, 샘플 데이터 생성...`, 'warning');
                      console.log(`${layerType}: 실제 데이터가 없어 샘플 데이터를 표시합니다.`);
                      features = generateSampleMarkers(layerType);
+                 } else {
+                     addDebugInfo(`✅ ${features.length}개 실제 피처 파싱 성공`, 'success');
                  }
                  
                  // 레이어에 피처 추가
                  if (activeLayers[layerType]) {
                      map.removeLayer(activeLayers[layerType]);
+                     addDebugInfo(`🗑️ 기존 ${layerType} 레이어 제거`);
                  }
                  
                  activeLayers[layerType] = L.layerGroup(features).addTo(map);
                  updateLayerCount();
                  
+                 addDebugInfo(`🎯 ${layerType} 레이어 지도 추가 완료: ${features.length}개 피처`, 'success');
                  console.log(`${layerType} 레이어 추가 완료: ${features.length}개 피처`);
                  
              } catch (error) {
+                 addDebugInfo(`💥 파싱 중 오류: ${error.message}`, 'error');
                  console.error('WFS 데이터 파싱 오류:', error);
                  // 오류 발생 시 샘플 데이터로 대체
                  const fallbackFeatures = generateSampleMarkers(layerType);
@@ -430,6 +486,7 @@
                  }
                  activeLayers[layerType] = L.layerGroup(fallbackFeatures).addTo(map);
                  updateLayerCount();
+                 addDebugInfo(`🔄 오류로 인한 샘플 데이터 대체`, 'warning');
              }
          }
 
@@ -438,21 +495,48 @@
              const features = [];
              
              try {
-                 if (geoJsonData && geoJsonData.features && Array.isArray(geoJsonData.features)) {
+                 addDebugInfo(`🔍 GeoJSON 구조 검사...`);
+                 addDebugInfo(`📊 데이터 타입: ${typeof geoJsonData}`);
+                 
+                 if (!geoJsonData) {
+                     addDebugInfo(`❌ GeoJSON 데이터가 없음`, 'error');
+                     return features;
+                 }
+                 
+                 addDebugInfo(`🗂️ 최상위 속성: ${Object.keys(geoJsonData).join(', ')}`);
+                 
+                 if (geoJsonData.features && Array.isArray(geoJsonData.features)) {
+                     const totalFeatures = geoJsonData.features.length;
+                     addDebugInfo(`📋 총 ${totalFeatures}개 피처 발견`, 'success');
+                     
                      geoJsonData.features.forEach((feature, index) => {
                          try {
+                             addDebugInfo(`🔍 피처 ${index + 1}/${totalFeatures} 처리 중...`);
+                             
                              const geometry = feature.geometry;
                              const properties = feature.properties || {};
+                             
+                             if (!geometry) {
+                                 addDebugInfo(`❌ 피처 ${index + 1}: 지오메트리 없음`, 'warning');
+                                 return;
+                             }
+                             
+                             addDebugInfo(`📐 지오메트리 타입: ${geometry.type}`);
                              
                              // 속성 정보 추출
                              const pnu = properties.pnu || properties.PNU || `지적-${index + 1}`;
                              const jibun = properties.jibun || properties.JIBUN || properties.지번 || '정보없음';
                              const addr = properties.addr || properties.ADDR || properties.주소 || '주소정보없음';
                              
+                             addDebugInfo(`🏷️ 속성: PNU=${pnu}, 지번=${jibun}`);
+                             
                              let leafletFeature = null;
                              
                              if (geometry.type === 'Polygon' && geometry.coordinates) {
                                  // 폴리곤 처리
+                                 const coordsCount = geometry.coordinates[0].length;
+                                 addDebugInfo(`🔷 폴리곤: ${coordsCount}개 좌표점`);
+                                 
                                  const coords = geometry.coordinates[0].map(coord => [coord[1], coord[0]]); // lng,lat -> lat,lng
                                  leafletFeature = L.polygon(coords, {
                                      color: '#ff9500',
@@ -467,6 +551,8 @@
                                  `);
                              } else if (geometry.type === 'Point' && geometry.coordinates) {
                                  // 포인트 처리
+                                 addDebugInfo(`📍 포인트: [${geometry.coordinates.join(', ')}]`);
+                                 
                                  const coords = [geometry.coordinates[1], geometry.coordinates[0]]; // lng,lat -> lat,lng
                                  leafletFeature = L.circleMarker(coords, {
                                      color: '#ff9500',
@@ -479,21 +565,34 @@
                                      지번: ${jibun}<br>
                                      주소: ${addr}
                                  `);
+                             } else {
+                                 addDebugInfo(`❓ 지원하지 않는 지오메트리: ${geometry.type}`, 'warning');
                              }
                              
                              if (leafletFeature) {
                                  features.push(leafletFeature);
+                                 addDebugInfo(`✅ 피처 ${index + 1} 생성 성공`, 'success');
+                             } else {
+                                 addDebugInfo(`❌ 피처 ${index + 1} 생성 실패`, 'warning');
                              }
                              
                          } catch (featureError) {
+                             addDebugInfo(`💥 피처 ${index + 1} 파싱 오류: ${featureError.message}`, 'error');
                              console.warn('피처 파싱 오류:', featureError);
                          }
                      });
+                 } else {
+                     addDebugInfo(`❌ features 배열이 없거나 유효하지 않음`, 'error');
+                     if (geoJsonData.features) {
+                         addDebugInfo(`📄 features 타입: ${typeof geoJsonData.features}`);
+                     }
                  }
                  
+                 addDebugInfo(`🎯 GeoJSON 파싱 완료: ${features.length}개 피처 생성`, features.length > 0 ? 'success' : 'warning');
                  console.log(`GeoJSON 연속지적도 ${features.length}개 파싱 완료`);
                  
              } catch (error) {
+                 addDebugInfo(`💥 GeoJSON 파싱 중 오류: ${error.message}`, 'error');
                  console.error('GeoJSON 연속지적도 파싱 오류:', error);
              }
              
@@ -676,18 +775,23 @@
             return markers;
         }
 
-        // 레이어 토글
-        function toggleLayer(layerType, enabled) {
-            if (enabled) {
-                loadWFSData(layerType);
-            } else {
-                if (activeLayers[layerType]) {
-                    map.removeLayer(activeLayers[layerType]);
-                    delete activeLayers[layerType];
-                    updateLayerCount();
-                }
-            }
-        }
+                 // 레이어 토글
+         function toggleLayer(layerType, enabled) {
+             if (enabled) {
+                 addDebugInfo(`🔛 ${layerType} 레이어 활성화 요청`, 'info');
+                 loadWFSData(layerType);
+             } else {
+                 addDebugInfo(`🔚 ${layerType} 레이어 비활성화 요청`, 'info');
+                 if (activeLayers[layerType]) {
+                     map.removeLayer(activeLayers[layerType]);
+                     delete activeLayers[layerType];
+                     updateLayerCount();
+                     addDebugInfo(`✅ ${layerType} 레이어 제거 완료`, 'success');
+                 } else {
+                     addDebugInfo(`⚠️ ${layerType} 레이어가 이미 비활성화됨`, 'warning');
+                 }
+             }
+         }
 
         // 기본 뷰로 이동
         function resetView() {
@@ -759,10 +863,77 @@
             // 지도 정보 업데이트 (필요시)
         }
 
-        // 페이지 로드 시 지도 초기화
-        document.addEventListener('DOMContentLoaded', function() {
-            initMap();
-        });
+                 // 디버깅 정보 추가 함수
+         function addDebugInfo(message, type = 'info') {
+             const debugDiv = document.getElementById('debugInfo');
+             const timestamp = new Date().toLocaleTimeString();
+             
+             let color = '#333';
+             let icon = '📝';
+             
+             switch(type) {
+                 case 'error':
+                     color = '#e74c3c';
+                     icon = '❌';
+                     break;
+                 case 'warning':
+                     color = '#f39c12';
+                     icon = '⚠️';
+                     break;
+                 case 'success':
+                     color = '#27ae60';
+                     icon = '✅';
+                     break;
+                 default:
+                     color = '#333';
+                     icon = '📝';
+             }
+             
+             const logEntry = document.createElement('div');
+             logEntry.style.marginBottom = '0.3rem';
+             logEntry.style.color = color;
+             logEntry.innerHTML = `<span style="color: #666; font-size: 0.7rem;">[${timestamp}]</span> ${icon} ${message}`;
+             
+             debugDiv.appendChild(logEntry);
+             
+             // 자동 스크롤
+             debugDiv.scrollTop = debugDiv.scrollHeight;
+             
+             // 최대 50개 항목으로 제한
+             while (debugDiv.children.length > 50) {
+                 debugDiv.removeChild(debugDiv.firstChild);
+             }
+         }
+
+         // 디버깅 정보 지우기
+         function clearDebugInfo() {
+             const debugDiv = document.getElementById('debugInfo');
+             debugDiv.innerHTML = '<p style="color: #666;">디버깅 정보가 지워졌습니다...</p>';
+         }
+
+         // API 키와 도메인 유효성 검사
+         function validateApiSettings() {
+             addDebugInfo(`🔑 API 키 검증: ${API_KEY ? '설정됨' : '누락'}`, API_KEY ? 'success' : 'error');
+             addDebugInfo(`🌐 도메인 검증: ${DOMAIN ? '설정됨' : '누락'}`, DOMAIN ? 'success' : 'error');
+             
+             // 현재 위치 정보 표시
+             const currentUrl = window.location.href;
+             addDebugInfo(`📍 현재 URL: ${currentUrl}`);
+             
+             // 지도 범위 정보
+             if (map) {
+                 const bounds = map.getBounds();
+                 addDebugInfo(`🗺️ 지도 범위: ${bounds.toBBoxString()}`);
+                 addDebugInfo(`🔍 줌 레벨: ${map.getZoom()}`);
+             }
+         }
+
+         // 페이지 로드 시 지도 초기화
+         document.addEventListener('DOMContentLoaded', function() {
+             initMap();
+             addDebugInfo(`🚀 브이월드 WFS 지도 서비스 시작`, 'success');
+             validateApiSettings();
+         });
     </script>
 </body>
 </html>
