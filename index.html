@@ -4,19 +4,11 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>테스트</title>
+    <title>VMAP</title>
     <!-- Kakao Maps JavaScript SDK (지도 렌더링용) -->
     <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f1268a7e77f3b182e700b92b45d98082&autoload=false&libraries=services"></script>
     
-    <script>
-      // 파일명에 맞춰 타이틀 자동 설정
-      function setTitleFromFilename() {
-        const filename = window.location.pathname.split('/').pop().replace('.html', '');
-        document.title = filename;
-      }
-      // 페이지 로드 시 타이틀 설정
-      window.addEventListener('load', setTitleFromFilename);
-    </script>
+    
     <style>
         html, body {
             height: 100%;
@@ -280,6 +272,21 @@
             border-top: 12px solid white;
             filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.2));
         }
+
+        /* 화면 상단 중앙 배너 */
+        #centerTopBanner {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 25;
+            color: rgba(255, 255, 255, 0.98);
+            font-weight: 900;
+            font-size: 3rem;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+            pointer-events: none;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
     </style>
 </head>
 <body>
@@ -288,6 +295,8 @@
     <div id="map"></div>
     <!-- 현재 활성 지도 표시 배지 -->
     <div id="activeMapBadge" aria-live="polite">구글맵 - 일반</div>
+    <!-- 화면 상단 중앙 배너 -->
+    <div id="centerTopBanner">테스트1</div>
     <!-- 사이드 패널 토글 버튼 (패널이 숨겨졌을 때만 보임) -->
     <button id="menuToggleBtn" class="show" onclick="showMenu()" title="메뉴 열기">☰</button>
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
@@ -357,17 +366,16 @@
     <script>
       // 전역 변수들
       let map, kakaoMap, kakaoRoadview, kakaoRoadviewClient;
-      let vworldBoundaryDataLayer = null, currentBoundaryLayer = null, cadastralDataLayer = null;
-      let controlPointDataLayer = null; // 지적도근점(구글, WFS)
+      let vworldBoundaryOverlay = null, currentBoundaryLayer = null, cadastralOverlay = null;
+      let controlPointOverlay = null; // 지적도근점(구글)
       let addressMarkers = [], kakaoMarkers = [], lastSearchResults = [];
       let lastSearchMode = 'keyword';
-      let kakaoCadastralFeatures = [], cadastralOverlayMode = null; // 카카오(WFS) 지적도 피처들
-      let kakaoControlPointFeatures = [], controlPointOverlayMode = null; // 카카오(WFS) 지적도근점 피처들
+      let kakaoCadastralOverlayEl = null, cadastralOverlayMode = null;
+      let kakaoControlPointOverlayEl = null, controlPointOverlayMode = null; // 지적도근점(카카오)
       let cadastralUpdateTimer = null, boundaryUpdateTimer = null;
       let isRoadviewClickMode = false, roadviewOverlayOn = false, roadviewMarker = null;
       let addressInfoWindow = null, addressInfoMarker = null;
       let googleAddressInfoWindow = null, googleAddressInfoMarker = null;
-      let kakaoCadastralIdleListening = false, kakaoControlPointIdleListening = false;
       
       // DOM 캐시
       let cachedElements = {};
@@ -383,16 +391,28 @@
         VWORLD_API_KEY: '46F4304E-84DC-3F56-92F1-6A98A0370A31',
         KAKAO_API_KEY: 'KakaoAK c27024d37ac99abf233b12f0efa39099',
         VWORLD_API_URL: 'https://api.vworld.kr/req/wms',
-        VWORLD_WFS_URL: 'https://api.vworld.kr/req/wfs',
-        VWORLD_WFS_CADASTRAL: 'https://api.vworld.kr/ned/wfs/getCtnlgsSpceWFS',
-        VWORLD_WFS_CONTROL_POINT: 'https://api.vworld.kr/ned/wfs/getLgstspSpceWFS',
-        VWORLD_WFS_BOUNDARY: 'https://api.vworld.kr/ned/wfs/getAdresSpceWFS',
-        VWORLD_DOMAIN: 'https://ppoppo1971.github.io/VMAP/Windex42.html',
+        VWORLD_WFS_BOUNDARY_URL: 'https://api.vworld.kr/ned/wfs/getAdresSpceWFS',
+        VWORLD_WFS_CADASTRAL_URL: 'https://api.vworld.kr/ned/wfs/getCtnlgsSpceWFS',
+        VWORLD_WFS_CONTROLPOINT_URL: 'https://api.vworld.kr/ned/wfs/getLgstspSpceWFS',
         VWORLD_CONTROL_POINT_WMS_URL: 'https://api.vworld.kr/ned/wms/LgstspSpceService',
         KAKAO_LOCAL_API_URL: 'https://dapi.kakao.com/v2/local',
         MAX_BOUNDARY_ZOOM: 32,
         MAX_CADASTRAL_ZOOM: 32,
         DEBOUNCE_DELAY: 1000
+      };
+      
+      // WFS용 데이터 레이어 (구글 맵 전용)
+      const wfsDataLayers = {
+        boundary: null,
+        cadastral: null,
+        controlPoint: null
+      };
+
+      // Kakao WFS 도형 관리
+      const kakaoWfsLayers = {
+        boundary: [],
+        cadastral: [],
+        controlPoint: []
       };
       // 디바운스 헬퍼 함수
       function debounce(func, wait) {
@@ -416,72 +436,65 @@
         return `${baseUrl}?${urlParams.toString()}`;
       }
 
-      // WFS URL 빌더 및 GeoJSON 요청 헬퍼
-      function buildWfsUrl(typeName, bbox, options = {}) {
-        const {
-          version = '1.1.0',
-          srsName = 'EPSG:4326',
-          maxFeatures = 2000,
-          output = 'application/json'
-        } = options;
-        const params = new URLSearchParams({
-          key: CONFIG.VWORLD_API_KEY,
-          domain: CONFIG.VWORLD_DOMAIN,
-          service: 'WFS',
-          request: 'GetFeature',
-          version,
-          typename: typeName,
-          output,
-          srsName,
-          bbox
-        });
-        params.set('maxFeatures', String(maxFeatures));
-        return `${CONFIG.VWORLD_WFS_URL}?${params.toString()}`;
-      }
-      async function fetchWfsGeoJson(typeName, bbox, options = {}) {
-        const url = buildWfsUrl(typeName, bbox, options);
-        const res = await fetch(url, { method: 'GET' });
-        if (!res.ok) throw new Error(`WFS 요청 실패: ${res.status}`);
-        return await res.json();
+      // 공통 오류 알림
+      function showWfsError(context, error) {
+        try {
+          let message = `[${context}] WFS 요청 실패`;
+          if (error && typeof error === 'object') {
+            if (error.name === 'TypeError') {
+              message += `\n네트워크 또는 CORS 문제일 수 있습니다.`;
+            }
+            if (error.status) {
+              message += `\nHTTP ${error.status}`;
+              if (error.status === 401 || error.status === 403) {
+                message += `\nAPI 키 또는 서비스 URL(도메인) 등록을 확인하세요.`;
+              }
+            }
+            if (error.message) {
+              message += `\n${error.message}`;
+            }
+          } else if (typeof error === 'string') {
+            message += `\n${error}`;
+          }
+          alert(message);
+        } catch (e) {
+          alert(`[${context}] WFS 요청 실패`);
+        }
       }
 
-      // NED WFS(연속지적도/지적도근점/법정경계) 전용 URL 빌더 및 요청자
-      function buildNedWfsUrl(baseUrl, typeName, bboxLatLon, options = {}) {
-        const {
-          srsName = 'EPSG:4326',
-          maxFeatures = 1000,
-          output = 'application/json',
-          resultType = 'results'
-        } = options;
-        const params = new URLSearchParams({
-          key: CONFIG.VWORLD_API_KEY,
-          domain: CONFIG.VWORLD_DOMAIN,
-          typename: typeName,
-          bbox: bboxLatLon,
-          srsName,
-          output,
-          maxFeatures: String(maxFeatures),
-          resultType
-        });
-        return `${baseUrl}?${params.toString()}`;
-      }
-      async function fetchNedWfsGeoJson(baseUrl, typeName, bboxLatLon, options = {}) {
-        const url = buildNedWfsUrl(baseUrl, typeName, bboxLatLon, options);
-        console.log('WFS 요청 URL:', url); // 디버깅용 로그
+      // 구글맵 Data 레이어 유틸
+      function clearDataLayer(name) {
         try {
-          const res = await fetch(url, { method: 'GET' });
-          console.log('WFS 응답 상태:', res.status, res.statusText);
-          if (!res.ok) {
-            const errorText = await res.text();
-            console.error('WFS 에러 응답:', errorText);
-            throw new Error(`NED WFS 요청 실패: ${res.status} - ${errorText}`);
+          const layer = wfsDataLayers[name];
+          if (layer && layer.setMap) {
+            layer.setMap(null);
           }
-          const data = await res.json();
-          console.log('WFS 응답 데이터:', data);
-          return data;
-        } catch (error) {
-          console.error('WFS 요청 중 오류:', error);
-          throw error;
+        } catch (e) { /* ignore */ }
+        wfsDataLayers[name] = null;
+      }
+      function ensureDataLayer(name) {
+        if (!map) return null;
+        if (!wfsDataLayers[name]) {
+          wfsDataLayers[name] = new google.maps.Data({ map });
+        } else if (!wfsDataLayers[name].getMap || !wfsDataLayers[name].getMap()) {
+          wfsDataLayers[name].setMap(map);
+        }
+        return wfsDataLayers[name];
+      }
+      function resetAndAddGeoJson(name, geojson, styleFn) {
+        const layer = ensureDataLayer(name);
+        if (!layer) return;
+        try {
+          layer.forEach(f => layer.remove(f));
+        } catch (e) { /* ignore */ }
+        try {
+          layer.addGeoJson(geojson);
+        } catch (e) {
+          showWfsError(name, 'GeoJSON 파싱 실패');
+          return;
+        }
+        if (typeof styleFn === 'function') {
+          layer.setStyle(styleFn);
         }
       }
       
@@ -628,14 +641,14 @@
         
         // 디바운스된 업데이트 함수들
         const debouncedBoundaryUpdate = debounce(() => {
-          if (currentBoundaryLayer && vworldBoundaryDataLayer) updateBoundaryOverlay();
+          if (currentBoundaryLayer && vworldBoundaryOverlay) updateBoundaryOverlay();
         }, CONFIG.DEBOUNCE_DELAY);
         
         const debouncedCadastralUpdate = debounce(() => {
-          if (cadastralDataLayer) updateCadastralOverlay();
+          if (cadastralOverlay) updateCadastralOverlay();
         }, CONFIG.DEBOUNCE_DELAY);
         const debouncedControlPointUpdate = debounce(() => {
-          if (controlPointDataLayer) updateControlPointOverlay();
+          if (controlPointOverlay) updateControlPointOverlay();
         }, CONFIG.DEBOUNCE_DELAY);
         
         // 지도 이동 이벤트 리스너 추가
@@ -794,14 +807,14 @@
         hideRoadview();
         
         // 카카오맵에서 지적도가 활성화되어 있었다면 구글맵에도 로드
-        if (cadastralOverlayMode === 'kakao' || (Array.isArray(kakaoCadastralFeatures) && kakaoCadastralFeatures.length > 0)) {
+        if (cadastralOverlayMode === 'kakao' || kakaoCadastralOverlayEl) {
           setTimeout(() => {
             loadCadastralOverlay();
           }, 500);
         }
 
         // 카카오맵에서 지적도근점이 활성 상태였다면 구글맵에도 로드
-        if (controlPointOverlayMode === 'kakao' || (Array.isArray(kakaoControlPointFeatures) && kakaoControlPointFeatures.length > 0)) {
+        if (controlPointOverlayMode === 'kakao' || kakaoControlPointOverlayEl) {
           setTimeout(() => {
             loadControlPointOverlay();
           }, 600);
@@ -853,14 +866,14 @@
           }, 0);
           
           // 지적도가 활성 상태였다면 카카오에도 표시
-          if (cadastralDataLayer || cadastralOverlayMode === 'google' || 
-              (cadastralOverlayMode === null && cadastralDataLayer)) {
+          if (cadastralOverlay || cadastralOverlayMode === 'google' || 
+              (cadastralOverlayMode === null && cadastralOverlay)) {
             loadCadastralOverlayKakao();
           }
 
           // 지적도근점이 활성 상태였다면 카카오에도 표시
-          if (controlPointDataLayer || controlPointOverlayMode === 'google' ||
-              (controlPointOverlayMode === null && controlPointDataLayer)) {
+          if (controlPointOverlay || controlPointOverlayMode === 'google' ||
+              (controlPointOverlayMode === null && controlPointOverlay)) {
             loadControlPointOverlayKakao();
           }
           
@@ -1126,36 +1139,7 @@
       // 페이지 로드 시 테스트 실행
       window.addEventListener('load', function() {
         setTimeout(testCoordinateConversion, 1000);
-        setTimeout(testWfsConnection, 2000);
       });
-      
-      // WFS 연결 테스트 함수
-      async function testWfsConnection() {
-        console.log('WFS 연결 테스트 시작...');
-        try {
-          // 서울 시청 주변의 작은 영역으로 테스트
-          const testBbox = '37.5665,126.9780,37.5675,126.9790,EPSG:4326';
-          
-          // 법정경계 테스트 (시군구)
-          console.log('1. 법정경계 WFS 테스트...');
-          const boundaryUrl = buildNedWfsUrl(CONFIG.VWORLD_WFS_BOUNDARY, 'dt_d001_sig', testBbox, { maxFeatures: 1 });
-          console.log('법정경계 요청 URL:', boundaryUrl);
-          
-          // 연속지적도 테스트
-          console.log('2. 연속지적도 WFS 테스트...');
-          const cadastralUrl = buildNedWfsUrl(CONFIG.VWORLD_WFS_CADASTRAL, 'dt_d002', testBbox, { maxFeatures: 1 });
-          console.log('연속지적도 요청 URL:', cadastralUrl);
-          
-          // 지적도근점 테스트
-          console.log('3. 지적도근점 WFS 테스트...');
-          const controlPointUrl = buildNedWfsUrl(CONFIG.VWORLD_WFS_CONTROL_POINT, 'dt_d007', testBbox, { maxFeatures: 1 });
-          console.log('지적도근점 요청 URL:', controlPointUrl);
-          
-          console.log('WFS URL 생성 완료. 브라우저 개발자 도구에서 네트워크 탭을 확인하여 실제 요청 결과를 확인하세요.');
-        } catch (error) {
-          console.error('WFS 연결 테스트 중 오류:', error);
-        }
-      }
       
       // 좌표로 주소 검색
       async function searchAddressFromCoordinates(lat, lng) {
@@ -1618,47 +1602,56 @@
       }
       
       // 브이월드 경계 로드 함수
-      async function loadVworldBoundary(layerType) {
-        if (!map) { alert('지도가 아직 준비되지 않았습니다.'); return; }
-        const zoom = map.getZoom();
-        if (zoom > CONFIG.MAX_BOUNDARY_ZOOM) {
-          alert(`이 경계는 더 이상 확대할 수 없습니다. (최대 허용 zoom: ${CONFIG.MAX_BOUNDARY_ZOOM})`);
+      function loadVworldBoundary(layerType) {
+        if (!map) {
+          alert('지도가 아직 준비되지 않았습니다.');
           return;
         }
+        
+        // WFS로 전환: 법정경계 GeoJSON 불러오기
         showGoogleMap();
         clearVworldBoundary();
+        clearDataLayer('boundary');
+
         const bounds = map.getBounds();
         if (!bounds) { alert('지도 영역을 확정할 수 없습니다. 지도를 이동한 후 다시 시도해주세요.'); return; }
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
-        const bbox = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`;
-        try {
-          const typeMap = { 'lt_c_adsigg': 'dt_d001_sig', 'lt_c_ademd': 'dt_d001_emd', 'lt_c_adri': 'dt_d001_lio' };
-          const typename = typeMap[layerType] || layerType;
-          const geojson = await fetchNedWfsGeoJson(CONFIG.VWORLD_WFS_BOUNDARY, typename, bbox, { maxFeatures: 1000 });
-          const dataLayer = new google.maps.Data({ map });
-          dataLayer.addGeoJson(geojson);
-          // 스타일: 경계선 파랑 계열
-          dataLayer.setStyle({
-            strokeColor: '#2563eb',
-            strokeWeight: 2,
-            strokeOpacity: 0.9,
-            fillOpacity: 0
+        const bboxWgs84 = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`; // WFS 규격에 맞춤
+
+        const params = new URLSearchParams({
+          key: CONFIG.VWORLD_API_KEY,
+          typename: layerType === 'lt_c_adsigg' ? 'dt_d001_sig' : (layerType === 'lt_c_ademd' ? 'dt_d001_emd' : 'dt_d001_ri'),
+          bbox: bboxWgs84,
+          srsName: 'EPSG:4326',
+          maxFeatures: '1000',
+          resultType: 'results',
+          output: 'application/json'
+        });
+        const url = `${CONFIG.VWORLD_WFS_BOUNDARY_URL}?${params.toString()}`;
+
+        fetch(url)
+          .then(async (res) => {
+            if (!res.ok) throw { status: res.status, message: 'HTTP 오류' };
+            const data = await res.json();
+            if (!data || !data.features) throw { message: '유효하지 않은 WFS 응답(GeoJSON 아님)' };
+            resetAndAddGeoJson('boundary', data, () => ({
+              fillColor: '#3b82f6', fillOpacity: 0.08,
+              strokeColor: '#1d4ed8', strokeWeight: 1.2
+            }));
+            currentBoundaryLayer = layerType;
+            updateBoundaryMenuState(layerType);
+          })
+          .catch(err => {
+            showWfsError('법정경계', err);
           });
-          vworldBoundaryDataLayer = dataLayer;
-          currentBoundaryLayer = layerType;
-          updateBoundaryMenuState(layerType);
-        } catch (e) {
-          console.log('WFS 경계 로드 실패:', e);
-          alert('법정경계 WFS를 불러오지 못했습니다.');
-        }
       }
       
       // 브이월드 경계 제거 함수
       function clearVworldBoundary() {
-        if (vworldBoundaryDataLayer) {
-          try { vworldBoundaryDataLayer.setMap(null); } catch (e) {}
-          vworldBoundaryDataLayer = null;
+        if (vworldBoundaryOverlay) {
+          vworldBoundaryOverlay.setMap(null);
+          vworldBoundaryOverlay = null;
         }
         currentBoundaryLayer = null;
         updateBoundaryMenuState(null);
@@ -1682,92 +1675,103 @@
       }
       
       // 경계 오버레이 업데이트 함수
-      async function updateBoundaryOverlay() {
+      function updateBoundaryOverlay() {
+        // 경계는 이제 WFS로 갱신
         if (!currentBoundaryLayer || !map) return;
-        const zoom = map.getZoom();
-        const MAX_BOUNDARY_ZOOM = CONFIG.MAX_BOUNDARY_ZOOM;
-        if (zoom > MAX_BOUNDARY_ZOOM) {
-          clearVworldBoundary();
-          alert('이 경계는 더 이상 확대할 수 없습니다. (최대 허용 zoom: ' + MAX_BOUNDARY_ZOOM + ')');
-          return;
-        }
         const bounds = map.getBounds();
         if (!bounds) return;
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
-        const bbox = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`;
-        try {
-          const typeMap = { 'lt_c_adsigg': 'dt_d001_sig', 'lt_c_ademd': 'dt_d001_emd', 'lt_c_adri': 'dt_d001_lio' };
-          const typename = typeMap[currentBoundaryLayer] || currentBoundaryLayer;
-          const geojson = await fetchNedWfsGeoJson(CONFIG.VWORLD_WFS_BOUNDARY, typename, bbox, { maxFeatures: 1000 });
-          if (vworldBoundaryDataLayer) { try { vworldBoundaryDataLayer.setMap(null); } catch (e) {} }
-          const dataLayer = new google.maps.Data({ map });
-          dataLayer.addGeoJson(geojson);
-          dataLayer.setStyle({ strokeColor: '#2563eb', strokeWeight: 2, strokeOpacity: 0.9, fillOpacity: 0 });
-          vworldBoundaryDataLayer = dataLayer;
-        } catch (e) {
-          console.log('WFS 경계 갱신 실패:', e);
-        }
+        const bboxWgs84 = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`;
+        const typename = currentBoundaryLayer === 'lt_c_adsigg' ? 'dt_d001_sig' : (currentBoundaryLayer === 'lt_c_ademd' ? 'dt_d001_emd' : 'dt_d001_ri');
+        const params = new URLSearchParams({
+          key: CONFIG.VWORLD_API_KEY,
+          typename: typename,
+          bbox: bboxWgs84,
+          srsName: 'EPSG:4326',
+          maxFeatures: '1000',
+          resultType: 'results',
+          output: 'application/json'
+        });
+        const url = `${CONFIG.VWORLD_WFS_BOUNDARY_URL}?${params.toString()}`;
+        fetch(url)
+          .then(async (res) => {
+            if (!res.ok) throw { status: res.status, message: 'HTTP 오류' };
+            const data = await res.json();
+            if (!data || !data.features) throw { message: '유효하지 않은 WFS 응답(GeoJSON 아님)' };
+            resetAndAddGeoJson('boundary', data, () => ({
+              fillColor: '#3b82f6', fillOpacity: 0.08,
+              strokeColor: '#1d4ed8', strokeWeight: 1.2
+            }));
+          })
+          .catch(err => showWfsError('법정경계(갱신)', err));
       }
-      async function loadCadastralOverlay() {
-        // 카카오맵 보일 때는 카카오 전용 로직으로 전환 유지
+      function loadCadastralOverlay() {
+        // 카카오맵이 보이는 경우 기존 카카오 방식은 유지(요구시 별도 전환)
         if (isKakaoVisible()) { loadCadastralOverlayKakao(); return; }
         if (!map) { alert('지도가 아직 준비되지 않았습니다.'); return; }
-        const zoom = map.getZoom();
-        const MAX_CADASTRAL_ZOOM = CONFIG.MAX_CADASTRAL_ZOOM;
-        if (zoom > MAX_CADASTRAL_ZOOM) { alert('이 지적도는 더 이상 확대할 수 없습니다. (최대 허용 zoom: ' + MAX_CADASTRAL_ZOOM + ')'); return; }
         clearCadastralOverlay();
+        clearDataLayer('cadastral');
+
         const bounds = map.getBounds();
         if (!bounds) { alert('지도 영역을 확정할 수 없습니다. 지도를 이동한 후 다시 시도해주세요.'); return; }
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
-        const bbox = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`;
-        try {
-          // 연속지적도는 dt_d002 사용 (NED WFS)
-          const typeNames = ['dt_d002'];
-          const dataLayer = new google.maps.Data({ map });
-          for (const t of typeNames) {
-            const gj = await fetchNedWfsGeoJson(CONFIG.VWORLD_WFS_CADASTRAL, t, bbox, { maxFeatures: 1000 });
-            dataLayer.addGeoJson(gj);
-          }
-          dataLayer.setStyle({
-            strokeColor: '#be123c',
-            strokeOpacity: 0.85,
-            strokeWeight: 1,
-            fillColor: '#fda4af',
-            fillOpacity: 0.15
-          });
-          cadastralDataLayer = dataLayer;
-          cadastralOverlayMode = 'google';
-          updateCadastralButtonState(true);
-        } catch (e) {
-          console.log('WFS 연속지적도 로드 실패:', e);
-          alert('연속지적도 WFS를 불러오지 못했습니다.');
-        }
+        const bboxWgs84 = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`;
+
+        const params = new URLSearchParams({
+          key: CONFIG.VWORLD_API_KEY,
+          typename: 'dt_d002',
+          bbox: bboxWgs84,
+          srsName: 'EPSG:4326',
+          maxFeatures: '1000',
+          resultType: 'results',
+          output: 'application/json'
+        });
+        const url = `${CONFIG.VWORLD_WFS_CADASTRAL_URL}?${params.toString()}`;
+        fetch(url)
+          .then(async (res) => {
+            if (!res.ok) throw { status: res.status, message: 'HTTP 오류' };
+            const data = await res.json();
+            if (!data || !data.features) throw { message: '유효하지 않은 WFS 응답(GeoJSON 아님)' };
+            resetAndAddGeoJson('cadastral', data, () => ({
+              fillColor: '#ef4444', fillOpacity: 0.05,
+              strokeColor: '#b91c1c', strokeWeight: 1
+            }));
+            cadastralOverlayMode = null;
+            updateCadastralButtonState(true);
+          })
+          .catch(err => showWfsError('연속지적도', err));
       }
       function clearCadastralOverlay() {
-        // 카카오 지적도 제거
-        if (Array.isArray(kakaoCadastralFeatures) && kakaoCadastralFeatures.length) { clearCadastralOverlayKakao(); }
-        if (cadastralDataLayer) {
-          try { cadastralDataLayer.setMap(null); } catch (e) {}
-          cadastralDataLayer = null;
+        // 카카오 지적도 제거 우선 처리
+        if (kakaoCadastralOverlayEl) {
+          clearCadastralOverlayKakao();
         }
-        if (cadastralOverlayMode === 'google') { cadastralOverlayMode = null; }
+        if (cadastralOverlay) {
+          cadastralOverlay.setMap(null);
+          cadastralOverlay = null;
+        }
+        // 구글 지적도 모드 해제
+        if (cadastralOverlayMode === 'google') {
+          cadastralOverlayMode = null;
+        }
+        // 버튼 상태 업데이트
         updateCadastralButtonState(false);
       }
       
       // 연속지적도 토글 함수
       function toggleCadastralOverlay() {
         if (isKakaoVisible()) {
-          // 카카오맵 표시 상태 (WFS 벡터로 전환)
-          if (kakaoCadastralFeatures && kakaoCadastralFeatures.length) {
+          // 카카오맵 표시 상태
+          if (kakaoCadastralOverlayEl) {
             clearCadastralOverlayKakao();
           } else {
             loadCadastralOverlayKakao();
           }
         } else {
           // 구글맵 표시 상태
-          if (cadastralDataLayer) {
+          if (cadastralOverlay) {
             clearCadastralOverlay();
           } else {
             loadCadastralOverlay();
@@ -1792,11 +1796,17 @@
       // 지적도근점 토글/로드/제거/갱신 (구글)
       function toggleControlPointOverlay() {
         if (isKakaoVisible()) {
-          if (kakaoControlPointOverlayEl) { clearControlPointOverlayKakao(); }
-          else { loadControlPointOverlayKakao(); }
+          if (kakaoControlPointOverlayEl) {
+            clearControlPointOverlayKakao();
+          } else {
+            loadControlPointOverlayKakao();
+          }
         } else {
-          if (controlPointDataLayer) { clearControlPointOverlay(); }
-          else { loadControlPointOverlay(); }
+          if (controlPointOverlay) {
+            clearControlPointOverlay();
+          } else {
+            loadControlPointOverlay();
+          }
         }
       }
 
@@ -1814,297 +1824,423 @@
         }
       }
 
-      async function loadControlPointOverlay() {
+      function loadControlPointOverlay() {
         if (!map) { alert('지도가 아직 준비되지 않았습니다.'); return; }
         const bounds = map.getBounds();
         if (!bounds) { alert('지도 영역을 확정할 수 없습니다. 지도를 이동한 후 다시 시도해주세요.'); return; }
+
         clearControlPointOverlay();
+        clearDataLayer('controlPoint');
+
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
-        const bbox = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`;
-        try {
-          // 지적도근점: dt_d007 (포인트) - NED WFS 사용
-          const gj = await fetchNedWfsGeoJson(CONFIG.VWORLD_WFS_CONTROL_POINT, 'dt_d007', bbox, { maxFeatures: 1000 });
-          const dataLayer = new google.maps.Data({ map });
-          dataLayer.addGeoJson(gj);
-          dataLayer.setStyle({ icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 3,
-            fillColor: '#a21caf',
-            fillOpacity: 1,
-            strokeColor: '#86198f',
-            strokeWeight: 1
-          }});
-          controlPointDataLayer = dataLayer;
-          controlPointOverlayMode = 'google';
-          updateControlPointButtonState(true);
-        } catch (e) {
-          console.log('WFS 지적도근점 로드 실패:', e);
-          alert('지적도근점 WFS를 불러오지 못했습니다.');
-        }
+        const bboxWgs84 = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`;
+
+        const params = new URLSearchParams({
+          key: CONFIG.VWORLD_API_KEY,
+          typename: 'dt_d007',
+          bbox: bboxWgs84,
+          srsName: 'EPSG:4326',
+          maxFeatures: '1000',
+          resultType: 'results',
+          output: 'application/json'
+        });
+        const url = `${CONFIG.VWORLD_WFS_CONTROLPOINT_URL}?${params.toString()}`;
+
+        fetch(url)
+          .then(async (res) => {
+            if (!res.ok) throw { status: res.status, message: 'HTTP 오류' };
+            const data = await res.json();
+            if (!data || !data.features) throw { message: '유효하지 않은 WFS 응답(GeoJSON 아님)' };
+            resetAndAddGeoJson('controlPoint', data, (feature) => ({
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 3,
+                fillColor: '#a21caf',
+                fillOpacity: 1,
+                strokeColor: '#701a75',
+                strokeWeight: 1
+              }
+            }));
+            controlPointOverlayMode = null;
+            updateControlPointButtonState(true);
+          })
+          .catch(err => showWfsError('지적도근점', err));
       }
 
-      async function updateControlPointOverlay() {
-        if (!map || !controlPointDataLayer) return;
+      function updateControlPointOverlay() {
+        if (!map || !controlPointOverlay) return;
         const bounds = map.getBounds();
         if (!bounds) return;
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
-        const bbox = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`;
-        try {
-          // 기존 피처 제거 후 재적재
-          controlPointDataLayer.forEach(f => { try { controlPointDataLayer.remove(f); } catch (e) {} });
-          const gj = await fetchNedWfsGeoJson(CONFIG.VWORLD_WFS_CONTROL_POINT, 'dt_d007', bbox, { maxFeatures: 1000 });
-          controlPointDataLayer.addGeoJson(gj);
-          controlPointDataLayer.setStyle({ icon: { path: google.maps.SymbolPath.CIRCLE, scale: 3, fillColor: '#a21caf', fillOpacity: 1, strokeColor: '#86198f', strokeWeight: 1 } });
-        } catch (e) {
-          console.log('WFS 지적도근점 갱신 실패:', e);
-        }
+        const bbox = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()}`;
+        const mapDiv = document.getElementById('map');
+        const width = mapDiv.offsetWidth;
+        const height = mapDiv.offsetHeight;
+
+        const params = new URLSearchParams({
+          key: CONFIG.VWORLD_API_KEY,
+          layers: 'dt_d007',
+          crs: 'EPSG:4326',
+          bbox: bbox,
+          width: String(width),
+          height: String(height),
+          format: 'image/png',
+          transparent: 'true'
+        });
+        const fullUrl = `${CONFIG.VWORLD_CONTROL_POINT_WMS_URL}?${params.toString()}`;
+
+        controlPointOverlay.setMap(null);
+        const imageBounds = new google.maps.LatLngBounds(
+          new google.maps.LatLng(sw.lat(), sw.lng()),
+          new google.maps.LatLng(ne.lat(), ne.lng())
+        );
+        controlPointOverlay = new google.maps.GroundOverlay(fullUrl, imageBounds, {
+          opacity: 1.0,
+          clickable: false
+        });
+        controlPointOverlay.setMap(map);
+        // 구글 GroundOverlay 이미지에 마젠타 필터 적용
+        applyControlPointMagentaFilter();
       }
 
       function clearControlPointOverlay() {
-        if (controlPointDataLayer) {
-          try { controlPointDataLayer.setMap(null); } catch (e) {}
-          controlPointDataLayer = null;
+        if (controlPointOverlay) {
+          controlPointOverlay.setMap(null);
+          controlPointOverlay = null;
         }
         if (controlPointOverlayMode === 'google') controlPointOverlayMode = null;
         updateControlPointButtonState(false);
       }
 
       // 지적도근점(카카오)
-      async function loadControlPointOverlayKakao() {
+      function loadControlPointOverlayKakao() {
         if (!kakaoMap) { alert('카카오맵이 아직 준비되지 않았습니다.'); return; }
+        const mapDiv = document.getElementById('kakaoMapDiv');
+        if (!mapDiv) return;
         const bounds = kakaoMap.getBounds();
         if (!bounds) return;
         const sw = bounds.getSouthWest();
         const ne = bounds.getNorthEast();
-        const bbox = `${sw.getLat()},${sw.getLng()},${ne.getLat()},${ne.getLng()},EPSG:4326`;
-        try {
-          // 기존 제거
-          clearControlPointOverlayKakao();
-          // WFS GeoJSON 요청
-          const gj = await fetchNedWfsGeoJson(CONFIG.VWORLD_WFS_CONTROL_POINT, 'dt_d007', bbox, { maxFeatures: 1000 });
-          kakaoControlPointFeatures = [];
-          const features = Array.isArray(gj.features) ? gj.features : [];
-          features.forEach(f => {
-            const g = f && f.geometry;
-            if (!g) return;
-            if (g.type === 'Point') {
-              const [x, y] = g.coordinates;
-              const overlay = new kakao.maps.CustomOverlay({
-                position: new kakao.maps.LatLng(y, x),
-                yAnchor: 0.5,
-                xAnchor: 0.5,
-                zIndex: 7,
-                content: '<div style="width:6px;height:6px;border-radius:50%;background:#a21caf;border:1px solid #86198f;"></div>'
-              });
-              overlay.setMap(kakaoMap);
-              kakaoControlPointFeatures.push(overlay);
-            } else if (g.type === 'MultiPoint') {
-              g.coordinates.forEach(([x, y]) => {
-                const overlay = new kakao.maps.CustomOverlay({
-                  position: new kakao.maps.LatLng(y, x),
-                  yAnchor: 0.5,
-                  xAnchor: 0.5,
-                  zIndex: 7,
-                  content: '<div style="width:6px;height:6px;border-radius:50%;background:#a21caf;border:1px solid #86198f;"></div>'
-                });
-                overlay.setMap(kakaoMap);
-                kakaoControlPointFeatures.push(overlay);
-              });
+        const bbox = `${sw.getLat()},${sw.getLng()},${ne.getLat()},${ne.getLng()}`; // EPSG:4326
+        const width = mapDiv.offsetWidth;
+        const height = mapDiv.offsetHeight;
+
+        const params = new URLSearchParams({
+          key: CONFIG.VWORLD_API_KEY,
+          layers: 'dt_d007',
+          crs: 'EPSG:4326',
+          bbox: bbox,
+          width: String(width),
+          height: String(height),
+          format: 'image/png',
+          transparent: 'true'
+        });
+        const fullUrl = `${CONFIG.VWORLD_CONTROL_POINT_WMS_URL}?${params.toString()}`;
+
+        if (!kakaoControlPointOverlayEl) {
+          const overlay = document.createElement('div');
+          overlay.id = 'kakaoControlPointOverlay';
+          overlay.style.position = 'absolute';
+          overlay.style.top = '0';
+          overlay.style.left = '0';
+          overlay.style.width = '100%';
+          overlay.style.height = '100%';
+          overlay.style.pointerEvents = 'none';
+          overlay.style.zIndex = '7';
+          const img = document.createElement('img');
+          img.id = 'kakaoControlPointImage';
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.imageRendering = 'crisp-edges';
+          overlay.appendChild(img);
+          const container = document.getElementById('kakaoMapContainer');
+          container && container.appendChild(overlay);
+          kakaoControlPointOverlayEl = overlay;
+
+          kakao.maps.event.addListener(kakaoMap, 'idle', function() {
+            if (controlPointOverlayMode === 'kakao') {
+              setTimeout(() => updateControlPointOverlayKakao(), 800);
             }
           });
-          controlPointOverlayMode = 'kakao';
-          updateControlPointButtonState(true);
-          if (!kakaoControlPointIdleListening) {
-            kakao.maps.event.addListener(kakaoMap, 'idle', function() {
-              if (controlPointOverlayMode === 'kakao') {
-                setTimeout(() => updateControlPointOverlayKakao(), 800);
+        }
+
+        const imgEl = document.getElementById('kakaoControlPointImage');
+        if (imgEl) {
+          imgEl.src = fullUrl;
+          // 카카오 이미지에 마젠타 필터 적용 (텍스트까지 재착색)
+          imgEl.style.filter = 'invert(14%) sepia(98%) saturate(7479%) hue-rotate(293deg) brightness(82%) contrast(111%)';
+        }
+        controlPointOverlayMode = 'kakao';
+        updateControlPointButtonState(true);
+      }
+
+      function updateControlPointOverlayKakao() {
+        if (!kakaoMap || !kakaoControlPointOverlayEl) return;
+        const mapDiv = document.getElementById('kakaoMapDiv');
+        if (!mapDiv) return;
+        const bounds = kakaoMap.getBounds();
+        if (!bounds) return;
+        const sw = bounds.getSouthWest();
+        const ne = bounds.getNorthEast();
+        const bbox = `${sw.getLat()},${sw.getLng()},${ne.getLat()},${ne.getLng()}`;
+        const width = mapDiv.offsetWidth;
+        const height = mapDiv.offsetHeight;
+
+        const params = new URLSearchParams({
+          key: CONFIG.VWORLD_API_KEY,
+          layers: 'dt_d007',
+          crs: 'EPSG:4326',
+          bbox: bbox,
+          width: String(width),
+          height: String(height),
+          format: 'image/png',
+          transparent: 'true'
+        });
+        const fullUrl = `${CONFIG.VWORLD_CONTROL_POINT_WMS_URL}?${params.toString()}`;
+        const imgEl = document.getElementById('kakaoControlPointImage');
+        if (imgEl) {
+          imgEl.src = fullUrl;
+          // 카카오 이미지에 마젠타 필터 적용(업데이트 시에도 유지, 텍스트 포함)
+          imgEl.style.filter = 'invert(14%) sepia(98%) saturate(7479%) hue-rotate(293deg) brightness(82%) contrast(111%)';
+        }
+      }
+
+      // 구글 GroundOverlay에 나타나는 지적도근점 이미지에 마젠타 필터를 적용
+      function applyControlPointMagentaFilter() {
+        try {
+          let attempts = 0;
+          const maxAttempts = 10;
+          const tryApply = () => {
+            attempts++;
+            const imgs = document.querySelectorAll('img[src*="api.vworld.kr"]');
+            let applied = false;
+            imgs.forEach(img => {
+              const src = img.getAttribute('src') || '';
+              if (src.includes('dt_d007')) {
+                img.style.filter = 'invert(14%) sepia(98%) saturate(7479%) hue-rotate(293deg) brightness(82%) contrast(111%)';
+                applied = true;
               }
             });
-            kakaoControlPointIdleListening = true;
-          }
+            if (!applied && attempts < maxAttempts) {
+              setTimeout(tryApply, 400);
+            }
+          };
+          tryApply();
+
+          // 변화 감지 중 짧게 유지
+          const mapEl = document.getElementById('map');
+          if (!mapEl) return;
+          const observer = new MutationObserver(muts => {
+            muts.forEach(m => {
+              m.addedNodes.forEach(n => {
+                if (n.nodeType === 1) {
+                  if (n.tagName === 'IMG') {
+                    const src = n.getAttribute('src') || '';
+                    if (src.includes('api.vworld.kr') && src.includes('dt_d007')) {
+                      n.style.filter = 'invert(14%) sepia(98%) saturate(7479%) hue-rotate(293deg) brightness(82%) contrast(111%)';
+                    }
+                  } else if (n.querySelectorAll) {
+                    n.querySelectorAll('img[src*="api.vworld.kr"]').forEach(img => {
+                      const src = img.getAttribute('src') || '';
+                      if (src.includes('dt_d007')) {
+                        img.style.filter = 'invert(14%) sepia(98%) saturate(7479%) hue-rotate(293deg) brightness(82%) contrast(111%)';
+                      }
+                    });
+                  }
+                }
+              });
+            });
+          });
+          observer.observe(mapEl, { childList: true, subtree: true });
+          setTimeout(() => observer.disconnect(), 5000);
         } catch (e) {
-          console.log('카카오 지적도근점 WFS 로드 실패:', e);
-          alert('카카오 지적도근점 WFS를 불러오지 못했습니다.');
+          // 무시
         }
       }
-
-      async function updateControlPointOverlayKakao() {
-        if (!kakaoMap || controlPointOverlayMode !== 'kakao') return;
-        const bounds = kakaoMap.getBounds();
-        if (!bounds) return;
-        const sw = bounds.getSouthWest();
-        const ne = bounds.getNorthEast();
-        const bbox = `${sw.getLat()},${sw.getLng()},${ne.getLat()},${ne.getLng()},EPSG:4326`;
-        try {
-          // 제거 후 재적재
-          clearControlPointOverlayKakao();
-          const gj = await fetchNedWfsGeoJson(CONFIG.VWORLD_WFS_CONTROL_POINT, 'dt_d007', bbox, { maxFeatures: 1000 });
-          kakaoControlPointFeatures = [];
-          const features = Array.isArray(gj.features) ? gj.features : [];
-          features.forEach(f => {
-            const g = f && f.geometry; if (!g) return;
-            if (g.type === 'Point') {
-              const [x, y] = g.coordinates;
-              const overlay = new kakao.maps.CustomOverlay({ position: new kakao.maps.LatLng(y, x), yAnchor: 0.5, xAnchor: 0.5, zIndex: 7, content: '<div style="width:6px;height:6px;border-radius:50%;background:#a21caf;border:1px solid #86198f;"></div>' });
-              overlay.setMap(kakaoMap);
-              kakaoControlPointFeatures.push(overlay);
-            } else if (g.type === 'MultiPoint') {
-              g.coordinates.forEach(([x, y]) => {
-                const overlay = new kakao.maps.CustomOverlay({ position: new kakao.maps.LatLng(y, x), yAnchor: 0.5, xAnchor: 0.5, zIndex: 7, content: '<div style="width:6px;height:6px;border-radius:50%;background:#a21caf;border:1px solid #86198f;"></div>' });
-                overlay.setMap(kakaoMap);
-                kakaoControlPointFeatures.push(overlay);
-              });
-            }
-          });
-        } catch (e) { console.log('카카오 지적도근점 WFS 갱신 실패:', e); }
-      }
-
-      // GroundOverlay 필터 로직 제거됨 (WFS 벡터 렌더링 사용)
 
       function clearControlPointOverlayKakao() {
-        if (Array.isArray(kakaoControlPointFeatures) && kakaoControlPointFeatures.length) {
-          kakaoControlPointFeatures.forEach(o => { try { o.setMap(null); } catch (e) {} });
+        if (kakaoControlPointOverlayEl) {
+          kakaoControlPointOverlayEl.remove();
+          kakaoControlPointOverlayEl = null;
         }
-        kakaoControlPointFeatures = [];
         if (controlPointOverlayMode === 'kakao') controlPointOverlayMode = null;
         updateControlPointButtonState(false);
       }
       // 지도 이동 시 연속지적도 오버레이도 갱신
       map && map.addListener && map.addListener('bounds_changed', function() {
-        if (cadastralDataLayer) {
+        if (cadastralOverlay) {
                       setTimeout(() => {
             updateCadastralOverlay();
           }, 1000);
         }
       });
-      async function updateCadastralOverlay() {
-        if (cadastralOverlayMode === 'kakao') { updateCadastralOverlayKakao(); return; }
-        if (!map || !cadastralDataLayer) return;
+      function updateCadastralOverlay() {
+        // 카카오 지적도 모드
+        if (cadastralOverlayMode === 'kakao') {
+          updateCadastralOverlayKakao();
+          return;
+        }
+        if (!map || !cadastralOverlay) return;
         const zoom = map.getZoom();
-        const MAX_CADASTRAL_ZOOM = CONFIG.MAX_CADASTRAL_ZOOM;
-        if (zoom > MAX_CADASTRAL_ZOOM) { clearCadastralOverlay(); alert('이 지적도는 더 이상 확대할 수 없습니다. (최대 허용 zoom: ' + MAX_CADASTRAL_ZOOM + ')'); return; }
+        const MAX_CADASTRAL_ZOOM = 32;
+        if (zoom > MAX_CADASTRAL_ZOOM) {
+          clearCadastralOverlay();
+          alert('이 지적도는 더 이상 확대할 수 없습니다. (최대 허용 zoom: ' + MAX_CADASTRAL_ZOOM + ')');
+          return;
+        }
         const bounds = map.getBounds();
         if (!bounds) return;
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
-        const bbox = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()},EPSG:4326`;
-        try {
-          const typeNames = ['dt_d002'];
-          // 기존 피처 제거 후 재적재
-          cadastralDataLayer.forEach(f => { try { cadastralDataLayer.remove(f); } catch (e) {} });
-          for (const t of typeNames) {
-            const gj = await fetchNedWfsGeoJson(CONFIG.VWORLD_WFS_CADASTRAL, t, bbox, { maxFeatures: 1000 });
-            cadastralDataLayer.addGeoJson(gj);
-          }
-          cadastralDataLayer.setStyle({ strokeColor: '#be123c', strokeOpacity: 0.85, strokeWeight: 1, fillColor: '#fda4af', fillOpacity: 0.15 });
-        } catch (e) {
-          console.log('WFS 연속지적도 갱신 실패:', e);
+        const bbox = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()}`;
+        const mapDiv = document.getElementById('map');
+        const width = mapDiv.offsetWidth;
+        const height = mapDiv.offsetHeight;
+        const apiUrl = 'https://api.vworld.kr/req/wms';
+        const params = new URLSearchParams({
+          KEY: '46F4304E-84DC-3F56-92F1-6A98A0370A31',
+          SERVICE: 'WMS',
+          REQUEST: 'GetMap',
+          VERSION: '1.3.0',
+          LAYERS: 'lp_pa_cbnd_bonbun,lp_pa_cbnd_bubun',
+          STYLES: '',
+          CRS: 'EPSG:4326',
+          BBOX: bbox,
+          WIDTH: width,
+          HEIGHT: height,
+          FORMAT: 'image/png',
+          TRANSPARENT: 'true',
+          BGCOLOR: '0xFFFFFF',
+          DPI: '96',
+          EXCEPTIONS: 'text/xml'
+        });
+        const fullUrl = `${apiUrl}?${params.toString()}`;
+        if (cadastralOverlay) {
+          cadastralOverlay.setMap(null);
         }
+        const imageBounds = new google.maps.LatLngBounds(
+          new google.maps.LatLng(sw.lat(), sw.lng()),
+          new google.maps.LatLng(ne.lat(), ne.lng())
+        );
+        
+        cadastralOverlay = new google.maps.GroundOverlay(fullUrl, imageBounds, {
+          opacity: 0.95,
+          clickable: false
+        });
+        cadastralOverlay.setMap(map);
+        
+        // 지적도 이미지에 빨간색 필터 적용
+        applyCadastralRedFilter();
       }
       // 카카오 지적도 로드/업데이트/제거
-      async function loadCadastralOverlayKakao() {
+      function loadCadastralOverlayKakao() {
         if (!kakaoMap) { alert('카카오맵이 아직 준비되지 않았습니다.'); return; }
+        const mapDiv = document.getElementById('kakaoMapDiv');
+        if (!mapDiv) return;
         const bounds = kakaoMap.getBounds();
         if (!bounds) return;
         const sw = bounds.getSouthWest();
         const ne = bounds.getNorthEast();
-        const bbox = `${sw.getLat()},${sw.getLng()},${ne.getLat()},${ne.getLng()},EPSG:4326`;
-        try {
-          // 기존 제거
-          clearCadastralOverlayKakao();
-          kakaoCadastralFeatures = [];
-          const typeNames = ['dt_d002'];
-          for (const t of typeNames) {
-            const gj = await fetchNedWfsGeoJson(CONFIG.VWORLD_WFS_CADASTRAL, t, bbox, { maxFeatures: 1000 });
-            const features = Array.isArray(gj.features) ? gj.features : [];
-            features.forEach(f => {
-              const g = f && f.geometry; if (!g) return;
-              if (g.type === 'Polygon') {
-                const paths = g.coordinates.map(ring => ring.map(([x,y]) => new kakao.maps.LatLng(y, x)));
-                const poly = new kakao.maps.Polygon({
-                  path: paths,
-                  strokeWeight: 1,
-                  strokeColor: '#be123c',
-                  strokeOpacity: 0.85,
-                  fillColor: '#fda4af',
-                  fillOpacity: 0.15
-                });
-                poly.setMap(kakaoMap);
-                kakaoCadastralFeatures.push(poly);
-              } else if (g.type === 'MultiPolygon') {
-                g.coordinates.forEach(polyCoords => {
-                  const paths = polyCoords.map(ring => ring.map(([x,y]) => new kakao.maps.LatLng(y, x)));
-                  const poly = new kakao.maps.Polygon({
-                    path: paths,
-                    strokeWeight: 1,
-                    strokeColor: '#be123c',
-                    strokeOpacity: 0.85,
-                    fillColor: '#fda4af',
-                    fillOpacity: 0.15
-                  });
-                  poly.setMap(kakaoMap);
-                  kakaoCadastralFeatures.push(poly);
-                });
-              }
-            });
-          }
-          cadastralOverlayMode = 'kakao';
-          updateCadastralButtonState(true);
-          if (!kakaoCadastralIdleListening) {
-            kakao.maps.event.addListener(kakaoMap, 'idle', function() {
-              if (cadastralOverlayMode === 'kakao') {
-                setTimeout(() => updateCadastralOverlayKakao(), 800);
-              }
-            });
-            kakaoCadastralIdleListening = true;
-          }
-        } catch (e) {
-          console.log('카카오 연속지적도 WFS 로드 실패:', e);
-          alert('카카오 연속지적도 WFS를 불러오지 못했습니다.');
+        const bbox = `${sw.getLat()},${sw.getLng()},${ne.getLat()},${ne.getLng()}`;
+        const width = mapDiv.offsetWidth;
+        const height = mapDiv.offsetHeight;
+        const apiUrl = 'https://api.vworld.kr/req/wms';
+        const params = new URLSearchParams({
+          KEY: '46F4304E-84DC-3F56-92F1-6A98A0370A31',
+          SERVICE: 'WMS',
+          REQUEST: 'GetMap',
+          VERSION: '1.3.0',
+          LAYERS: 'lp_pa_cbnd_bonbun,lp_pa_cbnd_bubun',
+          STYLES: '',
+          CRS: 'EPSG:4326',
+          BBOX: bbox,
+          WIDTH: String(width),
+          HEIGHT: String(height),
+          FORMAT: 'image/png',
+          TRANSPARENT: 'true',
+          BGCOLOR: '0xFFFFFF',
+          DPI: '96',
+          EXCEPTIONS: 'text/xml'
+        });
+        const fullUrl = `${apiUrl}?${params.toString()}`;
+
+        if (!kakaoCadastralOverlayEl) {
+          const overlay = document.createElement('div');
+          overlay.id = 'kakaoCadastralOverlay';
+          overlay.style.position = 'absolute';
+          overlay.style.top = '0';
+          overlay.style.left = '0';
+          overlay.style.width = '100%';
+          overlay.style.height = '100%';
+          overlay.style.pointerEvents = 'none';
+          overlay.style.zIndex = '6';
+          const img = document.createElement('img');
+          img.id = 'kakaoCadastralImage';
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.imageRendering = 'crisp-edges';
+          img.style.filter = 'contrast(1.2) brightness(1.1) hue-rotate(240deg) saturate(2)';
+          img.style.mixBlendMode = 'multiply';
+          overlay.appendChild(img);
+          const container = document.getElementById('kakaoMapContainer');
+          container && container.appendChild(overlay);
+          kakaoCadastralOverlayEl = overlay;
+
+          // 지도 이동/확대 시 갱신
+          kakao.maps.event.addListener(kakaoMap, 'idle', function() {
+            if (cadastralOverlayMode === 'kakao') {
+              setTimeout(() => updateCadastralOverlayKakao(), 1000);
+            }
+          });
         }
+        const imgEl = document.getElementById('kakaoCadastralImage');
+        if (imgEl) imgEl.src = fullUrl;
+        cadastralOverlayMode = 'kakao';
+        updateCadastralButtonState(true);
       }
-      async function updateCadastralOverlayKakao() {
-        if (!kakaoMap || cadastralOverlayMode !== 'kakao') return;
+      function updateCadastralOverlayKakao() {
+        if (!kakaoMap || !kakaoCadastralOverlayEl) return;
+        const mapDiv = document.getElementById('kakaoMapDiv');
+        if (!mapDiv) return;
         const bounds = kakaoMap.getBounds();
         if (!bounds) return;
         const sw = bounds.getSouthWest();
         const ne = bounds.getNorthEast();
-        const bbox = `${sw.getLat()},${sw.getLng()},${ne.getLat()},${ne.getLng()},EPSG:4326`;
-        try {
-          // 제거 후 재적재
-          clearCadastralOverlayKakao();
-          kakaoCadastralFeatures = [];
-          const typeNames = ['dt_d002'];
-          for (const t of typeNames) {
-            const gj = await fetchNedWfsGeoJson(CONFIG.VWORLD_WFS_CADASTRAL, t, bbox, { maxFeatures: 1000 });
-            const features = Array.isArray(gj.features) ? gj.features : [];
-            features.forEach(f => {
-              const g = f && f.geometry; if (!g) return;
-              if (g.type === 'Polygon') {
-                const paths = g.coordinates.map(ring => ring.map(([x,y]) => new kakao.maps.LatLng(y, x)));
-                const poly = new kakao.maps.Polygon({ path: paths, strokeWeight: 1, strokeColor: '#be123c', strokeOpacity: 0.85, fillColor: '#fda4af', fillOpacity: 0.15 });
-                poly.setMap(kakaoMap);
-                kakaoCadastralFeatures.push(poly);
-              } else if (g.type === 'MultiPolygon') {
-                g.coordinates.forEach(polyCoords => {
-                  const paths = polyCoords.map(ring => ring.map(([x,y]) => new kakao.maps.LatLng(y, x)));
-                  const poly = new kakao.maps.Polygon({ path: paths, strokeWeight: 1, strokeColor: '#be123c', strokeOpacity: 0.85, fillColor: '#fda4af', fillOpacity: 0.15 });
-                  poly.setMap(kakaoMap);
-                  kakaoCadastralFeatures.push(poly);
-                });
-              }
-            });
-          }
-        } catch (e) { console.log('카카오 연속지적도 WFS 갱신 실패:', e); }
+        const bbox = `${sw.getLat()},${sw.getLng()},${ne.getLat()},${ne.getLng()}`;
+        const width = mapDiv.offsetWidth;
+        const height = mapDiv.offsetHeight;
+        const apiUrl = 'https://api.vworld.kr/req/wms';
+        const params = new URLSearchParams({
+          KEY: '46F4304E-84DC-3F56-92F1-6A98A0370A31',
+          SERVICE: 'WMS',
+          REQUEST: 'GetMap',
+          VERSION: '1.3.0',
+          LAYERS: 'lp_pa_cbnd_bonbun,lp_pa_cbnd_bubun',
+          STYLES: '',
+          CRS: 'EPSG:4326',
+          BBOX: bbox,
+          WIDTH: String(width),
+          HEIGHT: String(height),
+          FORMAT: 'image/png',
+          TRANSPARENT: 'true',
+          BGCOLOR: '0xFFFFFF',
+          DPI: '96',
+          EXCEPTIONS: 'text/xml'
+        });
+        const fullUrl = `${apiUrl}?${params.toString()}`;
+        const imgEl = document.getElementById('kakaoCadastralImage');
+        if (imgEl) imgEl.src = fullUrl;
       }
       function clearCadastralOverlayKakao() {
-        if (Array.isArray(kakaoCadastralFeatures) && kakaoCadastralFeatures.length) {
-          kakaoCadastralFeatures.forEach(o => { try { o.setMap(null); } catch (e) {} });
+        if (kakaoCadastralOverlayEl) {
+          kakaoCadastralOverlayEl.remove();
+          kakaoCadastralOverlayEl = null;
         }
-        kakaoCadastralFeatures = [];
-        if (cadastralOverlayMode === 'kakao') { cadastralOverlayMode = null; }
+        if (cadastralOverlayMode === 'kakao') {
+          cadastralOverlayMode = null;
+        }
         updateCadastralButtonState(false);
       }
       
@@ -2184,6 +2320,4 @@
     <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg&callback=initMap" async defer></script>
 </body>
-
 </html>
-
