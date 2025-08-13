@@ -1,76 +1,934 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title>VWorld WFS 연속지적도</title>
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.5.2/ol.css" />
-	<style>
-		html, body, #map { margin:0; padding:0; width:100%; height:100%; }
-	</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>브이월드 연속지적도 WFS 뷰어</title>
+    
+    <!-- OpenLayers CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@8.2.0/ol.css" type="text/css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group h3 {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .form-group input, 
+        .form-group select,
+        .form-group button {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #34495e;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-success {
+            background-color: #27ae60;
+        }
+        
+        .btn-success:hover {
+            background-color: #229954;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .status.success {
+            background-color: #d5f4e6;
+            color: #27ae60;
+            border: 1px solid #27ae60;
+        }
+        
+        .status.error {
+            background-color: #faddd5;
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+        }
+        
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .coordinates {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 2000;
+            display: none;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .popup {
+            position: absolute;
+            background-color: white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #cccccc;
+            bottom: 12px;
+            left: -50px;
+            min-width: 200px;
+            max-width: 300px;
+            font-size: 12px;
+        }
+        
+        .popup:after {
+            top: 100%;
+            left: 48px;
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+            pointer-events: none;
+            border-color: rgba(255, 255, 255, 0);
+            border-top-color: #ffffff;
+            border-width: 10px;
+            margin-left: -10px;
+        }
+        
+        .popup h4 {
+            margin: 0 0 8px 0;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        
+        .popup table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .popup td {
+            padding: 2px 5px;
+            border-bottom: 1px solid #eee;
+            font-size: 11px;
+        }
+        
+        .popup td:first-child {
+            font-weight: bold;
+            color: #34495e;
+            width: 80px;
+        }
+        
+        .input-error {
+            color: #e74c3c;
+            font-size: 11px;
+            display: block;
+            margin-top: 2px;
+            min-height: 14px;
+        }
+        
+        .form-group input.error {
+            border-color: #e74c3c;
+            box-shadow: 0 0 5px rgba(231, 76, 60, 0.3);
+        }
+        
+        .form-group input.valid {
+            border-color: #27ae60;
+            box-shadow: 0 0 5px rgba(39, 174, 96, 0.3);
+        }
+    </style>
 </head>
 <body>
-	<div id="map"></div>
+    <div class="container">
+        <div class="sidebar">
+            <div class="title">브이월드 연속지적도</div>
+            
+            <div class="control-group">
+                <h3>🗺️ 지도 설정</h3>
+                <div class="form-group">
+                    <label for="centerLon">중심 경도:</label>
+                    <input type="number" id="centerLon" value="127.024612" step="0.000001" min="-180" max="180" onchange="validateInput('centerLon')">
+                    <small id="centerLon-error" class="input-error"></small>
+                </div>
+                <div class="form-group">
+                    <label for="centerLat">중심 위도:</label>
+                    <input type="number" id="centerLat" value="37.532600" step="0.000001" min="-90" max="90" onchange="validateInput('centerLat')">
+                    <small id="centerLat-error" class="input-error"></small>
+                </div>
+                <div class="form-group">
+                    <label for="zoomLevel">확대 레벨:</label>
+                    <input type="number" id="zoomLevel" value="15" min="1" max="19" onchange="validateInput('zoomLevel')">
+                    <small id="zoomLevel-error" class="input-error"></small>
+                </div>
+                <div class="form-group">
+                    <button class="btn" onclick="moveToLocation()">위치로 이동</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>📍 레이어 설정</h3>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="baseMapToggle" checked onchange="toggleBaseMap()">
+                        배경지도 표시
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="cadastralToggle" checked onchange="toggleCadastralLayer()">
+                        연속지적도 표시
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="opacity">투명도:</label>
+                    <input type="range" id="opacity" min="0" max="1" step="0.1" value="0.8" onchange="changeCadastralOpacity(this.value)">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>🔧 WFS 설정</h3>
+                <div class="form-group">
+                    <label for="maxFeatures">최대 피처 수:</label>
+                    <input type="number" id="maxFeatures" value="1000" min="1" max="10000" onchange="validateInput('maxFeatures')">
+                    <small id="maxFeatures-error" class="input-error"></small>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-success" onclick="refreshCadastralLayer()">레이어 새로고침</button>
+                </div>
+                <div class="form-group">
+                    <button class="btn" onclick="testApiConnection()">API 연결 테스트</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>📊 정보</h3>
+                <div id="status" class="status info">
+                    지도를 초기화하는 중...
+                </div>
+            </div>
+        </div>
+        
+        <div class="map-container">
+            <div id="map"></div>
+            <div id="coordinates" class="coordinates">좌표: </div>
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                데이터를 불러오는 중...
+            </div>
+        </div>
+    </div>
 
-	<script type="module">
-		import Map from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/Map.js';
-		import View from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/View.js';
-		import TileLayer from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/layer/Tile.js';
-		import VectorLayer from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/layer/Vector.js';
-		import OSM from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/source/OSM.js';
-		import VectorSource from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/source/Vector.js';
-		import GeoJSON from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/format/GeoJSON.js';
-		import { bbox as bboxStrategy } from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/loadingstrategy.js';
-		import Style from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/style/Style.js';
-		import Stroke from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/style/Stroke.js';
-		import { fromLonLat } from 'https://cdn.jsdelivr.net/npm/ol@v7.5.2/proj.js';
+    <!-- Popup overlay -->
+    <div id="popup" class="popup" style="display: none;"></div>
 
-		const API_KEY = '46F4304E-84DC-3F56-92F1-6A98A0370A31';
-		const DOMAIN = 'ppoppo1971.github.io';
-		const TYPENAME = 'dt_d002'; // 연속지적도 타입네임
-
-		const wfsUrlForExtent = (extent) => {
-			const params = new URLSearchParams({
-				SERVICE: 'WFS',
-				REQUEST: 'GetFeature',
-				TYPENAME: TYPENAME,
-				VERSION: '1.1.0',
-				SRSNAME: 'EPSG:900913',
-				OUTPUT: 'application/json',
-				EXCEPTIONS: 'text/xml',
-				MAXFEATURES: '2000',
-				BBOX: extent.join(','),
-				KEY: API_KEY,
-				DOMAIN: DOMAIN
-			});
-			return `https://api.vworld.kr/ned/wfs/getCtnlgsSpceWFS?${params.toString()}`;
-		};
-
-		const cadastralSource = new VectorSource({
-			format: new GeoJSON(),
-			url: wfsUrlForExtent,
-			strategy: bboxStrategy
-		});
-
-		const cadastralLayer = new VectorLayer({
-			source: cadastralSource,
-			style: new Style({
-				stroke: new Stroke({ color: 'rgba(255,0,0,0.7)', width: 1 })
-			})
-		});
-
-		new Map({
-			target: 'map',
-			layers: [
-				new TileLayer({ source: new OSM() }),
-				cadastralLayer
-			],
-			view: new View({
-				center: fromLonLat([127.5, 36.5]),
-				zoom: 13
-			})
-		});
-	</script>
+    <!-- OpenLayers JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/ol@8.2.0/dist/ol.js"></script>
+    
+    <script>
+        // 전역 변수
+        let map;
+        let baseLayer;
+        let cadastralLayer;
+        let overlay;
+        
+        // API 설정
+        const VWORLD_API_KEY = '46F4304E-84DC-3F56-92F1-6A98A0370A31';
+        const WFS_URL = 'https://api.vworld.kr/ned/wfs/getCtnlgsSpceWFS';
+        
+        // 상태 관리
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+        
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        // 지도 초기화
+        function initMap() {
+            updateStatus('지도를 초기화하는 중...', 'info');
+            
+            // 배경지도 레이어 (브이월드 배경지도)
+            baseLayer = new ol.layer.Tile({
+                title: '브이월드 기본지도',
+                source: new ol.source.XYZ({
+                    url: `https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_API_KEY}/Base/{z}/{y}/{x}.png`
+                })
+            });
+            
+            // 연속지적도 WFS 레이어
+            const vectorSource = new ol.source.Vector({
+                format: new ol.format.GeoJSON(),
+                url: function(extent) {
+                    // 파라미터 검증 및 생성
+                    const params = createValidatedParams(extent);
+                    
+                    // 파라미터 검증 실패 시 빈 URL 반환 (요청하지 않음)
+                    if (!params) {
+                        return '';
+                    }
+                    
+                    const paramString = Object.keys(params)
+                        .map(key => `${key}=${encodeURIComponent(params[key])}`)
+                        .join('&');
+                    
+                    const finalUrl = `${WFS_URL}?${paramString}`;
+                    console.log('WFS 요청 URL:', finalUrl);
+                    
+                    return finalUrl;
+                },
+                strategy: ol.loadingstrategy.bbox
+            });
+            
+            // 로딩 상태 관리
+            vectorSource.on('loadstart', function() {
+                showLoading();
+                updateStatus('지적도 데이터를 불러오는 중...', 'info');
+            });
+            
+            vectorSource.on('loadend', function() {
+                hideLoading();
+                const features = vectorSource.getFeatures();
+                updateStatus(`지적도 ${features.length}개 로드 완료`, 'success');
+            });
+            
+            vectorSource.on('loaderror', function(event) {
+                hideLoading();
+                checkErrorType();
+            });
+            
+            // 오류 타입 확인 함수
+            function checkErrorType() {
+                // 테스트 요청으로 오류 타입 확인
+                const testParams = {
+                    key: VWORLD_API_KEY,
+                    domain: 'https://ppoppo1971.github.io/VMAP/index.html',
+                    geomFilter: 'BBOX(SHAPE,126.9784,37.5665,126.9884,37.5765)',
+                    maxFeatures: 1,
+                    resultType: 'results',
+                    srsName: 'EPSG:4326',
+                    format: 'json'
+                };
+                
+                const testUrl = WFS_URL + '?' + Object.keys(testParams)
+                    .map(key => `${key}=${encodeURIComponent(testParams[key])}`)
+                    .join('&');
+                
+                fetch(testUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => {
+                                throw new Error(`HTTP ${response.status}: ${text}`);
+                            });
+                        }
+                        return response.text();
+                    })
+                    .then(data => {
+                        try {
+                            const jsonData = JSON.parse(data);
+                            if (jsonData.error || jsonData.message) {
+                                analyzeErrorMessage(jsonData.error || jsonData.message || data);
+                            } else {
+                                updateStatus('알 수 없는 오류가 발생했습니다', 'error');
+                            }
+                        } catch (e) {
+                            // JSON이 아닌 응답인 경우 텍스트로 분석
+                            analyzeErrorMessage(data);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error details:', error);
+                        
+                        // 네트워크 오류 또는 CORS 오류 분석
+                        if (error.message.includes('CORS') || error.message.includes('Cross-Origin')) {
+                            updateStatus('🚫 도메인 오류: 등록되지 않은 도메인에서 접근했습니다', 'error');
+                        } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                            updateStatus('🔑 키 오류: API 키가 올바르지 않습니다', 'error');
+                        } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                            updateStatus('🚫 도메인 오류: 도메인 접근 권한이 없습니다', 'error');
+                        } else if (error.message.includes('404')) {
+                            updateStatus('🔗 API 엔드포인트가 존재하지 않습니다', 'error');
+                        } else {
+                            updateStatus(`❌ 연결 오류: ${error.message}`, 'error');
+                        }
+                    });
+            }
+            
+                    // 오류 메시지 분석 함수
+        function analyzeErrorMessage(errorMessage) {
+            const message = errorMessage.toLowerCase();
+            
+            // API 키 관련 오류
+            if (message.includes('invalid api key') || 
+                message.includes('api key') || 
+                message.includes('unauthorized') ||
+                message.includes('인증') ||
+                message.includes('키')) {
+                updateStatus('🔑 키 오류: API 키가 올바르지 않습니다', 'error');
+            } 
+            // 도메인 관련 오류
+            else if (message.includes('domain') || 
+                     message.includes('referer') || 
+                     message.includes('origin') ||
+                     message.includes('도메인') ||
+                     message.includes('접근') ||
+                     message.includes('허용되지 않은')) {
+                updateStatus('🚫 도메인 오류: 등록되지 않은 도메인에서 접근했습니다', 'error');
+            } 
+            // CORS 오류
+            else if (message.includes('cors')) {
+                updateStatus('🚫 도메인 오류: CORS 정책으로 인한 도메인 접근 제한', 'error');
+            }
+            // 파라미터 관련 오류
+            else if (message.includes('invalid parameter') || 
+                     message.includes('missing parameter') ||
+                     message.includes('parameter') ||
+                     message.includes('파라미터') ||
+                     message.includes('매개변수')) {
+                updateStatus('⚙️ 파라미터 오류: 잘못된 파라미터가 전달되었습니다', 'error');
+            }
+            // 좌표/범위 관련 오류
+            else if (message.includes('bbox') || 
+                     message.includes('coordinate') ||
+                     message.includes('extent') ||
+                     message.includes('좌표') ||
+                     message.includes('범위') ||
+                     message.includes('경계')) {
+                updateStatus('📍 좌표 오류: 좌표 범위가 올바르지 않습니다', 'error');
+            }
+            // 서비스 관련 오류
+            else if (message.includes('service not found') ||
+                     message.includes('invalid service') ||
+                     message.includes('서비스') ||
+                     message.includes('service')) {
+                updateStatus('🔧 서비스 오류: 요청한 서비스를 찾을 수 없습니다', 'error');
+            }
+            // 데이터 형식 오류
+            else if (message.includes('format') ||
+                     message.includes('invalid format') ||
+                     message.includes('형식') ||
+                     message.includes('포맷')) {
+                updateStatus('📄 형식 오류: 요청한 데이터 형식이 지원되지 않습니다', 'error');
+            }
+            // 피처 수 제한 오류
+            else if (message.includes('maxfeatures') ||
+                     message.includes('limit exceeded') ||
+                     message.includes('too many') ||
+                     message.includes('제한') ||
+                     message.includes('초과')) {
+                updateStatus('📊 데이터 제한 오류: 요청한 데이터가 허용 한도를 초과했습니다', 'error');
+            }
+            // 좌표계 오류
+            else if (message.includes('srs') ||
+                     message.includes('crs') ||
+                     message.includes('projection') ||
+                     message.includes('epsg') ||
+                     message.includes('좌표계')) {
+                updateStatus('🗺️ 좌표계 오류: 지원되지 않는 좌표계입니다', 'error');
+            }
+            // 일반적인 오류
+            else {
+                updateStatus(`❌ API 오류: ${errorMessage}`, 'error');
+            }
+        }
+        
+        // 파라미터 유효성 검사 함수
+        function validateParameters() {
+            const errors = [];
+            
+            // API 키 검사
+            if (!VWORLD_API_KEY || VWORLD_API_KEY.trim() === '') {
+                errors.push('API 키가 설정되지 않았습니다');
+            } else if (VWORLD_API_KEY.length !== 36) {
+                errors.push('API 키 형식이 올바르지 않습니다 (36자리 UUID 형태여야 함)');
+            }
+            
+            // 좌표 검사
+            const centerLon = parseFloat(document.getElementById('centerLon').value);
+            const centerLat = parseFloat(document.getElementById('centerLat').value);
+            
+            if (isNaN(centerLon) || centerLon < -180 || centerLon > 180) {
+                errors.push('경도 값이 올바르지 않습니다 (-180 ~ 180 범위)');
+            }
+            
+            if (isNaN(centerLat) || centerLat < -90 || centerLat > 90) {
+                errors.push('위도 값이 올바르지 않습니다 (-90 ~ 90 범위)');
+            }
+            
+            // 피처 수 검사
+            const maxFeatures = parseInt(document.getElementById('maxFeatures').value);
+            if (isNaN(maxFeatures) || maxFeatures < 1 || maxFeatures > 10000) {
+                errors.push('최대 피처 수가 올바르지 않습니다 (1 ~ 10,000 범위)');
+            }
+            
+            // 줌 레벨 검사
+            const zoomLevel = parseInt(document.getElementById('zoomLevel').value);
+            if (isNaN(zoomLevel) || zoomLevel < 1 || zoomLevel > 19) {
+                errors.push('확대 레벨이 올바르지 않습니다 (1 ~ 19 범위)');
+            }
+            
+            return errors;
+        }
+        
+        // API 파라미터 생성 및 검증 함수
+        function createValidatedParams(extent) {
+            // 파라미터 유효성 검사 먼저 실행
+            const validationErrors = validateParameters();
+            if (validationErrors.length > 0) {
+                updateStatus(`⚙️ 파라미터 오류: ${validationErrors[0]}`, 'error');
+                return null;
+            }
+            
+            const maxFeatures = document.getElementById('maxFeatures').value;
+            const bbox = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
+            
+            // BBOX 유효성 검사
+            if (!bbox || bbox.length !== 4) {
+                updateStatus('📍 좌표 오류: 지도 범위를 계산할 수 없습니다', 'error');
+                return null;
+            }
+            
+            const [minX, minY, maxX, maxY] = bbox;
+            
+            // 좌표 범위 검사
+            if (minX >= maxX || minY >= maxY) {
+                updateStatus('📍 좌표 오류: 지도 범위가 올바르지 않습니다', 'error');
+                return null;
+            }
+            
+            // 너무 큰 범위 체크 (전세계 범위)
+            if ((maxX - minX) > 180 || (maxY - minY) > 90) {
+                updateStatus('📍 좌표 오류: 요청 범위가 너무 큽니다', 'error');
+                return null;
+            }
+            
+            return {
+                key: VWORLD_API_KEY,
+                domain: 'https://ppoppo1971.github.io/VMAP/index.html',
+                geomFilter: `BBOX(SHAPE,${bbox.join(',')})`,
+                maxFeatures: maxFeatures,
+                resultType: 'results',
+                srsName: 'EPSG:4326',
+                format: 'json'
+            };
+        }
+            
+            cadastralLayer = new ol.layer.Vector({
+                title: '연속지적도',
+                source: vectorSource,
+                style: new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: '#ff6b6b',
+                        width: 2
+                    }),
+                    fill: new ol.style.Fill({
+                        color: 'rgba(255, 107, 107, 0.1)'
+                    })
+                }),
+                opacity: 0.8
+            });
+            
+            // 팝업 오버레이
+            const popupElement = document.getElementById('popup');
+            overlay = new ol.Overlay({
+                element: popupElement,
+                positioning: 'bottom-center',
+                stopEvent: false,
+                offset: [0, -50]
+            });
+            
+            // 지도 생성
+            map = new ol.Map({
+                target: 'map',
+                layers: [baseLayer, cadastralLayer],
+                overlays: [overlay],
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([127.024612, 37.532600]),
+                    zoom: 15,
+                    maxZoom: 19
+                })
+            });
+            
+            // 마우스 좌표 표시
+            map.on('pointermove', function(evt) {
+                const coordinate = ol.proj.toLonLat(evt.coordinate);
+                document.getElementById('coordinates').textContent = 
+                    `좌표: ${coordinate[0].toFixed(6)}, ${coordinate[1].toFixed(6)}`;
+            });
+            
+            // 클릭 이벤트 - 지적도 정보 표시
+            map.on('singleclick', function(evt) {
+                const features = map.getFeaturesAtPixel(evt.pixel, {
+                    layerFilter: function(layer) {
+                        return layer === cadastralLayer;
+                    }
+                });
+                
+                if (features.length > 0) {
+                    const feature = features[0];
+                    const properties = feature.getProperties();
+                    
+                    let popupContent = '<h4>지적도 정보</h4><table>';
+                    
+                    // 지적도 속성 정보 표시
+                    const displayFields = {
+                        'PNU': '고유번호',
+                        'JIBUN': '지번',
+                        'BCHK': '번지체크',
+                        'SGG_OID': '시군구코드',
+                        'COL_ADM_SE': '관리구분'
+                    };
+                    
+                    Object.keys(displayFields).forEach(key => {
+                        if (properties[key] && key !== 'geometry') {
+                            popupContent += `<tr><td>${displayFields[key]}:</td><td>${properties[key]}</td></tr>`;
+                        }
+                    });
+                    
+                    popupContent += '</table>';
+                    
+                    popupElement.innerHTML = popupContent;
+                    popupElement.style.display = 'block';
+                    overlay.setPosition(evt.coordinate);
+                } else {
+                    popupElement.style.display = 'none';
+                }
+            });
+            
+            updateStatus('지도 초기화 완료', 'success');
+        }
+        
+        // 실시간 입력 검증 함수
+        function validateInput(fieldId) {
+            const input = document.getElementById(fieldId);
+            const errorElement = document.getElementById(fieldId + '-error');
+            const value = parseFloat(input.value);
+            
+            // 입력 클래스 초기화
+            input.classList.remove('error', 'valid');
+            
+            let isValid = true;
+            let errorMessage = '';
+            
+            switch(fieldId) {
+                case 'centerLon':
+                    if (isNaN(value) || value < -180 || value > 180) {
+                        isValid = false;
+                        errorMessage = '경도는 -180 ~ 180 범위여야 합니다';
+                    }
+                    break;
+                    
+                case 'centerLat':
+                    if (isNaN(value) || value < -90 || value > 90) {
+                        isValid = false;
+                        errorMessage = '위도는 -90 ~ 90 범위여야 합니다';
+                    }
+                    break;
+                    
+                case 'zoomLevel':
+                    if (isNaN(value) || value < 1 || value > 19 || !Number.isInteger(value)) {
+                        isValid = false;
+                        errorMessage = '확대 레벨은 1 ~ 19 정수여야 합니다';
+                    }
+                    break;
+                    
+                case 'maxFeatures':
+                    if (isNaN(value) || value < 1 || value > 10000 || !Number.isInteger(value)) {
+                        isValid = false;
+                        errorMessage = '피처 수는 1 ~ 10,000 정수여야 합니다';
+                    }
+                    break;
+            }
+            
+            // 결과 적용
+            if (isValid) {
+                input.classList.add('valid');
+                errorElement.textContent = '';
+            } else {
+                input.classList.add('error');
+                errorElement.textContent = errorMessage;
+            }
+            
+            return isValid;
+        }
+        
+        // 모든 입력 검증
+        function validateAllInputs() {
+            const fields = ['centerLon', 'centerLat', 'zoomLevel', 'maxFeatures'];
+            let allValid = true;
+            
+            fields.forEach(fieldId => {
+                if (!validateInput(fieldId)) {
+                    allValid = false;
+                }
+            });
+            
+            return allValid;
+        }
+        
+        // 위치 이동
+        function moveToLocation() {
+            // 입력값 검증
+            if (!validateAllInputs()) {
+                updateStatus('⚙️ 파라미터 오류: 입력값을 확인해주세요', 'error');
+                return;
+            }
+            
+            const lon = parseFloat(document.getElementById('centerLon').value);
+            const lat = parseFloat(document.getElementById('centerLat').value);
+            const zoom = parseInt(document.getElementById('zoomLevel').value);
+            
+            map.getView().animate({
+                center: ol.proj.fromLonLat([lon, lat]),
+                zoom: zoom,
+                duration: 1000
+            });
+            
+            updateStatus(`위치 이동: ${lat.toFixed(6)}, ${lon.toFixed(6)}`, 'success');
+        }
+        
+        // 배경지도 토글
+        function toggleBaseMap() {
+            const isVisible = document.getElementById('baseMapToggle').checked;
+            baseLayer.setVisible(isVisible);
+            updateStatus(`배경지도 ${isVisible ? '표시' : '숨김'}`, 'info');
+        }
+        
+        // 지적도 레이어 토글
+        function toggleCadastralLayer() {
+            const isVisible = document.getElementById('cadastralToggle').checked;
+            cadastralLayer.setVisible(isVisible);
+            updateStatus(`연속지적도 ${isVisible ? '표시' : '숨김'}`, 'info');
+        }
+        
+        // 지적도 투명도 변경
+        function changeCadastralOpacity(opacity) {
+            cadastralLayer.setOpacity(parseFloat(opacity));
+            updateStatus(`투명도 변경: ${Math.round(opacity * 100)}%`, 'info');
+        }
+        
+        // 지적도 레이어 새로고침
+        function refreshCadastralLayer() {
+            updateStatus('레이어를 새로고침하는 중...', 'info');
+            cadastralLayer.getSource().clear();
+            cadastralLayer.getSource().refresh();
+        }
+        
+        // API 연결 테스트
+        function testApiConnection() {
+            updateStatus('🔍 API 연결을 테스트하는 중...', 'info');
+            showLoading();
+            
+            const testParams = {
+                key: VWORLD_API_KEY,
+                domain: 'https://ppoppo1971.github.io/VMAP/index.html',
+                geomFilter: 'BBOX(SHAPE,126.9784,37.5665,126.9884,37.5765)',
+                maxFeatures: 1,
+                resultType: 'results',
+                srsName: 'EPSG:4326',
+                format: 'json'
+            };
+            
+            const testUrl = WFS_URL + '?' + Object.keys(testParams)
+                .map(key => `${key}=${encodeURIComponent(testParams[key])}`)
+                .join('&');
+            
+            console.log('테스트 URL:', testUrl);
+            
+            fetch(testUrl)
+                .then(response => {
+                    console.log('응답 상태:', response.status);
+                    console.log('응답 헤더:', response.headers);
+                    
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            throw new Error(`HTTP ${response.status}: ${text}`);
+                        });
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    hideLoading();
+                    console.log('응답 데이터:', data);
+                    
+                    try {
+                        const jsonData = JSON.parse(data);
+                        if (jsonData.error || jsonData.message) {
+                            analyzeErrorMessage(jsonData.error || jsonData.message || data);
+                        } else if (jsonData.features) {
+                            updateStatus(`✅ API 연결 성공! (${jsonData.features.length}개 피처 확인)`, 'success');
+                        } else {
+                            updateStatus('✅ API 연결 성공! (데이터 형식 확인 필요)', 'success');
+                        }
+                    } catch (e) {
+                        // HTML 응답인 경우 (일반적으로 오류 페이지)
+                        if (data.includes('<html>') || data.includes('<!DOCTYPE')) {
+                            updateStatus('🚫 도메인 오류: 웹페이지 응답 (HTML) - 도메인 등록 확인 필요', 'error');
+                        } else {
+                            analyzeErrorMessage(data);
+                        }
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('연결 테스트 오류:', error);
+                    
+                    if (error.message.includes('CORS') || error.message.includes('Cross-Origin')) {
+                        updateStatus('🚫 도메인 오류: CORS 정책으로 차단됨', 'error');
+                    } else if (error.message.includes('401')) {
+                        updateStatus('🔑 키 오류: API 키 인증 실패', 'error');
+                    } else if (error.message.includes('403')) {
+                        updateStatus('🚫 도메인 오류: 접근 권한 없음', 'error');
+                    } else if (error.message.includes('404')) {
+                        updateStatus('🔗 API 엔드포인트 오류: 서비스 주소가 올바르지 않음', 'error');
+                    } else if (error.message.includes('Failed to fetch')) {
+                        updateStatus('🌐 네트워크 오류: 브이월드 서버에 연결할 수 없음', 'error');
+                    } else {
+                        updateStatus(`❌ 연결 실패: ${error.message}`, 'error');
+                    }
+                });
+        }
+        
+        // 팝업 닫기 (지도 클릭 시)
+        map.on('singleclick', function(evt) {
+            const features = map.getFeaturesAtPixel(evt.pixel, {
+                layerFilter: function(layer) {
+                    return layer === cadastralLayer;
+                }
+            });
+            
+            if (features.length === 0) {
+                document.getElementById('popup').style.display = 'none';
+            }
+        });
+        
+        // 페이지 로드 시 지도 초기화
+        window.addEventListener('load', function() {
+            // 초기 입력값 검증
+            validateAllInputs();
+            initMap();
+        });
+    </script>
 </body>
 </html>
-
