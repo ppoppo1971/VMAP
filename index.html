@@ -236,31 +236,31 @@
         const vworldLayers = {
             Base: new ol.layer.Tile({
                 source: new ol.source.XYZ({
-                    url: 'http://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/Base/{z}/{y}/{x}.png'
+                    url: 'https://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/Base/{z}/{y}/{x}.png'
                 })
             }),
             Satellite: new ol.layer.Tile({
                 source: new ol.source.XYZ({
-                    url: 'http://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/Satellite/{z}/{y}/{x}.jpeg'
+                    url: 'https://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/Satellite/{z}/{y}/{x}.jpeg'
                 })
             }),
             Hybrid: new ol.layer.Group({
                 layers: [
                     new ol.layer.Tile({
                         source: new ol.source.XYZ({
-                            url: 'http://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/Satellite/{z}/{y}/{x}.jpeg'
+                            url: 'https://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/Satellite/{z}/{y}/{x}.jpeg'
                         })
                     }),
                     new ol.layer.Tile({
                         source: new ol.source.XYZ({
-                            url: 'http://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/Hybrid/{z}/{y}/{x}.png'
+                            url: 'https://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/Hybrid/{z}/{y}/{x}.png'
                         })
                     })
                 ]
             }),
             Gray: new ol.layer.Tile({
                 source: new ol.source.XYZ({
-                    url: 'http://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/gray/{z}/{y}/{x}.png'
+                    url: 'https://api.vworld.kr/req/wmts/1.0.0/46F4304E-84DC-3F56-92F1-6A98A0370A31/gray/{z}/{y}/{x}.png'
                 })
             })
         };
@@ -282,7 +282,7 @@
                     
                     console.log('사용할 도메인:', domain);
                     
-                    return `http://api.vworld.kr/req/data?service=wfs&version=1.0.0&request=GetFeature&typename=${typeName}&outputformat=application/json&srsname=EPSG:4326&bbox=${bbox.join(',')}&apikey=46F4304E-84DC-3F56-92F1-6A98A0370A31&domain=${encodeURIComponent(domain)}`;
+                    return `https://api.vworld.kr/req/data?service=wfs&version=1.0.0&request=GetFeature&typename=${typeName}&outputformat=application/json&srsname=EPSG:4326&bbox=${bbox.join(',')}&apikey=46F4304E-84DC-3F56-92F1-6A98A0370A31&domain=${encodeURIComponent(domain)}`;
                 },
                 strategy: ol.loadingstrategy.bbox
             });
