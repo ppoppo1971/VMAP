@@ -296,7 +296,7 @@
     <!-- 현재 활성 지도 표시 배지 -->
     <div id="activeMapBadge" aria-live="polite">구글맵 - 일반</div>
     <!-- 화면 상단 중앙 배너 -->
-    <div id="centerTopBanner">테스트1</div>
+    <div id="centerTopBanner">테스트2</div>
     <!-- 사이드 패널 토글 버튼 (패널이 숨겨졌을 때만 보임) -->
     <button id="menuToggleBtn" class="show" onclick="showMenu()" title="메뉴 열기">☰</button>
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
@@ -396,6 +396,7 @@
         VWORLD_WFS_CONTROLPOINT_URL: 'https://api.vworld.kr/ned/wfs/getLgstspSpceWFS',
         VWORLD_CONTROL_POINT_WMS_URL: 'https://api.vworld.kr/ned/wms/LgstspSpceService',
         KAKAO_LOCAL_API_URL: 'https://dapi.kakao.com/v2/local',
+        SERVICE_DOMAIN: 'https://ppoppo1971.github.io',
         MAX_BOUNDARY_ZOOM: 32,
         MAX_CADASTRAL_ZOOM: 32,
         DEBOUNCE_DELAY: 1000
@@ -1626,7 +1627,8 @@
           srsName: 'EPSG:4326',
           maxFeatures: '1000',
           resultType: 'results',
-          output: 'application/json'
+          output: 'application/json',
+          domain: CONFIG.SERVICE_DOMAIN
         });
         const url = `${CONFIG.VWORLD_WFS_BOUNDARY_URL}?${params.toString()}`;
 
@@ -1691,7 +1693,8 @@
           srsName: 'EPSG:4326',
           maxFeatures: '1000',
           resultType: 'results',
-          output: 'application/json'
+          output: 'application/json',
+          domain: CONFIG.SERVICE_DOMAIN
         });
         const url = `${CONFIG.VWORLD_WFS_BOUNDARY_URL}?${params.toString()}`;
         fetch(url)
@@ -1726,7 +1729,8 @@
           srsName: 'EPSG:4326',
           maxFeatures: '1000',
           resultType: 'results',
-          output: 'application/json'
+          output: 'application/json',
+          domain: CONFIG.SERVICE_DOMAIN
         });
         const url = `${CONFIG.VWORLD_WFS_CADASTRAL_URL}?${params.toString()}`;
         fetch(url)
@@ -1843,7 +1847,8 @@
           srsName: 'EPSG:4326',
           maxFeatures: '1000',
           resultType: 'results',
-          output: 'application/json'
+          output: 'application/json',
+          domain: CONFIG.SERVICE_DOMAIN
         });
         const url = `${CONFIG.VWORLD_WFS_CONTROLPOINT_URL}?${params.toString()}`;
 
