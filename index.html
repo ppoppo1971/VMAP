@@ -3,14 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>브이월드 WFS 예제3</title>
+  <title>브이월드 WFS 예제4</title>
   <link rel="stylesheet" href="https://openlayers.org/en/v6.15.1/css/ol.css" />
   <style>
     html, body { margin: 0; padding: 0; height: 100%; }
     #map { width: 100%; height: 100%; }
     .ol-zoom { font-size: 1rem; }
-    .toolbar { position: absolute; top: 10px; left: 10px; z-index: 1000; }
+    .toolbar { position: absolute; top: 10px; left: 10px; z-index: 1000; display: flex; gap: 6px; align-items: center; background: rgba(255,255,255,.9); padding: 8px; border-radius: 6px; border: 1px solid #ddd; }
     .toolbar button { padding: 8px 12px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; }
+    .toolbar input { padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; min-width: 240px; }
+    .toolbar select { position: absolute; top: 52px; left: 10px; z-index: 1000; width: 420px; max-height: 260px; overflow: auto; background: #fff; border: 1px solid #ccc; border-radius: 4px; display: none; }
     .toolbar button:disabled { opacity: .6; cursor: not-allowed; }
   </style>
   <!-- GitHub Pages 캐시 관련: 강제 새로고침 필요 시, 쿼리스트링 버전을 바꾸세요. -->
@@ -32,8 +34,11 @@
 </head>
 <body>
   <div class="toolbar">
+    <input id="typenameInput" type="text" placeholder="지적도근점 typename 직접 입력 (예: LT_..._INFO)" />
+    <button id="btnList">레이어 검색</button>
     <button id="btnCadastral">지적도근점 불러오기</button>
   </div>
+  <select id="typenameSelect" size="8"></select>
   <div id="map"></div>
 
   <script src="https://openlayers.org/en/v6.15.1/build/ol.js"></script>
@@ -182,6 +187,9 @@
     let cadastralLayer = null;
     let discoveredCadastralTypeName = '';
     const btn = document.getElementById('btnCadastral');
+    const btnList = document.getElementById('btnList');
+    const input = document.getElementById('typenameInput');
+    const selectBox = document.getElementById('typenameSelect');
 
     btn.addEventListener('click', async () => {
       if (cadastralLayer) return; // 이미 추가됨
@@ -189,7 +197,7 @@
       btn.textContent = '불러오는 중...';
 
       try {
-        let typeName = CADASTRAL_CONTROL_TYPENAME && CADASTRAL_CONTROL_TYPENAME.trim();
+        let typeName = (input.value && input.value.trim()) || (CADASTRAL_CONTROL_TYPENAME && CADASTRAL_CONTROL_TYPENAME.trim());
         if (!typeName) {
           if (!discoveredCadastralTypeName) {
             discoveredCadastralTypeName = await discoverCadastralControlTypeName() || '';
@@ -204,15 +212,65 @@
           btn.textContent = '지적도근점 추가됨';
         } else {
           console.warn('지적도근점 typename을 찾지 못했습니다.');
-          alert('지적도근점 데이터를 찾지 못했습니다. typename을 수동으로 지정해 주세요.');
+          alert('typename을 입력하거나, 레이어 검색으로 선택해 주세요.');
           btn.textContent = '지적도근점 불러오기';
           btn.disabled = false;
+          input.focus();
         }
       } catch (e) {
         console.error(e);
         alert('지적도근점 레이어 추가 중 오류가 발생했습니다.');
         btn.textContent = '지적도근점 불러오기';
         btn.disabled = false;
+      }
+    });
+
+    btnList.addEventListener('click', async () => {
+      btnList.disabled = true;
+      btnList.textContent = '검색 중...';
+      try {
+        const url = `https://api.vworld.kr/req/wfs?service=WFS&request=GetCapabilities&key=${VWORLD_KEY}&domain=${decodeURIComponent(VWORLD_DOMAIN)}`;
+        const res = await fetch(url, { mode: 'cors' });
+        const xmlText = await res.text();
+        const doc = parseXml(xmlText);
+        if (!doc) throw new Error('Capabilities 파싱 실패');
+        const featureTypeLists = [
+          ...Array.from(doc.getElementsByTagName('FeatureType')),
+          ...Array.from(doc.getElementsByTagNameNS('*', 'FeatureType'))
+        ];
+        // 목록 구성: Name (Title)
+        selectBox.innerHTML = '';
+        for (const ft of featureTypeLists) {
+          const name = extractText(ft, ['Name', 'name']);
+          const title = extractText(ft, ['Title', 'title']);
+          if (!name) continue;
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = title ? `${name} (${title})` : name;
+          selectBox.appendChild(opt);
+        }
+        selectBox.style.display = 'block';
+        selectBox.scrollTop = 0;
+        selectBox.focus();
+
+        selectBox.onchange = () => {
+          input.value = selectBox.value;
+        };
+        selectBox.ondblclick = () => {
+          input.value = selectBox.value;
+          btn.click();
+        };
+        document.addEventListener('click', (e) => {
+          if (!selectBox.contains(e.target) && !btnList.contains(e.target)) {
+            selectBox.style.display = 'none';
+          }
+        }, { once: true });
+      } catch (err) {
+        console.error(err);
+        alert('레이어 목록을 가져오지 못했습니다.');
+      } finally {
+        btnList.textContent = '레이어 검색';
+        btnList.disabled = false;
       }
     });
   </script>
