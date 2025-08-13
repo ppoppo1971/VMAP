@@ -3,12 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>브이월드 WFS 예제2</title>
+  <title>브이월드 WFS 예제3</title>
   <link rel="stylesheet" href="https://openlayers.org/en/v6.15.1/css/ol.css" />
   <style>
     html, body { margin: 0; padding: 0; height: 100%; }
     #map { width: 100%; height: 100%; }
     .ol-zoom { font-size: 1rem; }
+    .toolbar { position: absolute; top: 10px; left: 10px; z-index: 1000; }
+    .toolbar button { padding: 8px 12px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; }
+    .toolbar button:disabled { opacity: .6; cursor: not-allowed; }
   </style>
   <!-- GitHub Pages 캐시 관련: 강제 새로고침 필요 시, 쿼리스트링 버전을 바꾸세요. -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
@@ -28,6 +31,9 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' https://openlayers.org 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://openlayers.org; img-src 'self' https://api.vworld.kr data:; connect-src 'self' https://api.vworld.kr;" />
 </head>
 <body>
+  <div class="toolbar">
+    <button id="btnCadastral">지적도근점 불러오기</button>
+  </div>
   <div id="map"></div>
 
   <script src="https://openlayers.org/en/v6.15.1/build/ol.js"></script>
@@ -173,19 +179,42 @@
       return layer;
     }
 
-    (async function addCadastralControlPointsLayer() {
-      let typeName = CADASTRAL_CONTROL_TYPENAME && CADASTRAL_CONTROL_TYPENAME.trim();
-      if (!typeName) {
-        typeName = await discoverCadastralControlTypeName();
+    let cadastralLayer = null;
+    let discoveredCadastralTypeName = '';
+    const btn = document.getElementById('btnCadastral');
+
+    btn.addEventListener('click', async () => {
+      if (cadastralLayer) return; // 이미 추가됨
+      btn.disabled = true;
+      btn.textContent = '불러오는 중...';
+
+      try {
+        let typeName = CADASTRAL_CONTROL_TYPENAME && CADASTRAL_CONTROL_TYPENAME.trim();
+        if (!typeName) {
+          if (!discoveredCadastralTypeName) {
+            discoveredCadastralTypeName = await discoverCadastralControlTypeName() || '';
+          }
+          typeName = discoveredCadastralTypeName;
+        }
+
+        if (typeName) {
+          cadastralLayer = createCadastralLayer(typeName);
+          map.addLayer(cadastralLayer);
+          console.info('지적도근점 typename:', typeName);
+          btn.textContent = '지적도근점 추가됨';
+        } else {
+          console.warn('지적도근점 typename을 찾지 못했습니다.');
+          alert('지적도근점 데이터를 찾지 못했습니다. typename을 수동으로 지정해 주세요.');
+          btn.textContent = '지적도근점 불러오기';
+          btn.disabled = false;
+        }
+      } catch (e) {
+        console.error(e);
+        alert('지적도근점 레이어 추가 중 오류가 발생했습니다.');
+        btn.textContent = '지적도근점 불러오기';
+        btn.disabled = false;
       }
-      if (typeName) {
-        const layer = createCadastralLayer(typeName);
-        map.addLayer(layer);
-        console.info('지적도근점 typename:', typeName);
-      } else {
-        console.warn('지적도근점 typename을 찾지 못했습니다. Capabilities에서 키워드 검색 실패');
-      }
-    })();
+    });
   </script>
 </body>
 </html>
