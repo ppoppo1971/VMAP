@@ -271,7 +271,18 @@
                 format: new ol.format.GeoJSON(),
                 url: function(extent) {
                     const bbox = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
-                    return `http://api.vworld.kr/req/data?service=wfs&version=1.0.0&request=GetFeature&typename=${typeName}&outputformat=application/json&srsname=EPSG:4326&bbox=${bbox.join(',')}&apikey=46F4304E-84DC-3F56-92F1-6A98A0370A31`;
+                    
+                    // 현재 도메인 자동 감지 (등록된 도메인 사용)
+                    let domain = window.location.origin;
+                    
+                    // GitHub Pages 도메인으로 설정 (브이월드에 등록된 도메인)
+                    if (domain.includes('localhost') || domain.includes('127.0.0.1') || domain.includes('file:')) {
+                        domain = 'https://ppoppo1971.github.io';
+                    }
+                    
+                    console.log('사용할 도메인:', domain);
+                    
+                    return `http://api.vworld.kr/req/data?service=wfs&version=1.0.0&request=GetFeature&typename=${typeName}&outputformat=application/json&srsname=EPSG:4326&bbox=${bbox.join(',')}&apikey=46F4304E-84DC-3F56-92F1-6A98A0370A31&domain=${encodeURIComponent(domain)}`;
                 },
                 strategy: ol.loadingstrategy.bbox
             });
@@ -332,6 +343,33 @@
 
             // 연속지적도 레이어
             cadastralLayer = createWFSLayer('cadastral', 'lt_c_upis213', cadastralStyle);
+
+            // 로딩 이벤트 리스너 추가
+            controlPointLayer.getSource().on('loadstart', function() {
+                console.log('지적도근점 데이터 로딩 시작...');
+            });
+            
+            controlPointLayer.getSource().on('loadend', function() {
+                console.log('지적도근점 데이터 로딩 완료');
+            });
+            
+            controlPointLayer.getSource().on('loaderror', function(event) {
+                console.error('지적도근점 데이터 로딩 오류:', event);
+                alert('지적도근점 데이터를 불러오는데 실패했습니다.\n도메인 등록 상태를 확인해주세요.');
+            });
+            
+            cadastralLayer.getSource().on('loadstart', function() {
+                console.log('연속지적도 데이터 로딩 시작...');
+            });
+            
+            cadastralLayer.getSource().on('loadend', function() {
+                console.log('연속지적도 데이터 로딩 완료');
+            });
+            
+            cadastralLayer.getSource().on('loaderror', function(event) {
+                console.error('연속지적도 데이터 로딩 오류:', event);
+                alert('연속지적도 데이터를 불러오는데 실패했습니다.\n도메인 등록 상태를 확인해주세요.');
+            });
 
             wfsLayers = {
                 controlpoint: controlPointLayer,
