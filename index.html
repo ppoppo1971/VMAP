@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>index04</title>
+    <title>index05</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -127,7 +127,7 @@
       const VWORLD_CONFIG = {
         API_KEY: '46F4304E-84DC-3F56-92F1-6A98A0370A31',
         DOMAIN: 'https://ppoppo1971.github.io/VMAP/index.html',
-        WFS_URL: 'https://api.vworld.kr/req/wfs'
+        WFS_URL: 'https://api.vworld.kr/ned/wfs/getAdresSpceWFS'
       };
       
       // 활성 지도 배지 갱신
@@ -198,18 +198,16 @@
       
       // 브이월드 WFS API로 경계 데이터 조회
       async function fetchBoundaryData(typename, bbox) {
-        // 브이월드 WFS 표준 파라미터
+        // 브이월드 법정구역도 WFS 조회 파라미터 (Java 샘플 코드 기준)
         const params = new URLSearchParams({
           key: VWORLD_CONFIG.API_KEY,
           domain: VWORLD_CONFIG.DOMAIN,
-          service: 'WFS',
-          version: '1.1.0',
-          request: 'GetFeature',
           typename: typename,
           bbox: bbox,
           maxFeatures: '50',
+          resultType: 'results',
           srsName: 'EPSG:4326',
-          outputFormat: 'application/json'
+          output: 'application/json'
         });
         
         const fullUrl = `${VWORLD_CONFIG.WFS_URL}?${params.toString()}`;
