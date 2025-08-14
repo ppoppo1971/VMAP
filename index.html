@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>index03</title>
+    <title>index04</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -126,8 +126,8 @@
       // 브이월드 API 설정
       const VWORLD_CONFIG = {
         API_KEY: '46F4304E-84DC-3F56-92F1-6A98A0370A31',
-        DOMAIN: 'https://ppoppo1971.github.io',
-        WFS_URL: 'https://api.vworld.kr/ned/wfs/getAdresSpceWFS'
+        DOMAIN: 'https://ppoppo1971.github.io/VMAP/index.html',
+        WFS_URL: 'https://api.vworld.kr/req/wfs'
       };
       
       // 활성 지도 배지 갱신
@@ -198,23 +198,35 @@
       
       // 브이월드 WFS API로 경계 데이터 조회
       async function fetchBoundaryData(typename, bbox) {
+        // 브이월드 WFS 표준 파라미터
         const params = new URLSearchParams({
           key: VWORLD_CONFIG.API_KEY,
           domain: VWORLD_CONFIG.DOMAIN,
+          service: 'WFS',
+          version: '1.1.0',
+          request: 'GetFeature',
           typename: typename,
           bbox: bbox,
           maxFeatures: '50',
-          resultType: 'results',
           srsName: 'EPSG:4326',
-          output: 'application/json'
+          outputFormat: 'application/json'
         });
         
+        const fullUrl = `${VWORLD_CONFIG.WFS_URL}?${params.toString()}`;
+        console.log('WFS 요청 URL:', fullUrl); // 디버깅용
+        
         try {
-          const response = await fetch(`${VWORLD_CONFIG.WFS_URL}?${params.toString()}`);
+          const response = await fetch(fullUrl);
+          console.log('HTTP 응답 상태:', response.status); // 디버깅용
+          
           if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('HTTP 오류 응답:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
           }
+          
           const data = await response.json();
+          console.log('WFS 응답 데이터:', data); // 디버깅용
           return data;
         } catch (error) {
           console.error('경계 데이터 조회 오류:', error);
