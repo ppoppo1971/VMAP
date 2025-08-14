@@ -4,20 +4,10 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>브이월드 지도</title>
+    <title>index01</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <script>
-      // 파일명에 맞춰 타이틀 자동 설정
-      function setTitleFromFilename() {
-        const filename = window.location.pathname.split('/').pop().replace('.html', '');
-        document.title = filename;
-      }
-      // 페이지 로드 시 타이틀 설정
-      window.addEventListener('load', setTitleFromFilename);
-    </script>
     <style>
         html, body {
             height: 100%;
@@ -136,7 +126,7 @@
       // 브이월드 API 설정
       const VWORLD_CONFIG = {
         API_KEY: '46F4304E-84DC-3F56-92F1-6A98A0370A31',
-        DOMAIN: 'https://ppoppo1971.github.io',
+        DOMAIN: 'https://ppoppo1971.github.io/VMAP/index.html',
         WFS_URL: 'http://api.vworld.kr/ned/wfs/getAdresSpceWFS'
       };
       
