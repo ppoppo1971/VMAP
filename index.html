@@ -1537,7 +1537,7 @@
         const sw = bounds.getSouthWest();
         const bbox = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()}`; // EPSG:4326
 
-        const apiUrl = 'https://api.vworld.kr/req/wfs';
+        const apiUrl = 'https://api.vworld.kr/ned/wfs/getAdresSpceWFS';
         const params = new URLSearchParams({
           service: 'WFS',
           request: 'GetFeature',
@@ -1616,7 +1616,7 @@
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
         const bbox = `${sw.lat()},${sw.lng()},${ne.lat()},${ne.lng()}`;
-        const apiUrl = 'https://api.vworld.kr/req/wfs';
+        const apiUrl = 'https://api.vworld.kr/ned/wfs/getAdresSpceWFS';
         const params = new URLSearchParams({
           service: 'WFS',
           request: 'GetFeature',
