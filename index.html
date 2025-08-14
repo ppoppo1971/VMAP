@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>index02</title>
+    <title>index03</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -126,8 +126,8 @@
       // 브이월드 API 설정
       const VWORLD_CONFIG = {
         API_KEY: '46F4304E-84DC-3F56-92F1-6A98A0370A31',
-        DOMAIN: 'https://ppoppo1971.github.io/VMAP',
-        WFS_URL: 'http://api.vworld.kr/ned/wfs/getAdresSpceWFS'
+        DOMAIN: 'https://ppoppo1971.github.io',
+        WFS_URL: 'https://api.vworld.kr/ned/wfs/getAdresSpceWFS'
       };
       
       // 활성 지도 배지 갱신
@@ -242,31 +242,38 @@
         // 기존 경계 제거
         clearBoundaries();
         
-        // 현재 지도 영역의 bbox 계산
+        // 현재 지도 영역의 bbox 계산 (EPSG:4326 형식: ymin,xmin,ymax,xmax)
         const bounds = map.getBounds();
         const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()},EPSG:4326`;
+        
+        console.log(`${type} 경계 조회 시작:`, {typename, bbox}); // 디버깅용
         
         // 경계 데이터 조회
         const data = await fetchBoundaryData(typename, bbox);
         if (!data || !data.features) {
-          alert('경계 데이터를 불러올 수 없습니다.');
+          console.error('경계 데이터 조회 실패:', data);
+          alert(`${type} 경계 데이터를 불러올 수 없습니다. 지도를 한국 지역으로 이동하고 다시 시도해주세요.`);
           return;
         }
+        
+        console.log(`${type} 경계 데이터 조회 성공:`, data.features.length, '개'); // 디버깅용
         
         // GeoJSON 레이어 생성 및 추가
         const geoJsonLayer = L.geoJSON(data, {
           style: {
-            color: '#ff0000',
-            weight: 2,
+            color: type === 'sido' ? '#0066cc' : type === 'sigungu' ? '#ff6600' : '#cc0066',
+            weight: type === 'sido' ? 3 : 2,
             opacity: 0.8,
             fillOpacity: 0.1,
-            fillColor: '#ff0000'
+            fillColor: type === 'sido' ? '#0066cc' : type === 'sigungu' ? '#ff6600' : '#cc0066'
           },
           onEachFeature: function(feature, layer) {
             if (feature.properties) {
               let popupContent = '<div style="font-family: Arial; font-size: 12px;">';
               for (const [key, value] of Object.entries(feature.properties)) {
-                popupContent += `<b>${key}:</b> ${value}<br>`;
+                if (value && value.toString().trim()) {
+                  popupContent += `<b>${key}:</b> ${value}<br>`;
+                }
               }
               popupContent += '</div>';
               layer.bindPopup(popupContent);
@@ -315,4 +322,3 @@
     </script>
 </body>
 </html>
-
