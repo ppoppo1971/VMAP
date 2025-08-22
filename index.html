@@ -3,181 +3,219 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>홋카이도 여행</title>
     <style>
         html, body {
             height: 100%;
             margin: 0;
             padding: 0;
+            overflow: hidden;
+            -webkit-overflow-scrolling: touch;
         }
         #map {
             width: 100vw;
             height: 100vh;
             min-height: 100%;
+            touch-action: pan-x pan-y;
         }
         h1 {
             display: none;
         }
 
-        /* 사이드바 스타일 */
+        /* 사이드바 스타일 - 모바일 최적화 */
         #customMapMenu {
             position: absolute;
-            top: 40px;
-            left: 30px;
+            top: 20px;
+            left: 15px;
             z-index: 10;
-            width: 220px;
-            background: rgba(255,255,255,0.86);
+            width: 200px;
+            max-width: 85vw;
+            background: rgba(255,255,255,0.95);
             border: 1px solid rgba(255,255,255,0.35);
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.18);
-            padding: 12px 9px 9px 9px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            padding: 15px 12px 12px 12px;
             display: flex;
             flex-direction: column;
-            gap: 9px;
-            font-family: 'Noto Sans KR', sans-serif;
-            backdrop-filter: blur(6px) saturate(110%);
-            -webkit-backdrop-filter: blur(6px) saturate(110%);
-            transition: box-shadow 0.2s, left 0.3s, opacity 0.3s, background-color 0.2s;
+            gap: 8px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            backdrop-filter: blur(8px) saturate(110%);
+            -webkit-backdrop-filter: blur(8px) saturate(110%);
+            transition: all 0.3s ease;
         }
         #customMapMenu.hide {
-            left: -260px;
+            left: -220px;
             opacity: 0;
             pointer-events: none;
         }
         #customMapMenu h2 {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 700;
-            margin: 0 0 12px 0;
+            margin: 0 0 10px 0;
             color: #222;
         }
         .menu-group {
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
         .menu-group label {
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 500;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
             display: block;
             color: #555;
         }
-        /* 공통 버튼 스타일 */
+        /* 공통 버튼 스타일 - 터치 친화적 */
         .menu-group button, .toggle-btn {
             width: 100%;
             background: #f7f7f7;
             border: none;
             border-radius: 8px;
-            padding: 5px 0;
-            margin-bottom: 3px;
-            font-size: 1rem;
+            padding: 12px 8px;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
             color: #333;
             cursor: pointer;
-            transition: background 0.15s, color 0.15s;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
         }
         .menu-group button:hover, .toggle-btn:hover {
             background: #e0e7ff;
             color: #1d4ed8;
         }
-        .menu-group .submenu {
-            margin-left: 12px;
-            margin-top: 4px;
+        .menu-group button:active, .toggle-btn:active {
+            background: #d1d5db;
+            transform: scale(0.98);
         }
-        /* 사이드 패널 토글 버튼 */
+        .menu-group .submenu {
+            margin-left: 10px;
+            margin-top: 3px;
+        }
+        
+        /* 사이드 패널 토글 버튼 - 모바일 최적화 */
         #menuToggleBtn {
             position: absolute;
-            top: 50px;
-            left: 18px;
+            top: 20px;
+            left: 15px;
             z-index: 20;
             background: #1d4ed8;
             color: #fff;
             border: none;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 1.3rem;
+            width: 48px;
+            height: 48px;
+            font-size: 1.4rem;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             display: none;
             align-items: center;
             justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s ease;
         }
         #menuToggleBtn.show {
             display: flex;
         }
+        #menuToggleBtn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
         .toggle-btn {
             text-align: left;
             font-weight: 600;
         }
+        
         /* 하위 옵션 들여쓰기 */
         .submenu {
-            margin-left: 20px;
+            margin-left: 15px;
         }
         .submenu .submenu {
-            margin-left: 20px;
+            margin-left: 15px;
         }
         .submenu button {
             width: 90%;
             margin-left: 0;
         }
+        
         /* 구글맵 하위 옵션 들여쓰기 */
         #googleMapMenu > .toggle-btn {
-            margin-left: 20px;
+            margin-left: 15px;
         }
         
-        /* 오른쪽 상단 지도 타입 선택 버튼 */
+        /* 오른쪽 상단 지도 타입 선택 버튼 - 모바일 최적화 */
         #mapTypeSelector {
             position: absolute;
-            top: 40px;
-            right: 30px;
+            top: 20px;
+            right: 15px;
             z-index: 10;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            transition: right 0.3s, opacity 0.3s;
+            gap: 6px;
+            transition: all 0.3s ease;
         }
         
         #mapTypeSelector.hide {
-            right: -200px;
+            right: -180px;
             opacity: 0;
             pointer-events: none;
         }
         
-        /* 오른쪽 상단 토글 버튼 */
+        /* 오른쪽 상단 토글 버튼 - 모바일 최적화 */
         #rightMenuToggleBtn {
             position: absolute;
-            top: 50px;
-            right: 18px;
+            top: 20px;
+            right: 15px;
             z-index: 20;
             background: #1d4ed8;
             color: #fff;
             border: none;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 1.3rem;
+            width: 48px;
+            height: 48px;
+            font-size: 1.4rem;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s ease;
+        }
+        #rightMenuToggleBtn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .map-type-btn {
+            background: rgba(255,255,255,0.95);
+            border: 1px solid rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            -webkit-tap-highlight-color: transparent;
+            min-height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         
-        .map-type-btn {
-            background: rgba(255,255,255,0.9);
-            border: 1px solid rgba(0,0,0,0.2);
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #333;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
         .map-type-btn:hover {
             background: rgba(255,255,255,1);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        }
+        
+        .map-type-btn:active {
+            transform: scale(0.98);
         }
         
         .map-type-btn.active {
@@ -187,9 +225,122 @@
         }
         
         .map-type-btn.sub-option {
-            margin-left: 20px;
+            margin-left: 15px;
             font-size: 0.8rem;
-            padding: 6px 12px;
+            padding: 10px 12px;
+        }
+        
+        /* 모바일 최적화를 위한 미디어 쿼리 */
+        @media (max-width: 768px) {
+            #customMapMenu {
+                width: 180px;
+                max-width: 80vw;
+                top: 15px;
+                left: 10px;
+                padding: 12px 10px 10px 10px;
+            }
+            
+            #customMapMenu.hide {
+                left: -200px;
+            }
+            
+            #menuToggleBtn, #rightMenuToggleBtn {
+                width: 44px;
+                height: 44px;
+                font-size: 1.3rem;
+                top: 15px;
+            }
+            
+            #menuToggleBtn {
+                left: 10px;
+            }
+            
+            #rightMenuToggleBtn {
+                right: 10px;
+            }
+            
+            #mapTypeSelector {
+                top: 15px;
+                right: 10px;
+            }
+            
+            .map-type-btn {
+                padding: 10px 14px;
+                font-size: 0.85rem;
+                min-height: 40px;
+            }
+            
+            .toggle-btn {
+                padding: 10px 8px;
+                min-height: 40px;
+                font-size: 0.85rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #customMapMenu {
+                width: 160px;
+                max-width: 75vw;
+                top: 10px;
+                left: 8px;
+                padding: 10px 8px 8px 8px;
+            }
+            
+            #customMapMenu.hide {
+                left: -180px;
+            }
+            
+            #menuToggleBtn, #rightMenuToggleBtn {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+                top: 10px;
+            }
+            
+            #menuToggleBtn {
+                left: 8px;
+            }
+            
+            #rightMenuToggleBtn {
+                right: 8px;
+            }
+            
+            #mapTypeSelector {
+                top: 10px;
+                right: 8px;
+            }
+            
+            .map-type-btn {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+                min-height: 36px;
+            }
+            
+            .toggle-btn {
+                padding: 8px 6px;
+                min-height: 36px;
+                font-size: 0.8rem;
+            }
+        }
+        
+        /* 터치 최적화를 위한 추가 스타일 */
+        * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        /* 스크롤바 숨기기 */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* 모바일에서 더블탭 줌 방지 */
+        #map {
+            touch-action: manipulation;
         }
     </style>
 </head>
@@ -230,6 +381,7 @@
     <script>
       // 전역 변수들
       let map;
+      let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
       // DOM 캐시
       let cachedElements = {};
@@ -240,8 +392,33 @@
         return cachedElements[id];
       }
       
+      // 모바일 최적화 함수
+      function optimizeForMobile() {
+        if (isMobile) {
+          // 모바일에서 더블탭 줌 방지
+          let lastTouchEnd = 0;
+          document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+              event.preventDefault();
+            }
+            lastTouchEnd = now;
+          }, false);
+          
+          // 모바일에서 스크롤 방지
+          document.addEventListener('touchmove', function (event) {
+            if (event.target.id === 'map') {
+              event.preventDefault();
+            }
+          }, { passive: false });
+        }
+      }
+      
       // 구글맵 초기화 함수
       function initMap() {
+        // 모바일 최적화 적용
+        optimizeForMobile();
+        
         // 인천공항과 산치토세공항의 좌표
         const incheonAirport = { lat: 37.4602, lng: 126.4407 }; // 인천공항
         const chitoseAirport = { lat: 42.7752, lng: 141.6928 }; // 산치토세공항
@@ -251,8 +428,8 @@
         const centerLng = (incheonAirport.lng + chitoseAirport.lng) / 2;
         const center = { lat: centerLat, lng: centerLng };
         
-        // 두 공항 사이의 거리를 고려한 적절한 줌 레벨 설정
-        const zoom = 5; // 두 공항이 모두 보이도록 축소
+        // 모바일에서는 더 넓은 뷰를 제공
+        const zoom = isMobile ? 4 : 5;
         
         // 일반지도에서 라벨을 숨기는 스타일 정의
         const noLabelsStyle = [
@@ -273,33 +450,35 @@
           }
         ];
         
-        // 구글 맵 객체 생성 및 옵션 설정
+        // 구글 맵 객체 생성 및 옵션 설정 - 모바일 최적화
         map = new google.maps.Map(document.getElementById('map'), {
-          zoom: zoom, // 두 공항이 모두 보이도록 축소된 줌 레벨
-          center: center, // 두 공항 사이의 중간점
-          mapTypeControl: false, // 기본 가로 지도 타입 메뉴 비활성화
+          zoom: zoom,
+          center: center,
+          mapTypeControl: false,
           mapTypeControlOptions: {
-            // 지도 타입 선택 컨트롤에 표시할 지도 타입 목록
             mapTypeIds: ['roadmap', 'satellite', 'hybrid'],
-            style: google.maps.MapTypeControlStyle.VERTICAL_BAR, // 세로 메뉴
-            position: google.maps.ControlPosition.LEFT_TOP // 원하는 위치
+            style: google.maps.MapTypeControlStyle.VERTICAL_BAR,
+            position: google.maps.ControlPosition.LEFT_TOP
           },
-          // 기본 컨트롤들 비활성화
-          fullscreenControl: false, // 전체보기 아이콘 제거
-          streetViewControl: false, // 스트리트뷰 아이콘 제거
-          zoomControl: false, // 줌 컨트롤 제거
-          scaleControl: false, // 축척 제거
-          rotateControl: false, // 회전 컨트롤 제거
-          tilt: 0, // 기울기 고정
+          // 모바일에서 기본 컨트롤들 비활성화
+          fullscreenControl: false,
+          streetViewControl: false,
+          zoomControl: false,
+          scaleControl: false,
+          rotateControl: false,
+          tilt: 0,
+          // 모바일에서 제스처 최적화
+          gestureHandling: 'cooperative',
           // 일반지도에서 라벨 숨기기
           styles: noLabelsStyle
         });
         
-        // 공항 아이콘 마커 추가
+        // 공항 아이콘 마커 추가 - 모바일에서 크기 조정
+        const iconSize = isMobile ? 32 : 28;
         const airportIcon = {
           url: 'https://maps.gstatic.com/mapfiles/kml/shapes/airports.png',
-          scaledSize: new google.maps.Size(28, 28),
-          anchor: new google.maps.Point(14, 14)
+          scaledSize: new google.maps.Size(iconSize, iconSize),
+          anchor: new google.maps.Point(iconSize/2, iconSize/2)
         };
         
         new google.maps.Marker({
@@ -322,7 +501,7 @@
           geodesic: true,
           strokeColor: '#60a5fa',
           strokeOpacity: 0.8,
-          strokeWeight: 3
+          strokeWeight: isMobile ? 4 : 3
         });
         
         flightPath.setMap(map);
@@ -341,26 +520,27 @@
               fillOpacity: 1,
               strokeColor: '#ffffff',
               strokeWeight: 1,
-              scale: 5
+              scale: isMobile ? 6 : 5
             },
             offset: '0',
-            repeat: '10px'
+            repeat: isMobile ? '12px' : '10px'
           }]
         });
         
         dottedPath.setMap(map);
         
-        // 항로 가운데에 비행기 아이콘 추가
+        // 항로 가운데에 비행기 아이콘 추가 - 모바일에서 크기 조정
         const flightCenter = { lat: centerLat, lng: centerLng };
+        const planeIconSize = isMobile ? 48 : 40;
         
         const planeIcon = {
           url: 'data:image/svg+xml;base64,' + btoa(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="#1e40af">
+            <svg xmlns="http://www.w3.org/2000/svg" width="${planeIconSize}" height="${planeIconSize}" viewBox="0 0 40 40" fill="#1e40af">
               <path d="M35 26.67v-3.33l-13.33-8.33V5.83c0-1.39-1.11-2.5-2.5-2.5s-2.5 1.11-2.5 2.5v9.17l-13.33 8.33v3.33l13.33-4.17v8.33l-3.33 2.5V35l5.83-1.67 5.83 1.67v-2.5L21.67 31v-8.33L35 26.67z"/>
             </svg>
           `),
-          scaledSize: new google.maps.Size(40, 40),
-          anchor: new google.maps.Point(20, 20)
+          scaledSize: new google.maps.Size(planeIconSize, planeIconSize),
+          anchor: new google.maps.Point(planeIconSize/2, planeIconSize/2)
         };
         
         const planeMarker = new google.maps.Marker({
@@ -686,6 +866,11 @@
         getElement('mapTypeSelector').classList.add('hide');
         getElement('rightMenuToggleBtn').style.display = 'flex'; // 토글 버튼 보이기
       }
+      
+      // 페이지 로드 시 모바일 최적화 적용
+      document.addEventListener('DOMContentLoaded', function() {
+        optimizeForMobile();
+      });
     </script>
     <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg&callback=initMap" async defer></script>
