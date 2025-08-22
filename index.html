@@ -295,6 +295,86 @@
           styles: noLabelsStyle
         });
         
+        // 공항 아이콘 마커 추가
+        const airportIcon = {
+          url: 'https://maps.gstatic.com/mapfiles/kml/shapes/airports.png',
+          scaledSize: new google.maps.Size(28, 28),
+          anchor: new google.maps.Point(14, 14)
+        };
+        
+        new google.maps.Marker({
+          position: incheonAirport,
+          map: map,
+          title: '인천국제공항',
+          icon: airportIcon
+        });
+        
+        new google.maps.Marker({
+          position: chitoseAirport,
+          map: map,
+          title: '신치토세공항',
+          icon: airportIcon
+        });
+        
+        // 인천공항에서 신치토세공항까지의 항로 (점선)
+        const flightPath = new google.maps.Polyline({
+          path: [incheonAirport, chitoseAirport],
+          geodesic: true,
+          strokeColor: '#60a5fa',
+          strokeOpacity: 0.8,
+          strokeWeight: 3
+        });
+        
+        flightPath.setMap(map);
+        
+        // 점선 효과를 위한 추가 선 (더 얇은 선으로 점선 효과)
+        const dottedPath = new google.maps.Polyline({
+          path: [incheonAirport, chitoseAirport],
+          geodesic: true,
+          strokeColor: '#ffffff',
+          strokeOpacity: 0.9,
+          strokeWeight: 1,
+          icons: [{
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              fillColor: '#60a5fa',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 1,
+              scale: 5
+            },
+            offset: '0',
+            repeat: '10px'
+          }]
+        });
+        
+        dottedPath.setMap(map);
+        
+        // 항로 가운데에 비행기 아이콘 추가
+        const flightCenter = { lat: centerLat, lng: centerLng };
+        
+        const planeIcon = {
+          url: 'data:image/svg+xml;base64,' + btoa(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="#1e40af">
+              <path d="M35 26.67v-3.33l-13.33-8.33V5.83c0-1.39-1.11-2.5-2.5-2.5s-2.5 1.11-2.5 2.5v9.17l-13.33 8.33v3.33l13.33-4.17v8.33l-3.33 2.5V35l5.83-1.67 5.83 1.67v-2.5L21.67 31v-8.33L35 26.67z"/>
+            </svg>
+          `),
+          scaledSize: new google.maps.Size(40, 40),
+          anchor: new google.maps.Point(20, 20)
+        };
+        
+        const planeMarker = new google.maps.Marker({
+          position: flightCenter,
+          map: map,
+          title: '비행 경로 - 클릭하여 항공권 정보 확인',
+          icon: planeIcon
+        });
+        
+        // 비행기 마커 클릭 시 PDF 파일 열기
+        planeMarker.addListener('click', function() {
+          window.open('https://drive.google.com/file/d/17ygc2JZvafKbZo1cOGYkbFvXyQVWOjq6/view?usp=sharing', '_blank');
+        });
+        
         // 지도 클릭 시 사이드패널 토글 기능 추가
         map.addListener('click', function() {
           if (!getElement('customMapMenu').classList.contains('hide')) {
