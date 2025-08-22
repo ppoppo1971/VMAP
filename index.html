@@ -133,6 +133,33 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            transition: right 0.3s, opacity 0.3s;
+        }
+        
+        #mapTypeSelector.hide {
+            right: -200px;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* 오른쪽 상단 토글 버튼 */
+        #rightMenuToggleBtn {
+            position: absolute;
+            top: 50px;
+            right: 18px;
+            z-index: 20;
+            background: #1d4ed8;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .map-type-btn {
@@ -173,11 +200,14 @@
     <!-- 사이드 패널 토글 버튼 (패널이 숨겨졌을 때만 보임) -->
     <button id="menuToggleBtn" class="show" onclick="showMenu()" title="메뉴 열기">☰</button>
     
+    <!-- 오른쪽 상단 토글 버튼 -->
+    <button id="rightMenuToggleBtn" onclick="toggleRightMenu()" title="지도 타입 메뉴 열기">&lt;</button>
+    
     <!-- 오른쪽 상단 지도 타입 선택 버튼 -->
-    <div id="mapTypeSelector">
+    <div id="mapTypeSelector" class="hide">
         <button class="map-type-btn" onclick="setMapTypeFromTop('roadmap')" id="topRoadmapBtn">일반</button>
         <button class="map-type-btn" onclick="setMapTypeFromTop('satellite')" id="topSatelliteBtn">위성</button>
-        <button class="map-type-btn sub-option" onclick="toggleHybridLabel()" id="topHybridBtn" style="display:none;">라벨</button>
+        <button class="map-type-btn sub-option" onclick="toggleHybridLabel()" id="topHybridBtn">라벨</button>
     </div>
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
@@ -214,6 +244,26 @@
       function initMap() {
         // 서울 시청의 위도, 경도 좌표를 중심으로 설정
         var center = { lat: 37.5665, lng: 126.9780 }; // 서울 시청 좌표
+        
+        // 일반지도에서 라벨을 숨기는 스타일 정의
+        const noLabelsStyle = [
+          {
+            featureType: 'all',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'all',
+            elementType: 'labels.text',
+            stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'all',
+            elementType: 'labels.icon',
+            stylers: [{ visibility: 'off' }]
+          }
+        ];
+        
         // 구글 맵 객체 생성 및 옵션 설정
         map = new google.maps.Map(document.getElementById('map'), {
           zoom: 12, // 초기 확대 레벨
@@ -231,13 +281,18 @@
           zoomControl: false, // 줌 컨트롤 제거
           scaleControl: false, // 축척 제거
           rotateControl: false, // 회전 컨트롤 제거
-          tilt: 0 // 기울기 고정
+          tilt: 0, // 기울기 고정
+          // 일반지도에서 라벨 숨기기
+          styles: noLabelsStyle
         });
         
         // 지도 클릭 시 사이드패널 토글 기능 추가
         map.addListener('click', function() {
           if (!getElement('customMapMenu').classList.contains('hide')) {
             hideMenu();
+          }
+          if (!getElement('mapTypeSelector').classList.contains('hide')) {
+            hideRightMenu();
           }
         });
         
@@ -249,6 +304,58 @@
         // 지도 타입 설정
         if (map && map.setMapTypeId) {
           map.setMapTypeId(type);
+        }
+        
+        // 지도 타입에 따라 라벨 표시 여부 제어
+        if (map && map.setOptions) {
+          if (type === 'roadmap') {
+            // 일반지도: 라벨 숨기기
+            map.setOptions({
+              styles: [
+                {
+                  featureType: 'all',
+                  elementType: 'labels',
+                  stylers: [{ visibility: 'off' }]
+                },
+                {
+                  featureType: 'all',
+                  elementType: 'labels.text',
+                  stylers: [{ visibility: 'off' }]
+                },
+                {
+                  featureType: 'all',
+                  elementType: 'labels.icon',
+                  stylers: [{ visibility: 'off' }]
+                }
+              ]
+            });
+          } else if (type === 'satellite') {
+            // 위성지도: 라벨 숨기기
+            map.setOptions({
+              styles: [
+                {
+                  featureType: 'all',
+                  elementType: 'labels',
+                  stylers: [{ visibility: 'off' }]
+                },
+                {
+                  featureType: 'all',
+                  elementType: 'labels.text',
+                  stylers: [{ visibility: 'off' }]
+                },
+                {
+                  featureType: 'all',
+                  elementType: 'labels.icon',
+                  stylers: [{ visibility: 'off' }]
+                }
+              ]
+            });
+          } else if (type === 'hybrid') {
+            // 하이브리드: 라벨 표시
+            map.setOptions({
+              styles: [] // 기본 스타일 사용 (라벨 표시)
+            });
+          }
         }
         
         // 오른쪽 상단 버튼 상태 업데이트
@@ -279,27 +386,25 @@
           if (btn) btn.classList.remove('active');
         });
         
-        // 하이브리드 버튼 숨기기
-        if (topHybridBtn) topHybridBtn.style.display = 'none';
-        
         // 활성 타입에 따라 버튼 상태 설정
         switch (activeType) {
           case 'roadmap':
             if (topRoadmapBtn) topRoadmapBtn.classList.add('active');
+            if (topHybridBtn) {
+              topHybridBtn.textContent = '라벨';
+            }
             break;
           case 'satellite':
             if (topSatelliteBtn) topSatelliteBtn.classList.add('active');
             if (topHybridBtn) {
-              topHybridBtn.style.display = 'block';
-              topHybridBtn.textContent = '+라벨';
+              topHybridBtn.textContent = '라벨';
             }
             break;
           case 'hybrid':
             if (topSatelliteBtn) topSatelliteBtn.classList.add('active');
             if (topHybridBtn) {
               topHybridBtn.classList.add('active');
-              topHybridBtn.style.display = 'block';
-              topHybridBtn.textContent = '-라벨';
+              topHybridBtn.textContent = '라벨';
             }
             break;
         }
@@ -413,20 +518,50 @@
       // 라벨 버튼 토글 함수
       function toggleHybridLabel() {
         const hybridBtn = document.getElementById('topHybridBtn');
-        const satelliteMenu = document.getElementById('satelliteMenu');
-        const satelliteBtn = document.getElementById('satelliteToggleBtn');
-
-        if (hybridBtn.textContent.includes('+')) { // 라벨 버튼이 +일반인 경우
-          setMapType('hybrid'); // 하이브리드 지도로 변경
-          hybridBtn.textContent = '-라벨'; // 버튼 텍스트 변경
-          satelliteMenu.style.display = 'none'; // 위성 메뉴 숨김
-          satelliteBtn.textContent = '+위성'; // 위성 버튼 텍스트 변경
-        } else { // 라벨 버튼이 -라벨인 경우
-          setMapType('satellite'); // 위성 지도로 변경
-          hybridBtn.textContent = '+라벨'; // 버튼 텍스트 변경
-          satelliteMenu.style.display = 'block'; // 위성 메뉴 표시
-          satelliteBtn.textContent = '-위성'; // 위성 버튼 텍스트 변경
+        const currentMapType = map.getMapTypeId();
+        
+        if (!hybridBtn.classList.contains('active')) { // 라벨 버튼이 비활성화된 경우
+          if (currentMapType === 'roadmap') {
+            // 일반지도에서 라벨 표시
+            map.setOptions({
+              styles: [] // 기본 스타일 사용 (라벨 표시)
+            });
+          } else if (currentMapType === 'satellite') {
+            // 위성지도에서 하이브리드로 변경
+            setMapType('hybrid');
+          }
+          hybridBtn.classList.add('active');
+        } else { // 라벨 버튼이 활성화된 경우
+          if (currentMapType === 'roadmap') {
+            // 일반지도에서 라벨 숨기기
+            map.setOptions({
+              styles: [
+                {
+                  featureType: 'all',
+                  elementType: 'labels',
+                  stylers: [{ visibility: 'off' }]
+                },
+                {
+                  featureType: 'all',
+                  elementType: 'labels.text',
+                  stylers: [{ visibility: 'off' }]
+                },
+                {
+                  featureType: 'all',
+                  elementType: 'labels.icon',
+                  stylers: [{ visibility: 'off' }]
+                }
+              ]
+            });
+          } else if (currentMapType === 'hybrid') {
+            // 하이브리드에서 위성으로 변경
+            setMapType('satellite');
+          }
+          hybridBtn.classList.remove('active');
         }
+        
+        // 사이드패널과 동기화
+        syncSidePanelWithTop(currentMapType);
       }
       
       // 사이드 패널 토글 함수
@@ -438,6 +573,20 @@
       function showMenu() {
         getElement('customMapMenu').classList.remove('hide');
         getElement('menuToggleBtn').classList.remove('show');
+      }
+
+      // 오른쪽 메뉴 토글 함수
+      function toggleRightMenu() {
+        const mapTypeSelector = document.getElementById('mapTypeSelector');
+        const isHidden = mapTypeSelector.classList.contains('hide');
+        mapTypeSelector.classList.toggle('hide');
+        getElement('rightMenuToggleBtn').textContent = isHidden ? '&gt;' : '&lt;';
+      }
+      
+      // 오른쪽 메뉴 숨기기 함수
+      function hideRightMenu() {
+        getElement('mapTypeSelector').classList.add('hide');
+        getElement('rightMenuToggleBtn').textContent = '&lt;';
       }
     </script>
     <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
