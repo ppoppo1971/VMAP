@@ -242,8 +242,17 @@
       
       // 구글맵 초기화 함수
       function initMap() {
-        // 서울 시청의 위도, 경도 좌표를 중심으로 설정
-        var center = { lat: 37.5665, lng: 126.9780 }; // 서울 시청 좌표
+        // 인천공항과 산치토세공항의 좌표
+        const incheonAirport = { lat: 37.4602, lng: 126.4407 }; // 인천공항
+        const chitoseAirport = { lat: 42.7752, lng: 141.6928 }; // 산치토세공항
+        
+        // 두 공항 사이의 중간점 계산
+        const centerLat = (incheonAirport.lat + chitoseAirport.lat) / 2;
+        const centerLng = (incheonAirport.lng + chitoseAirport.lng) / 2;
+        const center = { lat: centerLat, lng: centerLng };
+        
+        // 두 공항 사이의 거리를 고려한 적절한 줌 레벨 설정
+        const zoom = 5; // 두 공항이 모두 보이도록 축소
         
         // 일반지도에서 라벨을 숨기는 스타일 정의
         const noLabelsStyle = [
@@ -266,8 +275,8 @@
         
         // 구글 맵 객체 생성 및 옵션 설정
         map = new google.maps.Map(document.getElementById('map'), {
-          zoom: 12, // 초기 확대 레벨
-          center: center, // 지도 중심 좌표
+          zoom: zoom, // 두 공항이 모두 보이도록 축소된 줌 레벨
+          center: center, // 두 공항 사이의 중간점
           mapTypeControl: false, // 기본 가로 지도 타입 메뉴 비활성화
           mapTypeControlOptions: {
             // 지도 타입 선택 컨트롤에 표시할 지도 타입 목록
@@ -578,15 +587,24 @@
       // 오른쪽 메뉴 토글 함수
       function toggleRightMenu() {
         const mapTypeSelector = document.getElementById('mapTypeSelector');
+        const rightMenuToggleBtn = document.getElementById('rightMenuToggleBtn');
         const isHidden = mapTypeSelector.classList.contains('hide');
-        mapTypeSelector.classList.toggle('hide');
-        getElement('rightMenuToggleBtn').textContent = isHidden ? '&gt;' : '&lt;';
+        
+        if (isHidden) {
+          // 메뉴를 보여줄 때
+          mapTypeSelector.classList.remove('hide');
+          rightMenuToggleBtn.style.display = 'none'; // 토글 버튼 숨기기
+        } else {
+          // 메뉴를 숨길 때
+          mapTypeSelector.classList.add('hide');
+          rightMenuToggleBtn.style.display = 'flex'; // 토글 버튼 보이기
+        }
       }
       
       // 오른쪽 메뉴 숨기기 함수
       function hideRightMenu() {
         getElement('mapTypeSelector').classList.add('hide');
-        getElement('rightMenuToggleBtn').textContent = '&lt;';
+        getElement('rightMenuToggleBtn').style.display = 'flex'; // 토글 버튼 보이기
       }
     </script>
     <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
