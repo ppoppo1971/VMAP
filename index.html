@@ -123,6 +123,47 @@
         #googleMapMenu > .toggle-btn {
             margin-left: 20px;
         }
+        
+        /* 오른쪽 상단 지도 타입 선택 버튼 */
+        #mapTypeSelector {
+            position: absolute;
+            top: 40px;
+            right: 30px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .map-type-btn {
+            background: rgba(255,255,255,0.9);
+            border: 1px solid rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .map-type-btn:hover {
+            background: rgba(255,255,255,1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .map-type-btn.active {
+            background: #1d4ed8;
+            color: white;
+            border-color: #1d4ed8;
+        }
+        
+        .map-type-btn.sub-option {
+            margin-left: 20px;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+        }
     </style>
 </head>
 <body>
@@ -131,6 +172,14 @@
     <div id="map"></div>
     <!-- 사이드 패널 토글 버튼 (패널이 숨겨졌을 때만 보임) -->
     <button id="menuToggleBtn" class="show" onclick="showMenu()" title="메뉴 열기">☰</button>
+    
+    <!-- 오른쪽 상단 지도 타입 선택 버튼 -->
+    <div id="mapTypeSelector">
+        <button class="map-type-btn" onclick="setMapTypeFromTop('roadmap')" id="topRoadmapBtn">일반</button>
+        <button class="map-type-btn" onclick="setMapTypeFromTop('satellite')" id="topSatelliteBtn">위성</button>
+        <button class="map-type-btn sub-option" onclick="toggleHybridLabel()" id="topHybridBtn" style="display:none;">라벨</button>
+    </div>
+    
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
       <h2>홋카이도 여행</h2>
@@ -191,12 +240,120 @@
             hideMenu();
           }
         });
+        
+        // 오른쪽 상단 버튼 초기 상태 설정
+        updateTopButtonStates('roadmap');
       }
       
       function setMapType(type) {
         // 지도 타입 설정
         if (map && map.setMapTypeId) {
           map.setMapTypeId(type);
+        }
+        
+        // 오른쪽 상단 버튼 상태 업데이트
+        updateTopButtonStates(type);
+      }
+      
+      // 오른쪽 상단 버튼에서 지도 타입 설정
+      function setMapTypeFromTop(type) {
+        if (map && map.setMapTypeId) {
+          map.setMapTypeId(type);
+        }
+        
+        // 오른쪽 상단 버튼 상태 업데이트
+        updateTopButtonStates(type);
+        
+        // 사이드패널과 동기화
+        syncSidePanelWithTop(type);
+      }
+      
+      // 오른쪽 상단 버튼 상태 업데이트
+      function updateTopButtonStates(activeType) {
+        const topRoadmapBtn = document.getElementById('topRoadmapBtn');
+        const topSatelliteBtn = document.getElementById('topSatelliteBtn');
+        const topHybridBtn = document.getElementById('topHybridBtn');
+        
+        // 모든 버튼 비활성화
+        [topRoadmapBtn, topSatelliteBtn, topHybridBtn].forEach(btn => {
+          if (btn) btn.classList.remove('active');
+        });
+        
+        // 하이브리드 버튼 숨기기
+        if (topHybridBtn) topHybridBtn.style.display = 'none';
+        
+        // 활성 타입에 따라 버튼 상태 설정
+        switch (activeType) {
+          case 'roadmap':
+            if (topRoadmapBtn) topRoadmapBtn.classList.add('active');
+            break;
+          case 'satellite':
+            if (topSatelliteBtn) topSatelliteBtn.classList.add('active');
+            if (topHybridBtn) {
+              topHybridBtn.style.display = 'block';
+              topHybridBtn.textContent = '+라벨';
+            }
+            break;
+          case 'hybrid':
+            if (topSatelliteBtn) topSatelliteBtn.classList.add('active');
+            if (topHybridBtn) {
+              topHybridBtn.classList.add('active');
+              topHybridBtn.style.display = 'block';
+              topHybridBtn.textContent = '-라벨';
+            }
+            break;
+        }
+      }
+      
+      // 사이드패널과 오른쪽 상단 버튼 동기화
+      function syncSidePanelWithTop(activeType) {
+        // 일반 선택 시
+        if (activeType === 'roadmap') {
+          const roadmapMenu = document.getElementById('roadmapMenu');
+          const roadmapBtn = document.getElementById('roadmapToggleBtn');
+          if (roadmapMenu && roadmapBtn) {
+            roadmapMenu.style.display = 'block';
+            roadmapBtn.textContent = '-일반';
+          }
+          
+          const satelliteMenu = document.getElementById('satelliteMenu');
+          const satelliteBtn = document.getElementById('satelliteToggleBtn');
+          if (satelliteMenu && satelliteBtn) {
+            satelliteMenu.style.display = 'none';
+            satelliteBtn.textContent = '+위성';
+          }
+        }
+        // 위성 선택 시
+        else if (activeType === 'satellite') {
+          const roadmapMenu = document.getElementById('roadmapMenu');
+          const roadmapBtn = document.getElementById('roadmapToggleBtn');
+          if (roadmapMenu && roadmapBtn) {
+            roadmapMenu.style.display = 'none';
+            roadmapBtn.textContent = '+일반';
+          }
+          
+          const satelliteMenu = document.getElementById('satelliteMenu');
+          const satelliteBtn = document.getElementById('satelliteToggleBtn');
+          if (satelliteMenu && satelliteBtn) {
+            satelliteMenu.style.display = 'block';
+            satelliteBtn.textContent = '-위성';
+          }
+        }
+        // 하이브리드 선택 시
+        else if (activeType === 'hybrid') {
+          const roadmapMenu = document.getElementById('roadmapMenu');
+          const roadmapBtn = document.getElementById('roadmapToggleBtn');
+          if (roadmapMenu && roadmapBtn) {
+            roadmapMenu.style.display = 'none';
+            roadmapBtn.textContent = '+일반';
+          }
+          
+          const satelliteMenu = document.getElementById('satelliteMenu');
+          const satelliteBtn = document.getElementById('satelliteToggleBtn');
+          if (satelliteMenu && satelliteBtn) {
+            satelliteMenu.style.display = 'block';
+            satelliteBtn.textContent = '-위성';
+          }
         }
       }
       
@@ -250,6 +407,25 @@
         } else {
           menu.style.display = 'none';
           btn.textContent = '+위성';
+        }
+      }
+
+      // 라벨 버튼 토글 함수
+      function toggleHybridLabel() {
+        const hybridBtn = document.getElementById('topHybridBtn');
+        const satelliteMenu = document.getElementById('satelliteMenu');
+        const satelliteBtn = document.getElementById('satelliteToggleBtn');
+
+        if (hybridBtn.textContent.includes('+')) { // 라벨 버튼이 +일반인 경우
+          setMapType('hybrid'); // 하이브리드 지도로 변경
+          hybridBtn.textContent = '-라벨'; // 버튼 텍스트 변경
+          satelliteMenu.style.display = 'none'; // 위성 메뉴 숨김
+          satelliteBtn.textContent = '+위성'; // 위성 버튼 텍스트 변경
+        } else { // 라벨 버튼이 -라벨인 경우
+          setMapType('satellite'); // 위성 지도로 변경
+          hybridBtn.textContent = '+라벨'; // 버튼 텍스트 변경
+          satelliteMenu.style.display = 'block'; // 위성 메뉴 표시
+          satelliteBtn.textContent = '-위성'; // 위성 버튼 텍스트 변경
         }
       }
       
