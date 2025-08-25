@@ -738,6 +738,8 @@
             border-radius: 8px;
             transition: background-color 0.2s ease;
             position: relative;
+            overflow: hidden;
+            touch-action: pan-y;
         }
         
         .user-added-item:hover {
@@ -761,113 +763,160 @@
             flex-shrink: 0;
         }
         
-                 .user-added-item .delete-btn:hover {
-             background: #dc2626;
-             transform: scale(1.1);
-         }
-         
-         /* 새 항목 추가 섹션 스타일 */
-         .add-item-section {
-             margin-top: 20px;
-             text-align: center;
-         }
-         
-         .toggle-add-btn {
-             background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-             color: white;
-             border: none;
-             border-radius: 12px;
-             padding: 12px 20px;
-             font-size: 0.95rem;
-             font-weight: 600;
-             cursor: pointer;
-             transition: all 0.3s ease;
-             width: 100%;
-             box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-         }
-         
-         .toggle-add-btn:hover {
-             transform: translateY(-2px);
-             box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-         }
-         
-         .toggle-add-btn:active {
-             transform: translateY(0);
-         }
-         
-                   .toggle-add-btn.expanded {
-              background: linear-gradient(135deg, #ef4444, #dc2626);
-              margin-bottom: 16px;
-          }
-          
-          /* 경로 저장 다이얼로그 스타일 */
-          #routeSaveDialog {
-              position: absolute;
-              z-index: 15;
-              width: 400px;
-              max-width: 90vw;
-              background: rgba(255, 255, 255, 0.95);
-              border: 1px solid rgba(255, 255, 255, 0.2);
-              border-radius: 16px;
-              box-shadow: 0 12px 32px rgba(0,0,0,0.15);
-              backdrop-filter: blur(20px);
-              -webkit-backdrop-filter: blur(20px);
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              overflow: hidden;
-              animation: slideIn 0.3s ease-out;
-          }
-          
-          .route-save-options {
-              display: flex;
-              flex-direction: column;
-              gap: 12px;
-              margin-top: 16px;
-          }
-          
-          .route-save-btn {
-              background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-              color: white;
-              border: none;
-              border-radius: 8px;
-              padding: 12px 16px;
-              font-size: 0.95rem;
-              font-weight: 600;
-              cursor: pointer;
-              transition: all 0.2s ease;
-              width: 100%;
-          }
-          
-          .route-save-btn:hover {
-              transform: translateY(-1px);
-              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-          }
-          
-                   .route-save-btn:active {
-             transform: translateY(0);
-         }
-         
-         /* 경로제거 버튼 스타일 */
-         .route-remove-btn {
-             background: linear-gradient(135deg, #ef4444, #dc2626);
-             color: white;
-             border: none;
-             border-radius: 8px;
-             padding: 12px 16px;
-             font-size: 0.95rem;
-             font-weight: 600;
-             cursor: pointer;
-             transition: all 0.2s ease;
-             width: 100%;
-         }
-         
-         .route-remove-btn:hover {
-             transform: translateY(-1px);
-             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-         }
-         
-         .route-remove-btn:active {
-             transform: translateY(0);
-         }
+        .user-added-item .delete-btn:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+        
+        /* 스와이프 삭제 기능을 위한 스타일 */
+        .user-added-item .swipe-delete-btn {
+            position: absolute;
+            right: -80px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            z-index: 10;
+        }
+        
+        .user-added-item .swipe-delete-btn:hover {
+            background: #dc2626;
+        }
+        
+        .user-added-item .item-content {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            transition: transform 0.3s ease;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(29, 78, 216, 0.1);
+        }
+        
+        .user-added-item.swiped .item-content {
+            transform: translateX(-80px);
+        }
+        
+        .user-added-item.swiped .swipe-delete-btn {
+            right: 8px;
+        }
+        
+        /* 스와이프 애니메이션 */
+        .user-added-item.swiping .item-content {
+            transition: transform 0.1s ease;
+        }
+        
+        /* 새 항목 추가 섹션 스타일 */
+        .add-item-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .toggle-add-btn {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .toggle-add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+        
+        .toggle-add-btn:active {
+            transform: translateY(0);
+        }
+        
+        .toggle-add-btn.expanded {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            margin-bottom: 16px;
+        }
+        
+        /* 경로 저장 다이얼로그 스타일 */
+        #routeSaveDialog {
+            position: absolute;
+            z-index: 15;
+            width: 400px;
+            max-width: 90vw;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .route-save-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .route-save-btn {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+        
+        .route-save-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .route-save-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* 경로제거 버튼 스타일 */
+        .route-remove-btn {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+        
+        .route-remove-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+        
+        .route-remove-btn:active {
+            transform: translateY(0);
+        }
 
     </style>
 </head>
@@ -1543,7 +1592,7 @@
           infoDiv.id = 'preparationInfo';
           infoDiv.innerHTML = `
             <div class="info-header">
-              <h3>사전준비 항목</h3>
+             <h3>사전준비 항목</h3>
               <button class="close-btn" onclick="closePreparationInfo()">×</button>
             </div>
             <div class="info-content">
@@ -1570,7 +1619,7 @@
                 </div>
                 <div class="checklist-item">
                   <input type="checkbox" id="confirmations" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span><strong>각종 확정서 출력</strong> - 오프라인출력</span력
+                  <span><strong>각종 확정서 출력</strong> - 호텔, 투어예약확인서</span>
                 </div>
                 <div class="checklist-item">
                   <input type="checkbox" id="beergarden" class="prep-checkbox" onchange="saveCheckboxStates()">
@@ -2021,15 +2070,21 @@
             : `<strong>${item.title}</strong>`;
           
           html += `
-            <div class="user-added-item">
-              <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
-              <span>${titleElement} - ${item.description}</span>
-              <button class="delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">×</button>
+            <div class="user-added-item" data-item-id="${item.id}">
+              <div class="item-content">
+                <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
+                <span>${titleElement} - ${item.description}</span>
+                <button class="delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">×</button>
+              </div>
+              <button class="swipe-delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">삭제</button>
             </div>
           `;
         });
         
         container.innerHTML = html;
+        
+        // 스와이프 삭제 기능 초기화
+        initializeSwipeDelete();
       }
       
       // 사용자 추가 항목 복원 함수
@@ -2135,12 +2190,13 @@
                 position: currentLocation,
                 map: map,
                 icon: {
-                  path: google.maps.SymbolPath.CIRCLE,
-                  fillColor: '#10b981',
-                  fillOpacity: 1,
-                  strokeColor: '#ffffff',
-                  strokeWeight: 2,
-                  scale: 8
+                  url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
+                      <text x="12" y="20" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" fill="#FF0000">📍</text>
+                    </svg>
+                  `),
+                  scaledSize: new google.maps.Size(32, 32),
+                  anchor: new google.maps.Point(16, 16)
                 },
                 title: '현재 위치',
                 zIndex: 1000 // 다른 마커보다 위에 표시
@@ -2847,6 +2903,112 @@
           closeAddressSelection();
           window.addressSearchCandidates = [];
         }
+      }
+
+      // 스와이프 삭제 기능 초기화
+      function initializeSwipeDelete() {
+        const userItems = document.querySelectorAll('.user-added-item');
+        
+        userItems.forEach(item => {
+          let startX = 0;
+          let currentX = 0;
+          let isSwiping = false;
+          let hasSwiped = false;
+          
+          // 터치 시작
+          item.addEventListener('touchstart', function(e) {
+            startX = e.touches[0].clientX;
+            isSwiping = true;
+            hasSwiped = false;
+            this.classList.add('swiping');
+          }, { passive: true });
+          
+          // 터치 이동
+          item.addEventListener('touchmove', function(e) {
+            if (!isSwiping) return;
+            
+            currentX = e.touches[0].clientX;
+            const diffX = startX - currentX;
+            
+            // 오른쪽에서 왼쪽으로 스와이프 (최소 50px)
+            if (diffX > 50) {
+              const translateX = Math.min(diffX, 80);
+              this.querySelector('.item-content').style.transform = `translateX(-${translateX}px)`;
+              hasSwiped = true;
+            }
+          }, { passive: true });
+          
+          // 터치 종료
+          item.addEventListener('touchend', function(e) {
+            if (!isSwiping) return;
+            
+            isSwiping = false;
+            this.classList.remove('swiping');
+            
+            if (hasSwiped && (startX - currentX) > 50) {
+              // 스와이프 완료 - 삭제 버튼 표시
+              this.classList.add('swiped');
+            } else {
+              // 스와이프 취소 - 원래 위치로 복원
+              this.classList.remove('swiped');
+              this.querySelector('.item-content').style.transform = 'translateX(0)';
+            }
+          }, { passive: true });
+          
+          // 클릭 시 스와이프 상태 해제
+          item.addEventListener('click', function(e) {
+            // 삭제 버튼 클릭이 아닌 경우에만 스와이프 해제
+            if (!e.target.classList.contains('swipe-delete-btn') && 
+                !e.target.classList.contains('delete-btn') &&
+                !e.target.classList.contains('prep-checkbox')) {
+              this.classList.remove('swiped');
+              this.querySelector('.item-content').style.transform = 'translateX(0)';
+            }
+          });
+          
+          // 마우스 이벤트 (데스크톱 지원)
+          item.addEventListener('mousedown', function(e) {
+            if (e.button !== 0) return; // 왼쪽 버튼만
+            
+            startX = e.clientX;
+            isSwiping = true;
+            hasSwiped = false;
+            this.classList.add('swiping');
+            
+            const handleMouseMove = (e) => {
+              if (!isSwiping) return;
+              
+              currentX = e.clientX;
+              const diffX = startX - currentX;
+              
+              if (diffX > 50) {
+                const translateX = Math.min(diffX, 80);
+                this.querySelector('.item-content').style.transform = `translateX(-${translateX}px)`;
+                hasSwiped = true;
+              }
+            };
+            
+            const handleMouseUp = () => {
+              if (!isSwiping) return;
+              
+              isSwiping = false;
+              this.classList.remove('swiping');
+              
+              if (hasSwiped && (startX - currentX) > 50) {
+                this.classList.add('swiped');
+              } else {
+                this.classList.remove('swiped');
+                this.querySelector('.item-content').style.transform = 'translateX(0)';
+              }
+              
+              document.removeEventListener('mousemove', handleMouseMove);
+              document.removeEventListener('mouseup', handleMouseUp);
+            };
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+          });
+        });
       }
     </script>
 
