@@ -168,16 +168,16 @@
         /* GPS 위치 버튼 스타일 */
         #locationBtn {
             position: absolute;
-            bottom: 30px;
-            right: 20px;
+            bottom: 70px;
+            right: 10px;
             z-index: 10;
-            background: #10b981;
-            color: #fff;
+            background: transparent;
+            color: #333;
             border: none;
             border-radius: 50%;
-            width: 56px;
-            height: 56px;
-            font-size: 1.5rem;
+            width: 45px;
+            height: 45px;
+            font-size: 1.2rem;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             display: flex;
@@ -188,7 +188,7 @@
         }
         
         #locationBtn:hover {
-            background: #059669;
+            background: rgba(51, 51, 51, 0.1);
             transform: scale(1.05);
         }
         
@@ -337,7 +337,7 @@
                 width: 50px;
                 height: 50px;
                 font-size: 1.3rem;
-                bottom: 25px;
+                bottom: 85px;
                 right: 15px;
             }
         }
@@ -388,11 +388,11 @@
             }
             
             #locationBtn {
-                width: 46px;
-                height: 46px;
-                font-size: 1.2rem;
-                bottom: 20px;
-                right: 12px;
+                width: 37px;
+                height: 37px;
+                font-size: 1rem;
+                bottom: 60px;
+                right: 22px;
             }
         }
         
@@ -446,7 +446,7 @@
     </div>
     
     <!-- GPS 위치 버튼 -->
-    <button id="locationBtn" onclick="getCurrentLocation()" title="현재 위치로 이동">🌍</button>
+    <button id="locationBtn" onclick="getCurrentLocation()" title="현재 위치로 이동">📍</button>
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
@@ -1011,12 +1011,14 @@
                 position: currentLocation,
                 map: map,
                 icon: {
-                  url: 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi.png', // 현재 위치 아이콘
-                  scaledSize: new google.maps.Size(30, 30),
-                  anchor: new google.maps.Point(15, 15)
+                  path: google.maps.SymbolPath.CIRCLE,
+                  fillColor: '#10b981',
+                  fillOpacity: 1,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2,
+                  scale: 8
                 },
                 title: '현재 위치',
-                animation: google.maps.Animation.BOUNCE, // 애니메이션 효과
                 zIndex: 1000 // 다른 마커보다 위에 표시
               });
 
@@ -1027,20 +1029,20 @@
               });
 
               locationBtn.classList.remove('loading');
-              locationBtn.textContent = '🌍';
+              locationBtn.textContent = '📍';
             },
             (error) => {
               console.error('위치 정보를 가져올 수 없습니다:', error.message);
               alert('위치 정보를 가져올 수 없습니다. 네트워크 연결을 확인해주세요.');
               locationBtn.classList.remove('loading');
-              locationBtn.textContent = '🌍';
+              locationBtn.textContent = '📍';
             },
             { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
           );
         } else {
           alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
           locationBtn.classList.remove('loading');
-          locationBtn.textContent = '🌍';
+          locationBtn.textContent = '📍';
         }
       }
       
