@@ -352,6 +352,50 @@
             filter: hue-rotate(150deg) saturate(150%) brightness(0.8) contrast(120%);
         }
         
+        /* PDF 전체화면 오버레이 */
+        #pdf-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        #pdf-box {
+            width: 90%;
+            height: 90%;
+            background: #fff;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.7);
+            border-radius: 8px;
+        }
+        #pdf-box iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+        }
+        #close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            background: #dc2626;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        #close-btn:hover {
+            background: #b91c1c;
+        }
+        
 
     </style>
 </head>
@@ -388,6 +432,14 @@
           </div>
         </div>
       </div>
+    </div>
+    
+    <!-- PDF 오버레이 -->
+    <div id="pdf-overlay">
+        <div id="pdf-box">
+            <button id="close-btn">닫기 ✖</button>
+            <iframe id="pdf-viewer"></iframe>
+        </div>
     </div>
     
 
@@ -894,23 +946,66 @@
         getElement('rightMenuToggleBtn').style.display = 'flex'; // 토글 버튼 보이기
       }
       
-      // PDF 파일 직접 열기 함수
+      // PDF 오버레이 열기 함수
       function openPdfViewer() {
-        // PDF 파일 URL
-        const pdfUrl = 'https://ppoppo1971.github.io/VMAP/%EC%A0%84%EC%9E%90%ED%95%AD%EA%B3%B5%EA%B6%8C.pdf';
+        const overlay = document.getElementById("pdf-overlay");
+        const iframe = document.getElementById("pdf-viewer");
+        const pdfURL = "https://ppoppo1971.github.io/VMAP/%EC%A0%84%EC%9E%90%ED%95%AD%EA%B3%B5%EA%B6%8C.pdf";
         
-        // 현재 탭에서 PDF 열기
-        try {
-          window.location.href = pdfUrl;
-        } catch (error) {
-          console.error('PDF 열기 실패:', error);
-          alert('PDF 파일을 열 수 없습니다. 직접 링크를 복사하여 사용해주세요: ' + pdfUrl);
+        iframe.src = pdfURL;
+        overlay.style.display = "flex";
+        
+        // 지도 클릭 이벤트 비활성화
+        if (map) {
+          map.setOptions({ gestureHandling: 'none' });
         }
+        
+        // 스크롤 방지
+        document.body.style.overflow = 'hidden';
+      }
+      
+      // PDF 오버레이 닫기 함수
+      function closePdfViewer() {
+        const overlay = document.getElementById("pdf-overlay");
+        const iframe = document.getElementById("pdf-viewer");
+        
+        iframe.src = ""; // 닫을 때 PDF 초기화
+        overlay.style.display = "none";
+        
+        // 지도 클릭 이벤트 다시 활성화
+        if (map) {
+          map.setOptions({ gestureHandling: 'greedy' });
+        }
+        
+        // 스크롤 복원
+        document.body.style.overflow = '';
       }
       
       // 페이지 로드 시 모바일 최적화 적용
       document.addEventListener('DOMContentLoaded', function() {
         optimizeForMobile();
+        
+        // PDF 닫기 버튼 이벤트 리스너
+        document.getElementById('close-btn').addEventListener('click', function() {
+          closePdfViewer();
+        });
+        
+        // PDF 오버레이 외부 클릭 시 닫기
+        document.getElementById('pdf-overlay').addEventListener('click', function(event) {
+          if (event.target === this) {
+            closePdfViewer();
+          }
+        });
+        
+        // ESC 키로 PDF 닫기
+        document.addEventListener('keydown', function(event) {
+          if (event.key === 'Escape') {
+            const overlay = document.getElementById('pdf-overlay');
+            if (overlay.style.display === 'flex') {
+              closePdfViewer();
+            }
+          }
+        });
       });
     </script>
     <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
