@@ -899,7 +899,7 @@
     <div id="customMapMenu" class="hide">
       <h2>홋카이도 여행</h2>
       <div class="menu-group">
-        <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 98%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
+        <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 96%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
       <div class="menu-group">
         <button id="preparationBtn" class="toggle-btn" onclick="showPreparationInfo()">사전준비</button>
@@ -2657,12 +2657,12 @@
        
        // 주소 검색 함수
        function searchAddress() {
-         const address = document.getElementById('addressInput').value;
+         const address = document.getElementById('addressInput').value.trim();
          if (!address) {
            alert('주소를 입력하세요.');
            return;
          }
-         if (!geocoder) {
+         if (!geocoder || !map) {
            alert('지도가 아직 준비되지 않았습니다.');
            return;
          }
@@ -2673,39 +2673,54 @@
            addressMarker = null;
          }
          
-         geocoder.geocode({ address: address }, function(results, status) {
-           if (status === 'OK') {
-             const location = results[0].geometry.location;
-             map.setCenter(location);
-             map.setZoom(16); // 필요시 확대 레벨 조정
-             
-             // 새로운 마커 생성 및 표시
-             addressMarker = new google.maps.Marker({
-               position: location,
-               map: map,
-               title: address,
-               icon: {
-                 url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-                 scaledSize: new google.maps.Size(32, 32)
-               },
-               animation: google.maps.Animation.DROP
-             });
-             
-             // 마커 클릭 시 정보창 표시
-             const infoWindow = new google.maps.InfoWindow({
-               content: `<div style="padding: 10px;"><strong>${address}</strong></div>`
-             });
-             
-             addressMarker.addListener('click', function() {
-               infoWindow.open(map, addressMarker);
-             });
-             
-             // 주소 입력창 초기화
-             document.getElementById('addressInput').value = '';
-             
-           } else {
+         const boundsForQuery = map.getBounds ? map.getBounds() : null;
+         geocoder.geocode({ address: address, bounds: boundsForQuery }, function(results, status) {
+           if (status !== 'OK' || !results || !results.length) {
              alert('주소를 찾을 수 없습니다: ' + status);
+             return;
            }
+
+           // 현재 화면 범위 내 결과만 사용
+           const boundsNow = map.getBounds ? map.getBounds() : null;
+           const filtered = boundsNow ? results.filter(function(r) { return boundsNow.contains(r.geometry.location); }) : results;
+           if (!filtered.length) {
+             alert('현재 화면 범위 내에서 주소를 찾을 수 없습니다. 지도를 이동/확대 후 다시 시도하세요.');
+             return;
+           }
+
+           // 결과가 여러 개면 사용자 선택 유도
+           if (filtered.length > 1) {
+             window.addressSearchCandidates = filtered;
+             showAddressSelection(filtered, address);
+             return;
+           }
+
+           const location = filtered[0].geometry.location;
+           map.setCenter(location);
+           map.setZoom(16);
+
+           // 새로운 마커 생성 및 표시
+           addressMarker = new google.maps.Marker({
+             position: location,
+             map: map,
+             title: address,
+             icon: {
+               url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+               scaledSize: new google.maps.Size(32, 32)
+             },
+             animation: google.maps.Animation.DROP
+           });
+
+           // 마커 클릭 시 정보창 표시
+           const infoWindow = new google.maps.InfoWindow({
+             content: '<div style="padding: 10px;"><strong>' + address + '</strong></div>'
+           });
+           addressMarker.addListener('click', function() {
+             infoWindow.open(map, addressMarker);
+           });
+
+           // 주소 입력창 초기화
+           document.getElementById('addressInput').value = '';
          });
        }
        
@@ -2734,6 +2749,105 @@
            document.getElementById('addressInput').value = '';
          }
        }
+
+      function showAddressSelection(results, queryText) {
+        // 기존 선택창 제거
+        var existing = document.getElementById('addressSelectDialog');
+        if (existing) existing.remove();
+
+        var dialog = document.createElement('div');
+        dialog.id = 'addressSelectDialog';
+        dialog.style.position = 'absolute';
+        dialog.style.zIndex = '15';
+        dialog.style.width = '320px';
+        dialog.style.maxWidth = '85vw';
+        dialog.style.background = 'rgba(255, 255, 255, 0.95)';
+        dialog.style.border = '1px solid rgba(0,0,0,0.1)';
+        dialog.style.borderRadius = '12px';
+        dialog.style.boxShadow = '0 12px 24px rgba(0,0,0,0.15)';
+        dialog.style.overflow = 'hidden';
+
+        dialog.innerHTML =
+          '<div style="background:#1d4ed8;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">' +
+          '  <div style="font-weight:700;">주소 선택</div>' +
+          '  <button style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;" onclick="closeAddressSelection()">×</button>' +
+          '</div>' +
+          '<div style="padding:12px 16px;max-height:50vh;overflow:auto;">' +
+          '  <div style="margin-bottom:8px;color:#374151;font-size:0.9rem;">\'' + (queryText || '') + '\' 검색 결과가 여러 개입니다. 선택하세요.</div>' +
+          '  <div id="addressSelectList"></div>' +
+          '</div>';
+
+        document.body.appendChild(dialog);
+
+        // 위치 중앙 배치
+        setTimeout(function () {
+          var mapEl = document.getElementById('map');
+          var rect = mapEl.getBoundingClientRect();
+          dialog.style.left = (rect.width / 2 - 160) + 'px';
+          dialog.style.top = (rect.height / 2 - 160) + 'px';
+        }, 50);
+
+        // 리스트 렌더링
+        var list = dialog.querySelector('#addressSelectList');
+        var html = '';
+        results.forEach(function(r, idx) {
+          var addr = (r.formatted_address || r.name || '결과 ' + (idx + 1));
+          html += '<button style="width:100%;text-align:left;margin:6px 0;padding:10px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:8px;background:#fff;cursor:pointer;" onclick="chooseAddressResult(' + idx + ')">' +
+                  '<div style="font-weight:600;color:#111827;">' + addr + '</div>' +
+                  '</button>';
+        });
+        list.innerHTML = html;
+      }
+
+      function closeAddressSelection() {
+        var dialog = document.getElementById('addressSelectDialog');
+        if (dialog) dialog.remove();
+      }
+
+      function chooseAddressResult(index) {
+        try {
+          var candidates = window.addressSearchCandidates || [];
+          if (!candidates.length || !candidates[index]) {
+            closeAddressSelection();
+            alert('선택할 수 있는 주소가 없습니다.');
+            return;
+          }
+          var result = candidates[index];
+          var location = result.geometry.location;
+
+          // 기존 마커 제거
+          if (addressMarker) {
+            addressMarker.setMap(null);
+            addressMarker = null;
+          }
+
+          map.setCenter(location);
+          map.setZoom(16);
+
+          addressMarker = new google.maps.Marker({
+            position: location,
+            map: map,
+            title: result.formatted_address || '',
+            icon: {
+              url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+              scaledSize: new google.maps.Size(32, 32)
+            },
+            animation: google.maps.Animation.DROP
+          });
+
+          var infoWindow = new google.maps.InfoWindow({
+            content: '<div style="padding:10px;"><strong>' + (result.formatted_address || '') + '</strong></div>'
+          });
+          addressMarker.addListener('click', function() {
+            infoWindow.open(map, addressMarker);
+          });
+
+          document.getElementById('addressInput').value = '';
+        } finally {
+          closeAddressSelection();
+          window.addressSearchCandidates = [];
+        }
+      }
     </script>
 
     
