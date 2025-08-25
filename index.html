@@ -174,6 +174,8 @@
             pointer-events: none;
         }
         
+
+        
         /* GPS 위치 버튼 스타일 */
         #locationBtn {
             position: absolute;
@@ -593,35 +595,47 @@
         }
         
         /* 모바일 최적화 */
-        @media (max-width: 768px) {
-            #preparationInfo {
-                width: 350px;
-                left: 50% !important;
-                transform: translateX(-50%);
-                top: 80px !important;
-            }
-        }
+                 @media (max-width: 768px) {
+             #preparationInfo {
+                 width: 350px;
+                 left: 50% !important;
+                 transform: translateX(-50%);
+                 top: 80px !important;
+             }
+             
+             #routeSaveDialog {
+                 width: 350px;
+                 left: 50% !important;
+                 transform: translateX(-50%);
+                 top: 80px !important;
+             }
+         }
         
-        @media (max-width: 480px) {
-            #preparationInfo {
-                width: 320px;
-                top: 70px !important;
-            }
-            
-            .info-content {
-                padding: 16px;
-            }
-            
-            .info-header {
-                padding: 14px 16px;
-            }
-        }
+                 @media (max-width: 480px) {
+             #preparationInfo {
+                 width: 320px;
+                 top: 70px !important;
+             }
+             
+             #routeSaveDialog {
+                 width: 320px;
+                 top: 70px !important;
+             }
+             
+             .info-content {
+                 padding: 16px;
+             }
+             
+             .info-header {
+                 padding: 14px 16px;
+             }
+         }
         
         /* 체크리스트 스타일 */
         .checklist-item {
             display: flex;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
             padding: 8px 0;
             border-radius: 8px;
             transition: background-color 0.2s ease;
@@ -646,7 +660,7 @@
         }
         
         .checklist-item label {
-            cursor: pointer;
+            cursor: default;
             user-select: none;
             flex: 1;
             line-height: 1.4;
@@ -655,6 +669,205 @@
         .checklist-item:last-child {
             margin-bottom: 0;
         }
+        
+        /* 사용자 추가 항목 폼 스타일 */
+        .add-item-form {
+            margin-top: 20px;
+            padding: 16px;
+            background: rgba(29, 78, 216, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(29, 78, 216, 0.1);
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .form-group input {
+            padding: 10px 12px;
+            border: 1px solid rgba(29, 78, 216, 0.2);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: white;
+            transition: border-color 0.2s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #1d4ed8;
+            box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+        }
+        
+        .form-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+                 .add-btn {
+             width: 100%;
+             padding: 10px 16px;
+             border: none;
+             border-radius: 8px;
+             font-size: 0.9rem;
+             font-weight: 600;
+             cursor: pointer;
+             transition: all 0.2s ease;
+             background: linear-gradient(135deg, #10b981, #059669);
+             color: white;
+         }
+         
+         .add-btn:hover {
+             transform: translateY(-1px);
+             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+         }
+         
+         .add-btn:active {
+             transform: translateY(0);
+         }
+        
+        /* 사용자 추가 항목 스타일 */
+        .user-added-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            padding: 8px 0;
+            border-radius: 8px;
+            transition: background-color 0.2s ease;
+            position: relative;
+        }
+        
+        .user-added-item:hover {
+            background-color: rgba(29, 78, 216, 0.05);
+        }
+        
+        .user-added-item .delete-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-left: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        
+                 .user-added-item .delete-btn:hover {
+             background: #dc2626;
+             transform: scale(1.1);
+         }
+         
+         /* 새 항목 추가 섹션 스타일 */
+         .add-item-section {
+             margin-top: 20px;
+             text-align: center;
+         }
+         
+         .toggle-add-btn {
+             background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+             color: white;
+             border: none;
+             border-radius: 12px;
+             padding: 12px 20px;
+             font-size: 0.95rem;
+             font-weight: 600;
+             cursor: pointer;
+             transition: all 0.3s ease;
+             width: 100%;
+             box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+         }
+         
+         .toggle-add-btn:hover {
+             transform: translateY(-2px);
+             box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+         }
+         
+         .toggle-add-btn:active {
+             transform: translateY(0);
+         }
+         
+                   .toggle-add-btn.expanded {
+              background: linear-gradient(135deg, #ef4444, #dc2626);
+              margin-bottom: 16px;
+          }
+          
+          /* 경로 저장 다이얼로그 스타일 */
+          #routeSaveDialog {
+              position: absolute;
+              z-index: 15;
+              width: 400px;
+              max-width: 90vw;
+              background: rgba(255, 255, 255, 0.95);
+              border: 1px solid rgba(255, 255, 255, 0.2);
+              border-radius: 16px;
+              box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+              backdrop-filter: blur(20px);
+              -webkit-backdrop-filter: blur(20px);
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              overflow: hidden;
+              animation: slideIn 0.3s ease-out;
+          }
+          
+          .route-save-options {
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+              margin-top: 16px;
+          }
+          
+          .route-save-btn {
+              background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+              color: white;
+              border: none;
+              border-radius: 8px;
+              padding: 12px 16px;
+              font-size: 0.95rem;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.2s ease;
+              width: 100%;
+          }
+          
+          .route-save-btn:hover {
+              transform: translateY(-1px);
+              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+          }
+          
+                   .route-save-btn:active {
+             transform: translateY(0);
+         }
+         
+         /* 경로제거 버튼 스타일 */
+         .route-remove-btn {
+             background: linear-gradient(135deg, #ef4444, #dc2626);
+             color: white;
+             border: none;
+             border-radius: 8px;
+             padding: 12px 16px;
+             font-size: 0.95rem;
+             font-weight: 600;
+             cursor: pointer;
+             transition: all 0.2s ease;
+             width: 100%;
+         }
+         
+         .route-remove-btn:hover {
+             transform: translateY(-1px);
+             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+         }
+         
+         .route-remove-btn:active {
+             transform: translateY(0);
+         }
 
     </style>
 </head>
@@ -670,6 +883,7 @@
     
     <!-- 오른쪽 상단 지도 타입 선택 버튼 -->
     <div id="mapTypeSelector" class="hide">
+        <button class="map-type-btn" onclick="toggleRouteMode()" id="topRouteBtn">경로 생성</button>
         <button class="map-type-btn" onclick="setMapTypeFromTop('roadmap')" id="topRoadmapBtn">일반</button>
         <button class="map-type-btn" onclick="setMapTypeFromTop('satellite')" id="topSatelliteBtn">위성</button>
         <button class="map-type-btn sub-option" onclick="toggleHybridLabel()" id="topHybridBtn">라벨</button>
@@ -686,6 +900,10 @@
       <h2>홋카이도 여행</h2>
       <div class="menu-group">
         <button id="preparationBtn" class="toggle-btn" onclick="showPreparationInfo()">사전준비</button>
+        <button id="day1Btn" class="toggle-btn" onclick="showDay1Info()">1일차</button>
+      </div>
+      <div class="menu-group">
+        <button id="clearRouteBtn" class="toggle-btn" onclick="clearUserRoute()" style="display: none;">경로 초기화</button>
       </div>
     </div>
     
@@ -703,6 +921,17 @@
       let planeMarker = null;
       let incheonMarker = null;
       let chitoseMarker = null;
+      
+      // 사용자 경로 관련 전역 변수들
+      let userRouteMarkers = []; // 사용자가 추가한 위치 마커들 (임시)
+      let userRoutePath = null; // 사용자 경로 폴리라인
+      let userRouteDottedPath = null; // 사용자 경로 점선 효과
+      let isRouteMode = false; // 경로 생성 모드
+      
+      // 저장된 사용자 경로들
+      let savedUserRoutes = []; // localStorage에서 불러온 저장된 경로들
+      
+
       
       // DOM 캐시
       let cachedElements = {};
@@ -907,7 +1136,14 @@
         });
         
         // 지도 클릭 시 사이드패널 토글 기능 추가
-        map.addListener('click', function() {
+        map.addListener('click', function(event) {
+          // 경로 생성 모드일 때는 위치 추가
+          if (isRouteMode) {
+            addUserRoutePoint(event.latLng);
+            return;
+          }
+          
+          // 기존 기능들
           if (!getElement('customMapMenu').classList.contains('hide')) {
             hideMenu();
           }
@@ -930,6 +1166,48 @@
         // 초기 줌 레벨 표시
         updateZoomLevel();
         toggleFlightElements(map.getZoom()); // 초기 줌 레벨에 따라 항로와 마커 표시/숨김
+        
+        // 저장된 사용자 경로들 복원
+        restoreSavedUserRoutes();
+        
+
+        
+        // GeoJSON 스타일 설정 - 항로 스타일로 개선
+        map.data.setStyle(function(feature) {
+          const geometryType = feature.getGeometry().getType();
+          
+          if (geometryType === 'LineString' || geometryType === 'MultiLineString') {
+            // 선형 지오메트리: 항로 스타일 적용
+            return {
+              strokeColor: '#60a5fa',
+              strokeWeight: 3,
+              strokeOpacity: 0.8,
+              fillColor: 'transparent',
+              fillOpacity: 0
+            };
+          } else if (geometryType === 'Point' || geometryType === 'MultiPoint') {
+            // 점형 지오메트리: 마커 스타일 적용
+            return {
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                fillColor: '#1d4ed8',
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 2,
+                scale: 6
+              }
+            };
+          } else {
+            // 면형 지오메트리: 기본 스타일 적용
+            return {
+              fillColor: '#1d4ed8',
+              fillOpacity: 0.3,
+              strokeColor: '#1d4ed8',
+              strokeWeight: 2,
+              strokeOpacity: 0.8
+            };
+          }
+        });
       }
       
       function setMapType(type) {
@@ -1196,13 +1474,156 @@
         syncSidePanelWithTop(currentMapType);
       }
       
-      // 사전준비 정보창 표시 함수
-      function showPreparationInfo() {
+                    // 체크박스 상태 저장 함수
+       function saveCheckboxStates() {
+         const checkboxes = document.querySelectorAll('.prep-checkbox');
+         const states = {};
+         checkboxes.forEach(checkbox => {
+           states[checkbox.id] = checkbox.checked;
+         });
+         localStorage.setItem('preparationCheckboxes', JSON.stringify(states));
+         
+         // 사용자 추가 항목의 체크박스 상태도 업데이트
+         updateUserItemsCheckboxStates();
+       }
+       
+       // 사용자 추가 항목의 체크박스 상태 업데이트 함수
+       function updateUserItemsCheckboxStates() {
+         const userItems = JSON.parse(localStorage.getItem('userAddedItems') || '[]');
+         const updatedItems = userItems.map(item => {
+           const checkbox = document.getElementById(item.id);
+           if (checkbox) {
+             item.checked = checkbox.checked;
+           }
+           return item;
+         });
+         localStorage.setItem('userAddedItems', JSON.stringify(updatedItems));
+       }
+       
+             // 체크박스 상태 복원 함수
+      function restoreCheckboxStates() {
+        const savedStates = localStorage.getItem('preparationCheckboxes');
+        if (savedStates) {
+          const states = JSON.parse(savedStates);
+          Object.keys(states).forEach(id => {
+            const checkbox = document.getElementById(id);
+            if (checkbox) {
+              checkbox.checked = states[id];
+            }
+          });
+        }
+        
+        // 사용자 추가 항목들 복원
+        restoreUserAddedItems();
+      }
+       
+       // 사전준비 정보창 표시 함수
+        function showPreparationInfo() {
+          // 기존 정보창이 있으면 제거
+          const existingInfo = document.getElementById('preparationInfo');
+          if (existingInfo) {
+            existingInfo.remove();
+            return;
+          }
+          
+          // 정보창 생성
+          const infoDiv = document.createElement('div');
+          infoDiv.id = 'preparationInfo';
+          infoDiv.innerHTML = `
+            <div class="info-header">
+              <h3>사전준비 항목</h3>
+              <button class="close-btn" onclick="closePreparationInfo()">×</button>
+            </div>
+            <div class="info-content">
+              <div class="info-section">
+                                <div class="checklist-item">
+                   <input type="checkbox" id="airline" class="prep-checkbox" onchange="saveCheckboxStates()">
+                   <span onclick="openPdfViewer()" style="cursor: pointer;"><strong>항공권</strong> - 예약확인서 및 전자항공권</span>
+                 </div>
+                <div class="checklist-item">
+                  <input type="checkbox" id="parking" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span><strong>공항주차</strong> - 장기주차 예약</span>
+                </div>
+                <div class="checklist-item">
+                  <input type="checkbox" id="insurance" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span><strong>여행자보험</strong> - 해외여행 보험 가입</span>
+                </div>
+                <div class="checklist-item">
+                  <input type="checkbox" id="sim" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span><strong>이심</strong> - 일본 현지 인터넷 연결</span>
+                </div>
+                <div class="checklist-item">
+                  <input type="checkbox" id="visitjapan" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span onclick="openVisitJapanWeb()" style="cursor: pointer;"><strong>Visit Japan Web</strong> - 입국 수속 사전 등록</span>
+                </div>
+                <div class="checklist-item">
+                  <input type="checkbox" id="confirmations" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span><strong>각종 확정서 출력</strong> - 호텔, 투어 예약 확인서</span>
+                </div>
+                <div class="checklist-item">
+                  <input type="checkbox" id="beergarden" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span><strong>삿포로비어가든 예약</strong> - 징기스칸 예약</span>
+                </div>
+                <div class="checklist-item">
+                  <input type="checkbox" id="songyeongbus" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span onclick="openSongyeongBusPdf()" style="cursor: pointer;"><strong>송영버스 예약</strong> - 삿포로-마호바로 간 이동</span>
+                </div>
+                <div class="checklist-item">
+                  <input type="checkbox" id="donanbus" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span onclick="openDonanBusWebsite()" style="cursor: pointer;"><strong>도난버스 예약</strong> - 마호바로-항공 간 이동</span>
+                </div>
+                                 <!-- 사용자 추가 항목들이 여기에 표시됩니다 -->
+                 <div id="userAddedItems"></div>
+                                   <!-- 새 항목 추가 버튼 -->
+                  <div class="add-item-section">
+                    <button type="button" onclick="showAddForm()" class="toggle-add-btn" id="toggleAddBtn">+ 새 항목 추가</button>
+                  </div>
+                 <!-- 새 항목 추가 폼 (처음에는 숨김) -->
+                 <div class="add-item-form" id="addItemForm" style="display: none;">
+                   <div class="form-group">
+                     <input type="text" id="newItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50">
+                     <input type="text" id="newItemDescription" placeholder="설명을 입력하세요" maxlength="100">
+                     <input type="url" id="newItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200">
+                   </div>
+                   <div class="form-buttons">
+                     <button type="button" onclick="addNewItem()" class="add-btn">추가</button>
+                   </div>
+                 </div>
+              </div>
+            </div>
+          `;
+          
+          // 정보창을 지도 위에 표시
+          document.body.appendChild(infoDiv);
+          
+          // 저장된 체크박스 상태 복원
+          setTimeout(() => {
+            restoreCheckboxStates();
+          }, 50);
+          
+          // 정보창 위치 조정
+          setTimeout(() => {
+            const menu = document.getElementById('customMapMenu');
+            const menuRect = menu.getBoundingClientRect();
+            infoDiv.style.left = (menuRect.right + 10) + 'px';
+            infoDiv.style.top = menuRect.top + 'px';
+          }, 100);
+        }
+      
+      // 사전준비 정보창 닫기 함수
+      function closePreparationInfo() {
+        const infoDiv = document.getElementById('preparationInfo');
+        if (infoDiv) {
+          infoDiv.remove();
+        }
+      }
+      
+      // 1일차 정보창 표시 함수
+      function showDay1Info() {
         // 기존 정보창이 있으면 제거
         const existingInfo = document.getElementById('preparationInfo');
         if (existingInfo) {
           existingInfo.remove();
-          return;
         }
         
         // 정보창 생성
@@ -1210,41 +1631,91 @@
         infoDiv.id = 'preparationInfo';
         infoDiv.innerHTML = `
           <div class="info-header">
-            <h3>사전준비 항목</h3>
+            <h3>1일차 - 도착 및 첫날</h3>
             <button class="close-btn" onclick="closePreparationInfo()">×</button>
           </div>
           <div class="info-content">
             <div class="info-section">
+              <h4>✈️ 공항 도착</h4>
               <div class="checklist-item">
-                <input type="checkbox" id="airline" class="prep-checkbox">
-                <label for="airline"><strong>항공권</strong> - 예약확인서 및 전자항공권</label>
+                <input type="checkbox" id="arrival" class="prep-checkbox" onchange="saveCheckboxStates()">
+                <span><strong>신치토세공항 도착</strong> - 오후 12:30 (일본시간)</span>
               </div>
               <div class="checklist-item">
-                <input type="checkbox" id="parking" class="prep-checkbox">
-                <label for="parking"><strong>공항주차</strong> - 장기주차 예약</label>
+                <input type="checkbox" id="immigration" class="prep-checkbox" onchange="saveCheckboxStates()">
+                <span><strong>입국심사</strong> - 여권 및 Visit Japan Web QR코드 제시</span>
               </div>
               <div class="checklist-item">
-                <input type="checkbox" id="insurance" class="prep-checkbox">
-                <label for="insurance"><strong>여행자보험</strong> - 해외여행 보험 가입</label>
-              </div>
-              <div class="checklist-item">
-                <input type="checkbox" id="sim" class="prep-checkbox">
-                <label for="sim"><strong>이심</strong> - 일본 현지 인터넷 연결</label>
-              </div>
-              <div class="checklist-item">
-                <input type="checkbox" id="visitjapan" class="prep-checkbox">
-                <label for="visitjapan"><strong>Visit Japan Web</strong> - 입국 수속 사전 등록</label>
-              </div>
-              <div class="checklist-item">
-                <input type="checkbox" id="confirmations" class="prep-checkbox">
-                <label for="confirmations"><strong>각종 확정서 출력</strong> - 호텔, 투어 예약 확인서</label>
+                <input type="checkbox" id="baggage" class="prep-checkbox" onchange="saveCheckboxStates()">
+                <span><strong>수하물 수령</strong> - 위탁수하물 확인</span>
               </div>
             </div>
+            
+            <div class="info-section">
+              <h4>🚌 공항 이동</h4>
+              <div class="checklist-item">
+                <input type="checkbox" id="airportBus" class="prep-checkbox" onchange="saveCheckboxStates()">
+                <span onclick="openSongyeongBusPdf()" style="cursor: pointer;"><strong>송영버스 탑승</strong> - 삿포로 시내행 버스</span>
+              </div>
+              <div class="checklist-item">
+                <input type="checkbox" id="sapporoArrival" class="prep-checkbox" onchange="saveCheckboxStates()">
+                <span><strong>삿포로 도착</strong> - 약 1시간 30분 소요</span>
+              </div>
+            </div>
+            
+            <div class="info-section">
+              <h4>🏨 호텔 체크인</h4>
+              <div class="checklist-item">
+                <input type="checkbox" id="hotelCheckin" class="prep-checkbox" onchange="saveCheckboxStates()">
+                <span><strong>호텔 도착</strong> - 체크인 및 짐 정리</span>
+              </div>
+              <div class="checklist-item">
+                <input type="checkbox" id="simActivation" class="prep-checkbox" onchange="saveCheckboxStates()">
+                <span><strong>이심 활성화</strong> - 일본 현지 인터넷 연결</span>
+              </div>
+            </div>
+            
+            <div class="info-section">
+              <h4>🍽️ 저녁 식사</h4>
+              <div class="checklist-item">
+                <input type="checkbox" id="dinner" class="prep-checkbox" onchange="saveCheckboxStates()">
+                <span><strong>징기스칸</strong> - 삿포로비어가든 예약</span>
+              </div>
+              <div class="checklist-item">
+                <input type="checkbox" id="beer" class="prep-checkbox" onchange="saveCheckboxStates()">
+                <span><strong>삿포로 맥주</strong> - 현지 맥주 시음</span>
+              </div>
+            </div>
+            
+                         <div class="info-section">
+               <h4>🌙 첫날 마무리</h4>
+               <div class="checklist-item">
+                 <input type="checkbox" id="shopping" class="prep-checkbox" onchange="saveCheckboxStates()">
+                 <span><strong>편의점 쇼핑</strong> - 간식 및 생필품 구매</span>
+               </div>
+               <div class="checklist-item">
+                 <input type="checkbox" id="rest" class="prep-checkbox" onchange="saveCheckboxStates()">
+                 <span><strong>호텔 휴식</strong> - 다음날 일정 준비</span>
+               </div>
+             </div>
+             
+             <div class="info-section">
+               <h4>🗺️ 저장된 경로</h4>
+               <button class="route-remove-btn" onclick="removeDay1Routes()">경로제거</button>
+               <p style="font-size: 0.9rem; color: #6b7280; margin-top: 8px;">
+                 1일차에 저장된 경로들을 제거합니다.
+               </p>
+             </div>
           </div>
         `;
         
         // 정보창을 지도 위에 표시
         document.body.appendChild(infoDiv);
+        
+        // 저장된 체크박스 상태 복원
+        setTimeout(() => {
+          restoreCheckboxStates();
+        }, 50);
         
         // 정보창 위치 조정
         setTimeout(() => {
@@ -1253,14 +1724,6 @@
           infoDiv.style.left = (menuRect.right + 10) + 'px';
           infoDiv.style.top = menuRect.top + 'px';
         }, 100);
-      }
-      
-      // 사전준비 정보창 닫기 함수
-      function closePreparationInfo() {
-        const infoDiv = document.getElementById('preparationInfo');
-        if (infoDiv) {
-          infoDiv.remove();
-        }
       }
       
       // 상세 정보창 표시 함수
@@ -1363,6 +1826,48 @@
         }
       }
       
+      // Visit Japan Web 링크 열기 함수
+      function openVisitJapanWeb() {
+        // 네이버 블로그 URL
+        const visitJapanUrl = 'https://blog.naver.com/sostrip/223644368814';
+        
+        // 새 탭에서 링크 열기
+        try {
+          window.open(visitJapanUrl, '_blank');
+        } catch (error) {
+          console.error('Visit Japan Web 링크 열기 실패:', error);
+          alert('링크를 열 수 없습니다. 직접 링크를 복사하여 사용해주세요: ' + visitJapanUrl);
+        }
+      }
+      
+      // 송영버스 PDF 열기 함수
+      function openSongyeongBusPdf() {
+        // 송영버스 PDF 파일 URL
+        const songyeongBusPdfUrl = 'https://ppoppo1971.github.io/VMAP/%EC%86%A1%EC%98%81%EB%B2%84%EC%8A%A4.pdf';
+        
+        // 현재 탭에서 PDF 열기
+        try {
+          window.location.href = songyeongBusPdfUrl;
+        } catch (error) {
+          console.error('송영버스 PDF 열기 실패:', error);
+          alert('PDF 파일을 열 수 없습니다. 직접 링크를 복사하여 사용해주세요: ' + songyeongBusPdfUrl);
+        }
+      }
+      
+      // 도난버스 웹사이트 열기 함수
+      function openDonanBusWebsite() {
+        // 일본버스라인 웹사이트 URL
+        const donanBusUrl = 'https://japanbuslines.com/ko/bus_search/hokkaido/noboribetsu/hokkaido/all/ym_202509/day_20/';
+        
+        // 새 탭에서 웹사이트 열기
+        try {
+          window.open(donanBusUrl, '_blank');
+        } catch (error) {
+          console.error('도난버스 웹사이트 열기 실패:', error);
+          alert('웹사이트를 열 수 없습니다. 직접 링크를 복사하여 사용해주세요: ' + donanBusUrl);
+        }
+      }
+      
       // 예약확인서 보기 함수
       function openReservationConfirmation() {
         // 기존 정보창 제거
@@ -1432,6 +1937,158 @@
       function printReservation() {
         window.print();
       }
+      
+             // 새 항목 추가 함수
+       function addNewItem() {
+         const titleInput = document.getElementById('newItemTitle');
+         const descriptionInput = document.getElementById('newItemDescription');
+         const linkInput = document.getElementById('newItemLink');
+         
+         const title = titleInput.value.trim();
+         const description = descriptionInput.value.trim();
+         const link = linkInput.value.trim();
+         
+         if (!title) {
+           alert('항목 제목을 입력해주세요.');
+           titleInput.focus();
+           return;
+         }
+         
+         // 새 항목 생성
+         const newItem = {
+           id: 'user_' + Date.now(),
+           title: title,
+           description: description,
+           link: link || null,
+           checked: false,
+           timestamp: new Date().toISOString()
+         };
+         
+         // 사용자 추가 항목 배열에 저장
+         let userItems = JSON.parse(localStorage.getItem('userAddedItems') || '[]');
+         userItems.push(newItem);
+         localStorage.setItem('userAddedItems', JSON.stringify(userItems));
+         
+         // 화면에 새 항목 표시
+         displayUserAddedItems();
+         
+         // 폼 초기화
+         clearForm();
+         
+         // 성공 메시지
+         alert('새 항목이 추가되었습니다!');
+         
+                   // 항목 추가 후 폼 자동 숨기기
+          hideAddForm();
+       }
+      
+      // 폼 지우기 함수
+      function clearForm() {
+        document.getElementById('newItemTitle').value = '';
+        document.getElementById('newItemDescription').value = '';
+        document.getElementById('newItemLink').value = '';
+        document.getElementById('newItemTitle').focus();
+      }
+      
+      // 사용자 추가 항목들 표시 함수
+      function displayUserAddedItems() {
+        const container = document.getElementById('userAddedItems');
+        if (!container) return;
+        
+        const userItems = JSON.parse(localStorage.getItem('userAddedItems') || '[]');
+        
+        if (userItems.length === 0) {
+          container.innerHTML = '';
+          return;
+        }
+        
+        let html = '';
+        userItems.forEach(item => {
+          const titleElement = item.link 
+            ? `<span onclick="openUserItemLink('${item.link}')" style="cursor: pointer; color: #1d4ed8; text-decoration: underline;"><strong>${item.title}</strong></span>`
+            : `<strong>${item.title}</strong>`;
+          
+          html += `
+            <div class="user-added-item">
+              <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
+              <span>${titleElement} - ${item.description}</span>
+              <button class="delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">×</button>
+            </div>
+          `;
+        });
+        
+        container.innerHTML = html;
+      }
+      
+      // 사용자 추가 항목 복원 함수
+      function restoreUserAddedItems() {
+        setTimeout(() => {
+          displayUserAddedItems();
+        }, 100);
+      }
+      
+      // 사용자 추가 항목 삭제 함수
+      function deleteUserItem(itemId) {
+        if (!confirm('이 항목을 삭제하시겠습니까?')) {
+          return;
+        }
+        
+        // localStorage에서 항목 제거
+        let userItems = JSON.parse(localStorage.getItem('userAddedItems') || '[]');
+        userItems = userItems.filter(item => item.id !== itemId);
+        localStorage.setItem('userAddedItems', JSON.stringify(userItems));
+        
+        // 화면에서 항목 제거
+        displayUserAddedItems();
+        
+        // 체크박스 상태도 업데이트
+        saveCheckboxStates();
+        
+        alert('항목이 삭제되었습니다.');
+      }
+      
+             // 사용자 항목 링크 열기 함수
+       function openUserItemLink(link) {
+         if (!link) return;
+         
+         try {
+           // 새 탭에서 링크 열기
+           window.open(link, '_blank');
+         } catch (error) {
+           console.error('링크 열기 실패:', error);
+           alert('링크를 열 수 없습니다. 직접 링크를 복사하여 사용해주세요: ' + link);
+         }
+       }
+       
+               // 추가 폼 표시 함수
+        function showAddForm() {
+          const form = document.getElementById('addItemForm');
+          const toggleBtn = document.getElementById('toggleAddBtn');
+          
+          // 폼을 보여줄 때
+          form.style.display = 'block';
+          toggleBtn.style.display = 'none'; // 버튼 숨기기
+          
+          // 제목 입력란에 포커스
+          setTimeout(() => {
+            document.getElementById('newItemTitle').focus();
+          }, 100);
+        }
+        
+        // 추가 폼 숨기기 함수
+        function hideAddForm() {
+          const form = document.getElementById('addItemForm');
+          const toggleBtn = document.getElementById('toggleAddBtn');
+          
+          // 폼을 숨기고 버튼을 다시 표시
+          form.style.display = 'none';
+          toggleBtn.style.display = 'block';
+          
+          // 폼 내용 초기화
+          document.getElementById('newItemTitle').value = '';
+          document.getElementById('newItemDescription').value = '';
+          document.getElementById('newItemLink').value = '';
+        }
 
       // 현재 위치 가져오기 함수
       function getCurrentLocation() {
@@ -1531,13 +2188,465 @@
         }
       }
       
+
+      
+
+      
+              
+        
+
+      
+
+      
+
+      
+
+      
+
+      
       // 페이지 로드 시 모바일 최적화 적용
       document.addEventListener('DOMContentLoaded', function() {
         optimizeForMobile();
       });
+      
+      // 사용자 경로 모드 토글 함수
+      function toggleRouteMode() {
+        if (userRouteMarkers.length === 0) {
+          // 첫 번째 클릭: 경로 생성 모드 시작
+          isRouteMode = true;
+          const routeBtn = document.getElementById('topRouteBtn');
+          routeBtn.textContent = '경로 생성 중...';
+          routeBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+          routeBtn.style.color = 'white';
+          
+          alert('지도를 클릭하여 경로의 첫 번째 위치를 추가하세요.\n여러 위치를 순서대로 클릭하면 자동으로 경로가 생성됩니다.');
+        } else if (userRouteMarkers.length >= 2) {
+          // 마커가 2개 이상일 때: 경로완성 모드
+          const routeBtn = document.getElementById('topRouteBtn');
+          routeBtn.textContent = '경로완성';
+          routeBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+          routeBtn.style.color = 'white';
+          
+          // 경로 저장 위치 선택 다이얼로그 표시
+          showRouteSaveDialog();
+        }
+      }
+      
+      // 사용자 경로에 위치 추가 함수
+      function addUserRoutePoint(latLng) {
+        if (!isRouteMode) return;
+        
+        // 마커 생성
+        const marker = new google.maps.Marker({
+          position: latLng,
+          map: map,
+          title: `위치 ${userRouteMarkers.length + 1}`,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: '#ef4444',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+            scale: 8
+          },
+          label: {
+            text: (userRouteMarkers.length + 1).toString(),
+            fontSize: '12px',
+            fontWeight: 'bold',
+            color: '#ffffff'
+          }
+        });
+        
+        // 마커 클릭 시 제거 기능
+        marker.addListener('click', function() {
+          if (confirm('이 위치를 경로에서 제거하시겠습니까?')) {
+            removeUserRoutePoint(marker);
+          }
+        });
+        
+        userRouteMarkers.push(marker);
+        
+        // 경로 업데이트
+        updateUserRoute();
+        
+        // 마커가 2개 이상일 때 버튼을 "경로완성"으로 변경
+        if (userRouteMarkers.length >= 2) {
+          const routeBtn = document.getElementById('topRouteBtn');
+          routeBtn.textContent = '경로완성';
+          routeBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+          routeBtn.style.color = 'white';
+        }
+        
+        // 성공 메시지
+        const message = userRouteMarkers.length === 1 ? 
+          '첫 번째 위치가 추가되었습니다. 계속해서 다음 위치를 클릭하세요.' :
+          `위치 ${userRouteMarkers.length}이 추가되었습니다.`;
+        console.log(message);
+      }
+      
+      // 사용자 경로에서 위치 제거 함수
+      function removeUserRoutePoint(marker) {
+        const index = userRouteMarkers.indexOf(marker);
+        if (index > -1) {
+          marker.setMap(null);
+          userRouteMarkers.splice(index, 1);
+          
+          // 마커 번호 재정렬
+          userRouteMarkers.forEach((m, i) => {
+            m.setTitle(`위치 ${i + 1}`);
+            m.setLabel({
+              text: (i + 1).toString(),
+              fontSize: '12px',
+              fontWeight: 'bold',
+              color: '#ffffff'
+            });
+          });
+          
+          // 경로 업데이트
+          updateUserRoute();
+          
+          // 마커가 2개 미만일 때 버튼을 "경로 생성 중..."으로 변경
+          if (userRouteMarkers.length < 2) {
+            const routeBtn = document.getElementById('topRouteBtn');
+            routeBtn.textContent = '경로 생성 중...';
+            routeBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            routeBtn.style.color = 'white';
+          }
+        }
+      }
+      
+      // 사용자 경로 업데이트 함수
+      function updateUserRoute() {
+        // 기존 경로 제거
+        if (userRoutePath) {
+          userRoutePath.setMap(null);
+        }
+        if (userRouteDottedPath) {
+          userRouteDottedPath.setMap(null);
+        }
+        
+        // 마커가 2개 이상일 때만 경로 생성
+        if (userRouteMarkers.length >= 2) {
+          const path = userRouteMarkers.map(marker => marker.getPosition());
+          
+          // 메인 경로 (파란색)
+          userRoutePath = new google.maps.Polyline({
+            path: path,
+            geodesic: true,
+            strokeColor: '#3b82f6',
+            strokeOpacity: 0.8,
+            strokeWeight: 4
+          });
+          userRoutePath.setMap(map);
+          
+          // 점선 효과 (흰색 점들)
+          userRouteDottedPath = new google.maps.Polyline({
+            path: path,
+            geodesic: true,
+            strokeColor: '#ffffff',
+            strokeOpacity: 0.9,
+            strokeWeight: 2,
+            icons: [{
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                fillColor: '#3b82f6',
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 1,
+                scale: 6
+              },
+              offset: '0',
+              repeat: '15px'
+            }]
+          });
+          userRouteDottedPath.setMap(map);
+          
+          // 경로 정보 표시
+          const totalDistance = calculateRouteDistance(path);
+          console.log(`경로가 생성되었습니다. 총 거리: ${totalDistance.toFixed(1)}km`);
+        }
+      }
+      
+      // 경로 거리 계산 함수
+      function calculateRouteDistance(path) {
+        let totalDistance = 0;
+        for (let i = 1; i < path.length; i++) {
+          const prev = path[i - 1];
+          const curr = path[i];
+          totalDistance += google.maps.geometry.spherical.computeDistanceBetween(prev, curr);
+        }
+        return totalDistance / 1000; // km 단위로 변환
+      }
+      
+      // 사용자 경로 초기화 함수
+      function clearUserRoute() {
+        if (!confirm('생성된 경로를 모두 초기화하시겠습니까?\n(저장된 경로도 함께 제거됩니다)')) {
+          return;
+        }
+        
+        // 모든 마커 제거
+        userRouteMarkers.forEach(marker => {
+          marker.setMap(null);
+        });
+        userRouteMarkers = [];
+        
+        // 경로 제거
+        if (userRoutePath) {
+          userRoutePath.setMap(null);
+          userRoutePath = null;
+        }
+        if (userRouteDottedPath) {
+          userRouteDottedPath.setMap(null);
+          userRouteDottedPath = null;
+        }
+        
+        // 저장된 모든 경로 제거
+        savedUserRoutes.forEach(route => {
+          if (route.pathElement) {
+            route.pathElement.setMap(null);
+          }
+          if (route.dottedPathElement) {
+            route.dottedPathElement.setMap(null);
+          }
+        });
+        savedUserRoutes = [];
+        localStorage.removeItem('savedUserRoutes');
+        
+        // 경로 모드 비활성화
+        isRouteMode = false;
+        const routeBtn = document.getElementById('topRouteBtn');
+        const clearRouteBtn = document.getElementById('clearRouteBtn');
+        
+        routeBtn.textContent = '경로 생성';
+        routeBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+        routeBtn.style.color = '#1a1a1a';
+        clearRouteBtn.style.display = 'none';
+        
+        alert('모든 경로가 초기화되었습니다.');
+      }
+      
+      // 경로 초기화 버튼 표시/숨김 함수
+      function updateClearRouteButton() {
+        const clearRouteBtn = document.getElementById('clearRouteBtn');
+        if (clearRouteBtn) {
+          clearRouteBtn.style.display = userRouteMarkers.length > 0 ? 'block' : 'none';
+        }
+      }
+      
+      // 경로 저장 위치 선택 다이얼로그 표시
+      function showRouteSaveDialog() {
+        // 기존 다이얼로그가 있으면 제거
+        const existingDialog = document.getElementById('routeSaveDialog');
+        if (existingDialog) {
+          existingDialog.remove();
+        }
+        
+        // 다이얼로그 생성
+        const dialogDiv = document.createElement('div');
+        dialogDiv.id = 'routeSaveDialog';
+        dialogDiv.innerHTML = `
+          <div class="info-header">
+            <h3>경로 저장 위치 선택</h3>
+            <button class="close-btn" onclick="closeRouteSaveDialog()">×</button>
+          </div>
+          <div class="info-content">
+            <div class="info-section">
+              <h4>어디에 경로를 저장하시겠습니까?</h4>
+              <div class="route-save-options">
+                <button class="route-save-btn" onclick="saveRouteToLocation('사전준비')">사전준비</button>
+                <button class="route-save-btn" onclick="saveRouteToLocation('1일차')">1일차</button>
+                <button class="route-save-btn" onclick="saveRouteToLocation('새로운 항목')">새로운 항목</button>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // 다이얼로그를 지도 위에 표시
+        document.body.appendChild(dialogDiv);
+        
+        // 다이얼로그 위치 조정 (중앙에 표시)
+        setTimeout(() => {
+          const mapElement = document.getElementById('map');
+          const mapRect = mapElement.getBoundingClientRect();
+          dialogDiv.style.left = (mapRect.width / 2 - 200) + 'px';
+          dialogDiv.style.top = (mapRect.height / 2 - 150) + 'px';
+        }, 100);
+      }
+      
+      // 경로 저장 위치 선택 다이얼로그 닫기
+      function closeRouteSaveDialog() {
+        const dialog = document.getElementById('routeSaveDialog');
+        if (dialog) {
+          dialog.remove();
+        }
+      }
+      
+      // 선택된 위치에 경로 저장
+      function saveRouteToLocation(location) {
+        if (userRouteMarkers.length < 2) {
+          alert('경로를 생성하려면 최소 2개의 위치가 필요합니다.');
+          return;
+        }
+        
+        // 경로 데이터 생성
+        const routeData = {
+          id: 'route_' + Date.now(),
+          name: `${location} 경로`,
+          location: location,
+          path: userRouteMarkers.map(marker => ({
+            lat: marker.getPosition().lat(),
+            lng: marker.getPosition().lng()
+          })),
+          distance: calculateRouteDistance(userRouteMarkers.map(marker => marker.getPosition())),
+          createdAt: new Date().toISOString()
+        };
+        
+        // localStorage에 저장
+        let savedRoutes = JSON.parse(localStorage.getItem('savedUserRoutes') || '[]');
+        savedRoutes.push(routeData);
+        localStorage.setItem('savedUserRoutes', JSON.stringify(savedRoutes));
+        
+        // 전역 변수에 추가
+        savedUserRoutes.push(routeData);
+        
+        // 임시 마커들 제거
+        userRouteMarkers.forEach(marker => {
+          marker.setMap(null);
+        });
+        userRouteMarkers = [];
+        
+        // 임시 경로 제거
+        if (userRoutePath) {
+          userRoutePath.setMap(null);
+          userRoutePath = null;
+        }
+        if (userRouteDottedPath) {
+          userRouteDottedPath.setMap(null);
+          userRouteDottedPath = null;
+        }
+        
+        // 경로 모드 비활성화
+        isRouteMode = false;
+        
+        // 버튼 상태 복원
+        const routeBtn = document.getElementById('topRouteBtn');
+        routeBtn.textContent = '경로 생성';
+        routeBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+        routeBtn.style.color = '#1a1a1a';
+        
+        // 다이얼로그 닫기
+        closeRouteSaveDialog();
+        
+        // 성공 메시지
+        alert(`경로가 "${location}"에 저장되었습니다!`);
+        
+        // 저장된 경로들 다시 그리기
+        drawAllSavedRoutes();
+      }
+      
+      // 저장된 모든 경로 그리기
+      function drawAllSavedRoutes() {
+        // 기존 경로들 제거
+        savedUserRoutes.forEach(route => {
+          if (route.pathElement) {
+            route.pathElement.setMap(null);
+          }
+          if (route.dottedPathElement) {
+            route.dottedPathElement.setMap(null);
+          }
+        });
+        
+        // 저장된 경로들 다시 그리기
+        savedUserRoutes.forEach(route => {
+          if (route.path && route.path.length >= 2) {
+            const path = route.path.map(point => new google.maps.LatLng(point.lat, point.lng));
+            
+            // 메인 경로
+            route.pathElement = new google.maps.Polyline({
+              path: path,
+              geodesic: true,
+              strokeColor: '#3b82f6',
+              strokeOpacity: 0.8,
+              strokeWeight: 4
+            });
+            route.pathElement.setMap(map);
+            
+            // 점선 효과
+            route.dottedPathElement = new google.maps.Polyline({
+              path: path,
+              geodesic: true,
+              strokeColor: '#ffffff',
+              strokeOpacity: 0.9,
+              strokeWeight: 2,
+              icons: [{
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  fillColor: '#3b82f6',
+                  fillOpacity: 1,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 1,
+                  scale: 6
+                },
+                offset: '0',
+                repeat: '15px'
+              }]
+            });
+            route.dottedPathElement.setMap(map);
+          }
+        });
+      }
+      
+             // 저장된 사용자 경로들 복원
+       function restoreSavedUserRoutes() {
+         const savedRoutes = localStorage.getItem('savedUserRoutes');
+         if (savedRoutes) {
+           savedUserRoutes = JSON.parse(savedRoutes);
+           drawAllSavedRoutes();
+         }
+       }
+       
+       // 1일차 경로만 제거하는 함수
+       function removeDay1Routes() {
+         // 1일차 경로가 있는지 확인
+         const day1Routes = savedUserRoutes.filter(route => route.location === '1일차');
+         
+         if (day1Routes.length === 0) {
+           alert('1일차에 저장된 경로가 없습니다.');
+           return;
+         }
+         
+         // 사용자 확인
+         if (!confirm(`1일차에 저장된 경로 ${day1Routes.length}개를 모두 제거하시겠습니까?`)) {
+           return;
+         }
+         
+         // 1일차 경로들만 제거
+         day1Routes.forEach(route => {
+           if (route.pathElement) {
+             route.pathElement.setMap(null);
+           }
+           if (route.dottedPathElement) {
+             route.dottedPathElement.setMap(null);
+           }
+         });
+         
+         // 배열에서 1일차 경로들 제거
+         savedUserRoutes = savedUserRoutes.filter(route => route.location !== '1일차');
+         
+         // localStorage 업데이트
+         localStorage.setItem('savedUserRoutes', JSON.stringify(savedUserRoutes));
+         
+         // 성공 메시지
+         alert(`1일차 경로 ${day1Routes.length}개가 제거되었습니다.`);
+         
+         // 정보창 닫기
+         closePreparationInfo();
+       }
     </script>
+
+    
     <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg&callback=initMap" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg&libraries=geometry&callback=initMap" async defer></script>
 </body>
 </html>
 
