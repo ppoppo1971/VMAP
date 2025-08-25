@@ -31,7 +31,7 @@
             z-index: 10;
             width: 200px;
             max-width: 85vw;
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
             box-shadow: 0 8px 25px rgba(0,0,0,0.05);
@@ -161,7 +161,7 @@
             flex-direction: column;
             gap: 6px;
             transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
             padding: 12px;
@@ -899,6 +899,9 @@
     <div id="customMapMenu" class="hide">
       <h2>홋카이도 여행</h2>
       <div class="menu-group">
+        <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 98%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
+      </div>
+      <div class="menu-group">
         <button id="preparationBtn" class="toggle-btn" onclick="showPreparationInfo()">사전준비</button>
         <button id="day1Btn" class="toggle-btn" onclick="showDay1Info()">1일차</button>
       </div>
@@ -914,6 +917,8 @@
       let map;
       let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       let currentLocationMarker = null; // 현재 위치 마커 전역 변수
+      let geocoder = null; // 주소 변환용 Geocoder
+      let addressMarker = null; // 주소 검색 마커
       
       // 항로와 마커 관련 전역 변수들
       let flightPath = null;
@@ -1033,6 +1038,8 @@
           // 일반지도에서 라벨 숨기기
           styles: noLabelsStyle
         });
+        
+        geocoder = new google.maps.Geocoder(); // Geocoder 객체 생성
         
         // 공항 아이콘 마커 추가 - 이모지 사용
         incheonMarker = new google.maps.Marker({
@@ -1161,6 +1168,11 @@
         map.addListener('zoom_changed', function() {
             updateZoomLevel();
             toggleFlightElements(map.getZoom()); // 줌 레벨에 따라 항로와 마커 표시/숨김
+        });
+        
+        // 지도 이동 이벤트 리스너 추가 - 주소 마커 자동 제거
+        map.addListener('bounds_changed', function() {
+            checkAddressMarkerVisibility();
         });
         
         // 초기 줌 레벨 표시
@@ -1558,7 +1570,7 @@
                 </div>
                 <div class="checklist-item">
                   <input type="checkbox" id="confirmations" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span><strong>각종 확정서 출력</strong> - 호텔, 투어 예약 확인서</span>
+                  <span><strong>각종 확정서 출력</strong> - 오프라인출력</span력
                 </div>
                 <div class="checklist-item">
                   <input type="checkbox" id="beergarden" class="prep-checkbox" onchange="saveCheckboxStates()">
@@ -2641,6 +2653,86 @@
          
          // 정보창 닫기
          closePreparationInfo();
+       }
+       
+       // 주소 검색 함수
+       function searchAddress() {
+         const address = document.getElementById('addressInput').value;
+         if (!address) {
+           alert('주소를 입력하세요.');
+           return;
+         }
+         if (!geocoder) {
+           alert('지도가 아직 준비되지 않았습니다.');
+           return;
+         }
+         
+         // 기존 마커 제거
+         if (addressMarker) {
+           addressMarker.setMap(null);
+           addressMarker = null;
+         }
+         
+         geocoder.geocode({ address: address }, function(results, status) {
+           if (status === 'OK') {
+             const location = results[0].geometry.location;
+             map.setCenter(location);
+             map.setZoom(16); // 필요시 확대 레벨 조정
+             
+             // 새로운 마커 생성 및 표시
+             addressMarker = new google.maps.Marker({
+               position: location,
+               map: map,
+               title: address,
+               icon: {
+                 url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                 scaledSize: new google.maps.Size(32, 32)
+               },
+               animation: google.maps.Animation.DROP
+             });
+             
+             // 마커 클릭 시 정보창 표시
+             const infoWindow = new google.maps.InfoWindow({
+               content: `<div style="padding: 10px;"><strong>${address}</strong></div>`
+             });
+             
+             addressMarker.addListener('click', function() {
+               infoWindow.open(map, addressMarker);
+             });
+             
+             // 주소 입력창 초기화
+             document.getElementById('addressInput').value = '';
+             
+           } else {
+             alert('주소를 찾을 수 없습니다: ' + status);
+           }
+         });
+       }
+       
+       // 주소 마커 가시성 확인 및 자동 제거 함수
+       function checkAddressMarkerVisibility() {
+         if (addressMarker && map) {
+           const bounds = map.getBounds();
+           const markerPosition = addressMarker.getPosition();
+           
+           // 마커가 현재 지도 뷰의 경계 밖에 있는지 확인
+           if (bounds && !bounds.contains(markerPosition)) {
+             // 마커가 뷰에서 벗어나면 자동으로 제거
+             addressMarker.setMap(null);
+             addressMarker = null;
+             document.getElementById('addressInput').value = '';
+             console.log('주소 마커가 지도 뷰에서 벗어나 자동으로 제거되었습니다.');
+           }
+         }
+       }
+       
+       // 주소 마커 제거 함수 (수동 제거용)
+       function clearAddressMarker() {
+         if (addressMarker) {
+           addressMarker.setMap(null);
+           addressMarker = null;
+           document.getElementById('addressInput').value = '';
+         }
        }
     </script>
 
