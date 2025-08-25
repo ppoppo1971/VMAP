@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>홋카이도 여행</title>
     <style>
         html, body {
@@ -358,20 +358,24 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             background: rgba(0,0,0,0.85);
             justify-content: center;
             align-items: center;
             z-index: 9999;
+            overflow: hidden;
         }
         #pdf-box {
             width: 90%;
             height: 90%;
+            max-width: 95vw;
+            max-height: 95vh;
             background: #fff;
             position: relative;
             box-shadow: 0 0 20px rgba(0,0,0,0.7);
             border-radius: 8px;
+            overflow: hidden;
         }
         #pdf-box iframe {
             width: 100%;
@@ -391,9 +395,26 @@
             font-size: 14px;
             border-radius: 4px;
             transition: background-color 0.2s ease;
+            z-index: 10000;
         }
         #close-btn:hover {
             background: #b91c1c;
+        }
+        
+        /* 모바일에서 PDF 오버레이 최적화 */
+        @media (max-width: 768px) {
+            #pdf-box {
+                width: 95%;
+                height: 95%;
+                max-width: 98vw;
+                max-height: 98vh;
+            }
+            #close-btn {
+                padding: 12px 16px;
+                font-size: 16px;
+                top: 15px;
+                right: 15px;
+            }
         }
         
 
@@ -952,16 +973,33 @@
         const iframe = document.getElementById("pdf-viewer");
         const pdfURL = "https://ppoppo1971.github.io/VMAP/%EC%A0%84%EC%9E%90%ED%95%AD%EA%B3%B5%EA%B6%8C.pdf";
         
-        iframe.src = pdfURL;
+        // PDF 로드 전에 오버레이 표시
         overlay.style.display = "flex";
         
-        // 지도 클릭 이벤트 비활성화
+        // 모바일에서 지도 상태 저장
         if (map) {
+          // 현재 지도 상태 저장
+          const currentCenter = map.getCenter();
+          const currentZoom = map.getZoom();
+          
+          // 지도 클릭 이벤트 비활성화
           map.setOptions({ gestureHandling: 'none' });
+          
+          // 모바일에서 지도 크기 조정 방지
+          setTimeout(() => {
+            if (map) {
+              map.setCenter(currentCenter);
+              map.setZoom(currentZoom);
+            }
+          }, 100);
         }
+        
+        // PDF 로드
+        iframe.src = pdfURL;
         
         // 스크롤 방지
         document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
       }
       
       // PDF 오버레이 닫기 함수
@@ -969,16 +1007,32 @@
         const overlay = document.getElementById("pdf-overlay");
         const iframe = document.getElementById("pdf-viewer");
         
-        iframe.src = ""; // 닫을 때 PDF 초기화
+        // PDF 초기화
+        iframe.src = "";
         overlay.style.display = "none";
         
         // 지도 클릭 이벤트 다시 활성화
         if (map) {
           map.setOptions({ gestureHandling: 'greedy' });
+          
+          // 모바일에서 지도 강제 새로고침
+          if (isMobile) {
+            setTimeout(() => {
+              if (map) {
+                map.trigger('resize');
+                // 지도 중심과 줌 레벨 유지
+                const currentCenter = map.getCenter();
+                const currentZoom = map.getZoom();
+                map.setCenter(currentCenter);
+                map.setZoom(currentZoom);
+              }
+            }, 100);
+          }
         }
         
         // 스크롤 복원
         document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
       }
       
       // 페이지 로드 시 모바일 최적화 적용
@@ -1006,6 +1060,35 @@
             }
           }
         });
+        
+        // 모바일에서 화면 방향 변경 시 지도 새로고침
+        if (isMobile) {
+          window.addEventListener('orientationchange', function() {
+            setTimeout(() => {
+              if (map) {
+                map.trigger('resize');
+                // 지도 중심과 줌 레벨 유지
+                const currentCenter = map.getCenter();
+                const currentZoom = map.getZoom();
+                map.setCenter(currentCenter);
+                map.setZoom(currentZoom);
+              }
+            }, 500);
+          });
+          
+          // 모바일에서 화면 크기 변경 시 지도 새로고침
+          window.addEventListener('resize', function() {
+            if (map) {
+              setTimeout(() => {
+                map.trigger('resize');
+                const currentCenter = map.getCenter();
+                const currentZoom = map.getZoom();
+                map.setCenter(currentCenter);
+                map.setZoom(currentZoom);
+              }, 100);
+            }
+          });
+        }
       });
     </script>
     <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
