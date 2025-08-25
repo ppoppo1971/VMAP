@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>홋카이도 여행</title>
     <style>
         html, body {
@@ -165,6 +165,63 @@
             pointer-events: none;
         }
         
+        /* GPS 위치 버튼 스타일 */
+        #locationBtn {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            z-index: 10;
+            background: #10b981;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s ease;
+        }
+        
+        #locationBtn:hover {
+            background: #059669;
+            transform: scale(1.05);
+        }
+        
+        #locationBtn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        #locationBtn.loading {
+            background: #6b7280;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* 현재 위치 마커 스타일 */
+        .current-location-marker {
+            background: #10b981;
+            border: 3px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            animation: locationPulse 2s infinite;
+        }
+        
+        @keyframes locationPulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
         /* 오른쪽 상단 토글 버튼 - 모바일 최적화 */
         #rightMenuToggleBtn {
             position: absolute;
@@ -275,6 +332,14 @@
                 min-height: 40px;
                 font-size: 0.85rem;
             }
+            
+            #locationBtn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.3rem;
+                bottom: 25px;
+                right: 15px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -321,6 +386,14 @@
                 min-height: 36px;
                 font-size: 0.8rem;
             }
+            
+            #locationBtn {
+                width: 46px;
+                height: 46px;
+                font-size: 1.2rem;
+                bottom: 20px;
+                right: 12px;
+            }
         }
         
         /* 터치 최적화를 위한 추가 스타일 */
@@ -352,71 +425,6 @@
             filter: hue-rotate(150deg) saturate(150%) brightness(0.8) contrast(120%);
         }
         
-        /* PDF 전체화면 오버레이 */
-        #pdf-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0,0,0,0.85);
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            overflow: hidden;
-        }
-        #pdf-box {
-            width: 90%;
-            height: 90%;
-            max-width: 95vw;
-            max-height: 95vh;
-            background: #fff;
-            position: relative;
-            box-shadow: 0 0 20px rgba(0,0,0,0.7);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        #pdf-box iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            border-radius: 8px;
-        }
-        #close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 8px 12px;
-            background: #dc2626;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            border-radius: 4px;
-            transition: background-color 0.2s ease;
-            z-index: 10000;
-        }
-        #close-btn:hover {
-            background: #b91c1c;
-        }
-        
-        /* 모바일에서 PDF 오버레이 최적화 */
-        @media (max-width: 768px) {
-            #pdf-box {
-                width: 95%;
-                height: 95%;
-                max-width: 98vw;
-                max-height: 98vh;
-            }
-            #close-btn {
-                padding: 12px 16px;
-                font-size: 16px;
-                top: 15px;
-                right: 15px;
-            }
-        }
-        
 
     </style>
 </head>
@@ -437,6 +445,9 @@
         <button class="map-type-btn sub-option" onclick="toggleHybridLabel()" id="topHybridBtn">라벨</button>
     </div>
     
+    <!-- GPS 위치 버튼 -->
+    <button id="locationBtn" onclick="getCurrentLocation()" title="현재 위치로 이동">🌍</button>
+    
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
       <h2>홋카이도 여행</h2>
@@ -453,14 +464,6 @@
           </div>
         </div>
       </div>
-    </div>
-    
-    <!-- PDF 오버레이 -->
-    <div id="pdf-overlay">
-        <div id="pdf-box">
-            <button id="close-btn">닫기 ✖</button>
-            <iframe id="pdf-viewer"></iframe>
-        </div>
     </div>
     
 
@@ -967,128 +970,83 @@
         getElement('rightMenuToggleBtn').style.display = 'flex'; // 토글 버튼 보이기
       }
       
-      // PDF 오버레이 열기 함수
+      // PDF 파일 직접 열기 함수
       function openPdfViewer() {
-        const overlay = document.getElementById("pdf-overlay");
-        const iframe = document.getElementById("pdf-viewer");
-        const pdfURL = "https://ppoppo1971.github.io/VMAP/%EC%A0%84%EC%9E%90%ED%95%AD%EA%B3%B5%EA%B6%8C.pdf";
+        // PDF 파일 URL
+        const pdfUrl = 'https://ppoppo1971.github.io/VMAP/%EC%A0%84%EC%9E%90%ED%95%AD%EA%B3%B5%EA%B6%8C.pdf';
         
-        // PDF 로드 전에 오버레이 표시
-        overlay.style.display = "flex";
-        
-        // 모바일에서 지도 상태 저장
-        if (map) {
-          // 현재 지도 상태 저장
-          const currentCenter = map.getCenter();
-          const currentZoom = map.getZoom();
-          
-          // 지도 클릭 이벤트 비활성화
-          map.setOptions({ gestureHandling: 'none' });
-          
-          // 모바일에서 지도 크기 조정 방지
-          setTimeout(() => {
-            if (map) {
-              map.setCenter(currentCenter);
-              map.setZoom(currentZoom);
-            }
-          }, 100);
+        // 현재 탭에서 PDF 열기
+        try {
+          window.location.href = pdfUrl;
+        } catch (error) {
+          console.error('PDF 열기 실패:', error);
+          alert('PDF 파일을 열 수 없습니다. 직접 링크를 복사하여 사용해주세요: ' + pdfUrl);
         }
-        
-        // PDF 로드
-        iframe.src = pdfURL;
-        
-        // 스크롤 방지
-        document.body.style.overflow = 'hidden';
-        document.documentElement.style.overflow = 'hidden';
       }
-      
-      // PDF 오버레이 닫기 함수
-      function closePdfViewer() {
-        const overlay = document.getElementById("pdf-overlay");
-        const iframe = document.getElementById("pdf-viewer");
-        
-        // PDF 초기화
-        iframe.src = "";
-        overlay.style.display = "none";
-        
-        // 지도 클릭 이벤트 다시 활성화
-        if (map) {
-          map.setOptions({ gestureHandling: 'greedy' });
-          
-          // 모바일에서 지도 강제 새로고침
-          if (isMobile) {
-            setTimeout(() => {
-              if (map) {
-                map.trigger('resize');
-                // 지도 중심과 줌 레벨 유지
-                const currentCenter = map.getCenter();
-                const currentZoom = map.getZoom();
-                map.setCenter(currentCenter);
-                map.setZoom(currentZoom);
-              }
-            }, 100);
-          }
+
+      // 현재 위치 가져오기 함수
+      function getCurrentLocation() {
+        const locationBtn = document.getElementById('locationBtn');
+        const isLoading = locationBtn.classList.contains('loading');
+
+        if (isLoading) {
+          alert('현재 위치를 가져오는 중입니다.');
+          return;
         }
-        
-        // 스크롤 복원
-        document.body.style.overflow = '';
-        document.documentElement.style.overflow = '';
+
+        locationBtn.classList.add('loading');
+        locationBtn.textContent = '로딩중...';
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const lat = position.coords.latitude;
+              const lng = position.coords.longitude;
+              const currentLocation = { lat: lat, lng: lng };
+              map.setCenter(currentLocation);
+              map.setZoom(15); // 현재 위치에서 더 넓은 뷰
+
+              // 현재 위치 마커 추가
+              const currentLocationMarker = new google.maps.Marker({
+                position: currentLocation,
+                map: map,
+                icon: {
+                  url: 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi.png', // 현재 위치 아이콘
+                  scaledSize: new google.maps.Size(30, 30),
+                  anchor: new google.maps.Point(15, 15)
+                },
+                title: '현재 위치',
+                animation: google.maps.Animation.BOUNCE, // 애니메이션 효과
+                zIndex: 1000 // 다른 마커보다 위에 표시
+              });
+
+              // 현재 위치 마커 클릭 시 현재 위치로 이동
+              currentLocationMarker.addListener('click', function() {
+                map.setCenter(currentLocation);
+                map.setZoom(15);
+              });
+
+              locationBtn.classList.remove('loading');
+              locationBtn.textContent = '🌍';
+            },
+            (error) => {
+              console.error('위치 정보를 가져올 수 없습니다:', error.message);
+              alert('위치 정보를 가져올 수 없습니다. 네트워크 연결을 확인해주세요.');
+              locationBtn.classList.remove('loading');
+              locationBtn.textContent = '🌍';
+            },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+          );
+        } else {
+          alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
+          locationBtn.classList.remove('loading');
+          locationBtn.textContent = '🌍';
+        }
       }
       
       // 페이지 로드 시 모바일 최적화 적용
       document.addEventListener('DOMContentLoaded', function() {
         optimizeForMobile();
-        
-        // PDF 닫기 버튼 이벤트 리스너
-        document.getElementById('close-btn').addEventListener('click', function() {
-          closePdfViewer();
-        });
-        
-        // PDF 오버레이 외부 클릭 시 닫기
-        document.getElementById('pdf-overlay').addEventListener('click', function(event) {
-          if (event.target === this) {
-            closePdfViewer();
-          }
-        });
-        
-        // ESC 키로 PDF 닫기
-        document.addEventListener('keydown', function(event) {
-          if (event.key === 'Escape') {
-            const overlay = document.getElementById('pdf-overlay');
-            if (overlay.style.display === 'flex') {
-              closePdfViewer();
-            }
-          }
-        });
-        
-        // 모바일에서 화면 방향 변경 시 지도 새로고침
-        if (isMobile) {
-          window.addEventListener('orientationchange', function() {
-            setTimeout(() => {
-              if (map) {
-                map.trigger('resize');
-                // 지도 중심과 줌 레벨 유지
-                const currentCenter = map.getCenter();
-                const currentZoom = map.getZoom();
-                map.setCenter(currentCenter);
-                map.setZoom(currentZoom);
-              }
-            }, 500);
-          });
-          
-          // 모바일에서 화면 크기 변경 시 지도 새로고침
-          window.addEventListener('resize', function() {
-            if (map) {
-              setTimeout(() => {
-                map.trigger('resize');
-                const currentCenter = map.getCenter();
-                const currentZoom = map.getZoom();
-                map.setCenter(currentCenter);
-                map.setZoom(currentZoom);
-              }, 100);
-            }
-          });
-        }
       });
     </script>
     <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
