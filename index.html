@@ -2085,7 +2085,7 @@
                   <input type="checkbox" id="airline" class="prep-checkbox" onchange="saveCheckboxStates()">
                   <span onclick="openPdfViewer()" style="cursor: pointer;">항공권 - 예약확인서 및 전자항공권</span>
                 </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('airline', '항공권', '예약확인서 및 전자항공권', '')" title="수정">수정</button>
+                <button class="swipe-edit-btn" onclick="editExistingItem('airline', '항공권', '예약확인서 및 전자항공권', 'https://ppoppo1971.github.io/VMAP/%EC%A0%84%EC%9E%90%ED%95%AD%EA%B3%B5%EA%B6%8C.pdf')" title="수정">수정</button>
                 <button class="swipe-delete-btn" onclick="deleteExistingItem('airline')" title="삭제">삭제</button>
               </div>
               <div class="checklist-item" data-item-id="parking" data-item-type="existing">
@@ -2117,7 +2117,7 @@
                   <input type="checkbox" id="visitjapan" class="prep-checkbox" onchange="saveCheckboxStates()">
                   <span onclick="openVisitJapanWeb()" style="cursor: pointer;">Visit Japan Web - 입국 수속 사전 등록</span>
                 </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('visitjapan', 'Visit Japan Web', '입국 수속 사전 등록', '')" title="수정">수정</button>
+                <button class="swipe-edit-btn" onclick="editExistingItem('visitjapan', 'Visit Japan Web', '입국 수속 사전 등록', 'https://blog.naver.com/sostrip/223644368814')" title="수정">수정</button>
                 <button class="swipe-delete-btn" onclick="deleteExistingItem('visitjapan')" title="삭제">삭제</button>
               </div>
               <div class="checklist-item" data-item-id="confirmations" data-item-type="existing">
@@ -2141,7 +2141,7 @@
                   <input type="checkbox" id="songyeongbus" class="prep-checkbox" onchange="saveCheckboxStates()">
                   <span onclick="openSongyeongBusPdf()" style="cursor: pointer;">송영버스 예약 - 삿포로-마호바로 간 이동</span>
                 </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('songyeongbus', '송영버스 예약', '삿포로-마호바로 간 이동', '')" title="수정">수정</button>
+                <button class="swipe-edit-btn" onclick="editExistingItem('songyeongbus', '송영버스 예약', '삿포로-마호바로 간 이동', 'https://ppoppo1971.github.io/VMAP/%EC%86%A1%EC%98%81%EB%B2%84%EC%8A%A4.pdf')" title="수정">수정</button>
                 <button class="swipe-delete-btn" onclick="deleteExistingItem('songyeongbus')" title="삭제">삭제</button>
               </div>
               <div class="checklist-item" data-item-id="donanbus" data-item-type="existing">
@@ -2149,7 +2149,7 @@
                   <input type="checkbox" id="donanbus" class="prep-checkbox" onchange="saveCheckboxStates()">
                   <span onclick="openDonanBusWebsite()" style="cursor: pointer;">도난버스 예약 - 마호바로-항공 간 이동</span>
                 </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('donanbus', '도난버스 예약', '마호바로-항공 간 이동', '')" title="수정">수정</button>
+                <button class="swipe-edit-btn" onclick="editExistingItem('donanbus', '도난버스 예약', '마호바로-항공 간 이동', 'https://japanbuslines.com/ko/bus_search/hokkaido/noboribetsu/hokkaido/all/ym_202509/day_20/')" title="수정">수정</button>
                 <button class="swipe-delete-btn" onclick="deleteExistingItem('donanbus')" title="삭제">삭제</button>
               </div>
                                  <!-- 사용자 추가 항목들이 여기에 표시됩니다 -->
@@ -2187,6 +2187,11 @@
           
           // 정보창을 지도 위에 표시
           document.body.appendChild(infoDiv);
+          
+          // 클릭 가능한 텍스트 끝에 ❗ 표시 추가
+          if (typeof appendExclamationToLinks === 'function') {
+            appendExclamationToLinks(infoDiv);
+          }
           
           // 저장된 체크박스 상태 복원
           setTimeout(() => {
@@ -2274,7 +2279,7 @@
                   <input type="checkbox" id="airportBus" class="prep-checkbox" onchange="saveCheckboxStates()">
                   <span onclick="openSongyeongBusPdf()" style="cursor: pointer;">송영버스 탑승 - 삿포로 시내행 버스</span>
                 </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('airportBus', '송영버스 탑승', '삿포로 시내행 버스', '')" title="수정">수정</button>
+                <button class="swipe-edit-btn" onclick="editExistingItem('airportBus', '송영버스 탑승', '삿포로 시내행 버스', 'https://ppoppo1971.github.io/VMAP/%EC%86%A1%EC%98%81%EB%B2%84%EC%8A%A4.pdf')" title="수정">수정</button>
                 <button class="swipe-delete-btn" onclick="deleteExistingItem('airportBus')" title="삭제">삭제</button>
               </div>
               <div class="checklist-item" data-item-id="sapporoArrival" data-item-type="existing">
@@ -2361,6 +2366,11 @@
         
         // 정보창을 지도 위에 표시
         document.body.appendChild(infoDiv);
+        
+        // 클릭 가능한 텍스트 끝에 ❗ 표시 추가
+        if (typeof appendExclamationToLinks === 'function') {
+          appendExclamationToLinks(infoDiv);
+        }
         
         // 저장된 체크박스 상태 복원
         setTimeout(() => {
@@ -5178,6 +5188,11 @@
         
         container.innerHTML = html;
         
+        // 클릭 가능한 텍스트 끝에 ❗ 표시 추가
+        if (typeof appendExclamationToLinks === 'function') {
+          appendExclamationToLinks(container);
+        }
+        
         // 스와이프 삭제 기능 초기화
         initializeSwipeDelete();
         
@@ -5238,6 +5253,27 @@
               this.style.transform = 'scale(1)';
             }, { passive: true });
           });
+        }
+      }
+      
+      // 클릭 가능한 텍스트(링크 역할) 끝에 ❗ 표시를 덧붙이는 함수
+      function appendExclamationToLinks(rootEl) {
+        try {
+          if (!rootEl) return;
+          const clickableSelectors = [
+            'span[onclick]',
+            'button.ticket-btn',
+            'a[href]'
+          ];
+          const nodes = rootEl.querySelectorAll(clickableSelectors.join(','));
+          nodes.forEach(node => {
+            const text = (node.textContent || '').trim();
+            if (!text) return;
+            if (text.endsWith('❗')) return;
+            node.textContent = text + ' ❗';
+          });
+        } catch (e) {
+          console.warn('링크 강조 처리 중 오류:', e);
         }
       }
       
