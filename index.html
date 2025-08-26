@@ -1231,6 +1231,9 @@
         // 저장된 사용자 경로들 복원
         restoreSavedUserRoutes();
         
+        // Firebase 실시간 동기화 설정
+        setupFirebaseSync();
+        
 
         
         // GeoJSON 스타일 설정 - 항로 스타일로 개선
@@ -1536,16 +1539,30 @@
       }
       
                     // 체크박스 상태 저장 함수
-       function saveCheckboxStates() {
+       async function saveCheckboxStates() {
          const checkboxes = document.querySelectorAll('.prep-checkbox');
          const states = {};
          checkboxes.forEach(checkbox => {
            states[checkbox.id] = checkbox.checked;
          });
-         localStorage.setItem('preparationCheckboxes', JSON.stringify(states));
          
-         // 사용자 추가 항목의 체크박스 상태도 업데이트
-         updateUserItemsCheckboxStates();
+         try {
+           // Firebase에 저장
+           await window.firestore.setDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+             preparationCheckboxes: states,
+             lastUpdated: window.firestore.serverTimestamp()
+           }, { merge: true });
+           
+           // 사용자 추가 항목의 체크박스 상태도 업데이트
+           updateUserItemsCheckboxStates();
+           
+           console.log('Firebase에 체크박스 상태 저장 완료');
+         } catch (error) {
+           console.error('Firebase 저장 실패:', error);
+           // 실패 시 localStorage에 백업
+           localStorage.setItem('preparationCheckboxes', JSON.stringify(states));
+           alert('Firebase 저장에 실패했습니다. 로컬에 백업되었습니다.');
+         }
        }
        
        // 사용자 추가 항목의 체크박스 상태 업데이트 함수
@@ -1562,20 +1579,40 @@
        }
        
              // 체크박스 상태 복원 함수
-      function restoreCheckboxStates() {
-        const savedStates = localStorage.getItem('preparationCheckboxes');
-        if (savedStates) {
-          const states = JSON.parse(savedStates);
-          Object.keys(states).forEach(id => {
-            const checkbox = document.getElementById(id);
-            if (checkbox) {
-              checkbox.checked = states[id];
+      async function restoreCheckboxStates() {
+        try {
+          const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.preparationCheckboxes) {
+              Object.keys(data.preparationCheckboxes).forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) {
+                  checkbox.checked = data.preparationCheckboxes[id];
+                }
+              });
             }
-          });
+          }
+          
+          // 사용자 추가 항목들 복원
+          restoreUserAddedItems();
+          
+          console.log('Firebase에서 체크박스 상태 복원 완료');
+        } catch (error) {
+          console.error('Firebase 로드 실패:', error);
+          // 실패 시 localStorage에서 복원
+          const savedStates = localStorage.getItem('preparationCheckboxes');
+          if (savedStates) {
+            const states = JSON.parse(savedStates);
+            Object.keys(states).forEach(id => {
+              const checkbox = document.getElementById(id);
+              if (checkbox) {
+                checkbox.checked = states[id];
+              }
+            });
+          }
+          restoreUserAddedItems();
         }
-        
-        // 사용자 추가 항목들 복원
-        restoreUserAddedItems();
       }
        
        // 사전준비 정보창 표시 함수
@@ -2000,7 +2037,7 @@
       }
       
              // 새 항목 추가 함수
-       function addNewItem() {
+       async function addNewItem() {
          const titleInput = document.getElementById('newItemTitle');
          const descriptionInput = document.getElementById('newItemDescription');
          const linkInput = document.getElementById('newItemLink');
@@ -2025,22 +2062,29 @@
            timestamp: new Date().toISOString()
          };
          
-         // 사용자 추가 항목 배열에 저장
-         let userItems = JSON.parse(localStorage.getItem('userAddedItems') || '[]');
-         userItems.push(newItem);
-         localStorage.setItem('userAddedItems', JSON.stringify(userItems));
-         
-         // 화면에 새 항목 표시
-         displayUserAddedItems();
-         
-         // 폼 초기화
-         clearForm();
-         
-         // 성공 메시지
-         alert('새 항목이 추가되었습니다!');
-         
-                   // 항목 추가 후 폼 자동 숨기기
-          hideAddForm();
+         try {
+           // Firebase에 저장
+           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+             userAddedItems: window.firestore.arrayUnion(newItem)
+           });
+           
+           // 화면에 새 항목 표시
+           displayUserAddedItems();
+           
+           // 폼 초기화
+           clearForm();
+           
+           // 성공 메시지
+           alert('새 항목이 추가되었습니다!');
+           
+           // 항목 추가 후 폼 자동 숨기기
+           hideAddForm();
+           
+           console.log('Firebase에 새 항목 저장 완료');
+         } catch (error) {
+           console.error('Firebase 저장 실패:', error);
+           alert('항목 추가에 실패했습니다. 다시 시도해주세요.');
+         }
        }
       
       // 폼 지우기 함수
@@ -3010,8 +3054,117 @@
           });
         });
       }
+      
+      // Firebase 실시간 동기화 설정
+      function setupFirebaseSync() {
+        try {
+          window.firestore.onSnapshot(window.firestore.doc(window.db, 'users', 'currentUser'), (doc) => {
+            if (doc.exists()) {
+              const data = doc.data();
+              
+              // 체크박스 상태 동기화
+              if (data.preparationCheckboxes) {
+                Object.keys(data.preparationCheckboxes).forEach(id => {
+                  const checkbox = document.getElementById(id);
+                  if (checkbox && checkbox.checked !== data.preparationCheckboxes[id]) {
+                    checkbox.checked = data.preparationCheckboxes[id];
+                  }
+                });
+              }
+              
+              // 사용자 추가 항목 동기화
+              if (data.userAddedItems) {
+                displayUserAddedItemsFromFirebase(data.userAddedItems);
+              }
+            }
+          }, (error) => {
+            console.error('Firebase 실시간 동기화 오류:', error);
+          });
+          
+          console.log('Firebase 실시간 동기화 설정 완료');
+        } catch (error) {
+          console.error('Firebase 동기화 설정 실패:', error);
+        }
+      }
+      
+      // Firebase에서 사용자 추가 항목 표시
+      function displayUserAddedItemsFromFirebase(userItems) {
+        const container = document.getElementById('userAddedItems');
+        if (!container) return;
+        
+        if (userItems.length === 0) {
+          container.innerHTML = '';
+          return;
+        }
+        
+        let html = '';
+        userItems.forEach(item => {
+          const titleElement = item.link 
+            ? `<span onclick="openUserItemLink('${item.link}')" style="cursor: pointer; color: #1d4ed8; text-decoration: underline;"><strong>${item.title}</strong></span>`
+            : `<strong>${item.title}</strong>`;
+          
+          html += `
+            <div class="user-added-item" data-item-id="${item.id}">
+              <div class="item-content">
+                <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
+                <span>${titleElement} - ${item.description}</span>
+                <button class="delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">×</button>
+              </div>
+              <button class="swipe-delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">삭제</button>
+            </div>
+          `;
+        });
+        
+        container.innerHTML = html;
+        
+        // 스와이프 삭제 기능 초기화
+        initializeSwipeDelete();
+      }
     </script>
 
+         <!-- Firebase SDK 스크립트 -->
+     <script type="module">
+       // Import the functions you need from the SDKs you need
+       import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+       import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
+       import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+       // TODO: Add SDKs for Firebase products that you want to use
+       // https://firebase.google.com/docs/web/setup#available-libraries
+
+       // Your web app's Firebase configuration
+       // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+       const firebaseConfig = {
+         apiKey: "AIzaSyBhndv9tfh_Uu8Nkm7AZxjRCNIgvnGEj_c",
+         authDomain: "travelplan250826.firebaseapp.com",
+         projectId: "travelplan250826",
+         storageBucket: "travelplan250826.firebasestorage.app",
+         messagingSenderId: "918345537744",
+         appId: "1:918345537744:web:08d0daace8cb0ec021e6d5",
+         measurementId: "G-18R59NTNBT"
+       };
+
+       // Initialize Firebase
+       const app = initializeApp(firebaseConfig);
+       const analytics = getAnalytics(app);
+       
+       // Initialize Firestore
+       const db = getFirestore(app);
+       
+       console.log('Firebase Firestore 연결 완료!');
+       
+       // 전역 변수로 db를 사용할 수 있도록 설정
+       window.db = db;
+       window.firestore = {
+         collection,
+         doc,
+         setDoc,
+         getDoc,
+         updateDoc,
+         arrayUnion,
+         onSnapshot,
+         serverTimestamp
+       };
+     </script>
     
     <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg&libraries=geometry&callback=initMap" async defer></script>
