@@ -2793,6 +2793,12 @@
           // 마커가 생성되어 있고 "마커완성" 상태라면 저장 다이얼로그 표시
           if (customMarkers.length > 0) {
             showMarkerSaveDialog();
+            // 마커 모드 비활성화하여 더 이상 마커 생성 방지
+            isMarkerMode = false;
+            const markerBtn = document.getElementById('topMarkerBtn');
+            markerBtn.textContent = '마커생성';
+            markerBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+            markerBtn.style.color = '#1a1a1a';
             return;
           }
           
@@ -3398,6 +3404,15 @@
         if (dialog) {
           dialog.remove();
         }
+        
+        // 다이얼로그가 닫힐 때 마커 모드가 완전히 비활성화되었는지 확인
+        if (isMarkerMode) {
+          isMarkerMode = false;
+          const markerBtn = document.getElementById('topMarkerBtn');
+          markerBtn.textContent = '마커생성';
+          markerBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+          markerBtn.style.color = '#1a1a1a';
+        }
       }
       
       // 선택된 위치에 마커 저장
@@ -3462,14 +3477,16 @@
         });
         customMarkers = [];
         
-        // 마커 모드 비활성화
-        isMarkerMode = false;
-        
-        // 버튼 상태 복원
-        const markerBtn = document.getElementById('topMarkerBtn');
-        markerBtn.textContent = '마커생성';
-        markerBtn.style.background = 'rgba(255, 255, 255, 0.12)';
-        markerBtn.style.color = '#1a1a1a';
+        // 마커 모드가 아직 활성화되어 있다면 비활성화 (중복 방지)
+        if (isMarkerMode) {
+          isMarkerMode = false;
+          
+          // 버튼 상태 복원
+          const markerBtn = document.getElementById('topMarkerBtn');
+          markerBtn.textContent = '마커생성';
+          markerBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+          markerBtn.style.color = '#1a1a1a';
+        }
         
         // 다이얼로그 닫기
         closeMarkerSaveDialog();
