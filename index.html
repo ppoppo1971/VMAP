@@ -12,17 +12,12 @@
             padding: 0;
             overflow: hidden;
             -webkit-overflow-scrolling: touch;
-            width: 100%;
-            max-width: 100%;
-            box-sizing: border-box;
         }
         #map {
-            width: 100%;
+            width: 100vw;
             height: 100vh;
             min-height: 100%;
             touch-action: manipulation;
-            max-width: 100%;
-            box-sizing: border-box;
         }
         h1 {
             display: none;
@@ -290,21 +285,6 @@
             padding: 10px 12px;
         }
         
-        /* 모바일에서 가로 스크롤 방지 */
-        * {
-            box-sizing: border-box;
-        }
-        
-        body {
-            overflow-x: hidden;
-            position: relative;
-        }
-        
-        #map {
-            overflow-x: hidden;
-            position: relative;
-        }
-        
         /* 모바일 최적화를 위한 미디어 쿼리 */
         @media (max-width: 768px) {
             #customMapMenu {
@@ -438,21 +418,6 @@
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
-            box-sizing: border-box;
-        }
-        
-        /* 모바일에서 가로 스크롤 완전 차단 */
-        html, body {
-            overflow-x: hidden !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            position: relative !important;
-        }
-        
-        /* 모든 컨테이너 요소에 가로 스크롤 방지 */
-        div, section, main, article {
-            max-width: 100% !important;
-            overflow-x: hidden !important;
         }
         
         /* 스크롤바 숨기기 */
@@ -467,16 +432,6 @@
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
-            overflow-x: hidden !important;
-            max-width: 100% !important;
-            width: 100% !important;
-        }
-        
-        /* 모바일에서 사이드바와 메뉴 요소들의 가로 스크롤 방지 */
-        #customMapMenu, #mapTypeSelector, #preparationInfo, #routeSaveDialog {
-            max-width: 100% !important;
-            overflow-x: hidden !important;
-            box-sizing: border-box !important;
         }
         
         /* 항공권 마커 색상 필터 - 짙은 파란색 */
@@ -640,41 +595,51 @@
         }
         
         /* 모바일 최적화 */
-                 @media (max-width: 768px) {
-             #preparationInfo {
-                 width: 350px;
-                 left: 50% !important;
-                 transform: translateX(-50%);
-                 top: 80px !important;
-             }
-             
-             #routeSaveDialog {
-                 width: 350px;
-                 left: 50% !important;
-                 transform: translateX(-50%);
-                 top: 80px !important;
-             }
-         }
+        @media (max-width: 768px) {
+            #preparationInfo {
+                width: 350px;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                top: 80px !important;
+                max-width: 90vw;
+                margin: 0 auto;
+            }
+            
+            #routeSaveDialog {
+                width: 350px;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                top: 80px !important;
+                max-width: 90vw;
+                margin: 0 auto;
+            }
+        }
         
-                 @media (max-width: 480px) {
-             #preparationInfo {
-                 width: 320px;
-                 top: 70px !important;
-             }
-             
-             #routeSaveDialog {
-                 width: 320px;
-                 top: 70px !important;
-             }
-             
-             .info-content {
-                 padding: 16px;
-             }
-             
-             .info-header {
-                 padding: 14px 16px;
-             }
-         }
+        @media (max-width: 480px) {
+            #preparationInfo {
+                width: 320px;
+                top: 70px !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                max-width: 95vw;
+            }
+            
+            #routeSaveDialog {
+                width: 320px;
+                top: 70px !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                max-width: 95vw;
+            }
+            
+            .info-content {
+                padding: 16px;
+            }
+            
+            .info-header {
+                padding: 14px 16px;
+            }
+        }
         
         /* 체크리스트 스타일 */
         .checklist-item {
@@ -1744,13 +1709,25 @@
             restoreCheckboxStates();
           }, 50);
           
-          // 정보창 위치 조정
-          setTimeout(() => {
-            const menu = document.getElementById('customMapMenu');
-            const menuRect = menu.getBoundingClientRect();
+                  // 정보창 위치 조정 - 모바일 최적화
+        setTimeout(() => {
+          const menu = document.getElementById('customMapMenu');
+          const menuRect = menu.getBoundingClientRect();
+          const mapElement = document.getElementById('map');
+          const mapRect = mapElement.getBoundingClientRect();
+          
+          if (isMobile) {
+            // 모바일: 화면 중앙에 표시
+            infoDiv.style.left = '50%';
+            infoDiv.style.transform = 'translateX(-50%)';
+            infoDiv.style.top = '80px';
+          } else {
+            // 데스크톱: 사이드메뉴 오른쪽에 표시
             infoDiv.style.left = (menuRect.right + 10) + 'px';
             infoDiv.style.top = menuRect.top + 'px';
-          }, 100);
+            infoDiv.style.transform = 'none';
+          }
+        }, 100);
         }
       
       // 사전준비 정보창 닫기 함수
@@ -1860,12 +1837,24 @@
           restoreCheckboxStates();
         }, 50);
         
-        // 정보창 위치 조정
+        // 정보창 위치 조정 - 모바일 최적화
         setTimeout(() => {
           const menu = document.getElementById('customMapMenu');
           const menuRect = menu.getBoundingClientRect();
-          infoDiv.style.left = (menuRect.right + 10) + 'px';
-          infoDiv.style.top = menuRect.top + 'px';
+          const mapElement = document.getElementById('map');
+          const mapRect = mapElement.getBoundingClientRect();
+          
+          if (isMobile) {
+            // 모바일: 화면 중앙에 표시
+            infoDiv.style.left = '50%';
+            infoDiv.style.transform = 'translateX(-50%)';
+            infoDiv.style.top = '80px';
+          } else {
+            // 데스크톱: 사이드메뉴 오른쪽에 표시
+            infoDiv.style.left = (menuRect.right + 10) + 'px';
+            infoDiv.style.top = menuRect.top + 'px';
+            infoDiv.style.transform = 'none';
+          }
         }, 100);
       }
       
@@ -1912,12 +1901,22 @@
         // 상세 정보창을 지도 위에 표시
         document.body.appendChild(detailedDiv);
         
-        // 상세 정보창 위치 조정 (중앙에 표시)
+        // 상세 정보창 위치 조정 - 모바일 최적화
         setTimeout(() => {
           const mapElement = document.getElementById('map');
           const mapRect = mapElement.getBoundingClientRect();
-          detailedDiv.style.left = (mapRect.width / 2 - 200) + 'px';
-          detailedDiv.style.top = (mapRect.height / 2 - 200) + 'px';
+          
+          if (isMobile) {
+            // 모바일: 화면 중앙에 표시
+            detailedDiv.style.left = '50%';
+            detailedDiv.style.transform = 'translateX(-50%)';
+            detailedDiv.style.top = '80px';
+          } else {
+            // 데스크톱: 지도 중앙에 표시
+            detailedDiv.style.left = (mapRect.width / 2 - 200) + 'px';
+            detailedDiv.style.top = (mapRect.height / 2 - 200) + 'px';
+            detailedDiv.style.transform = 'none';
+          }
         }, 100);
       }
       
@@ -2067,12 +2066,22 @@
         // 예약확인서 창을 지도 위에 표시
         document.body.appendChild(reservationDiv);
         
-        // 예약확인서 창 위치 조정 (중앙에 표시)
+        // 예약확인서 창 위치 조정 - 모바일 최적화
         setTimeout(() => {
           const mapElement = document.getElementById('map');
           const mapRect = mapElement.getBoundingClientRect();
-          reservationDiv.style.left = (mapRect.width / 2 - 200) + 'px';
-          reservationDiv.style.top = (mapRect.height / 2 - 250) + 'px';
+          
+          if (isMobile) {
+            // 모바일: 화면 중앙에 표시
+            reservationDiv.style.left = '50%';
+            reservationDiv.style.transform = 'translateX(-50%)';
+            reservationDiv.style.top = '80px';
+          } else {
+            // 데스크톱: 지도 중앙에 표시
+            reservationDiv.style.left = (mapRect.width / 2 - 200) + 'px';
+            reservationDiv.style.top = (mapRect.height / 2 - 250) + 'px';
+            reservationDiv.style.transform = 'none';
+          }
         }, 100);
       }
       
@@ -2621,12 +2630,22 @@
         // 다이얼로그를 지도 위에 표시
         document.body.appendChild(dialogDiv);
         
-        // 다이얼로그 위치 조정 (중앙에 표시)
+        // 다이얼로그 위치 조정 - 모바일 최적화
         setTimeout(() => {
           const mapElement = document.getElementById('map');
           const mapRect = mapElement.getBoundingClientRect();
-          dialogDiv.style.left = (mapRect.width / 2 - 200) + 'px';
-          dialogDiv.style.top = (mapRect.height / 2 - 150) + 'px';
+          
+          if (isMobile) {
+            // 모바일: 화면 중앙에 표시
+            dialogDiv.style.left = '50%';
+            dialogDiv.style.transform = 'translateX(-50%)';
+            dialogDiv.style.top = '80px';
+          } else {
+            // 데스크톱: 지도 중앙에 표시
+            dialogDiv.style.left = (mapRect.width / 2 - 200) + 'px';
+            dialogDiv.style.top = (mapRect.height / 2 - 150) + 'px';
+            dialogDiv.style.transform = 'none';
+          }
         }, 100);
       }
       
@@ -2979,12 +2998,22 @@
 
         document.body.appendChild(dialog);
 
-        // 위치 중앙 배치
+        // 위치 중앙 배치 - 모바일 최적화
         setTimeout(function () {
           var mapEl = document.getElementById('map');
           var rect = mapEl.getBoundingClientRect();
-          dialog.style.left = (rect.width / 2 - 160) + 'px';
-          dialog.style.top = (rect.height / 2 - 160) + 'px';
+          
+          if (isMobile) {
+            // 모바일: 화면 중앙에 표시
+            dialog.style.left = '50%';
+            dialog.style.transform = 'translateX(-50%)';
+            dialog.style.top = '80px';
+          } else {
+            // 데스크톱: 지도 중앙에 표시
+            dialog.style.left = (rect.width / 2 - 160) + 'px';
+            dialog.style.top = (rect.height / 2 - 160) + 'px';
+            dialog.style.transform = 'none';
+          }
         }, 50);
 
         // 리스트 렌더링
