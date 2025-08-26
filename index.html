@@ -1057,6 +1057,25 @@
         .route-remove-btn:active {
             transform: translateY(0);
         }
+        
+        /* 경로/마커 제거 버튼 컨테이너 스타일 */
+        #preparationRemoveButtons .route-remove-btn,
+        #day1RemoveButtons .route-remove-btn {
+            width: auto;
+            flex: 1;
+            min-width: 0;
+            padding: 10px 12px;
+            font-size: 0.9rem;
+        }
+        
+        /* 모바일에서 버튼 크기 최적화 */
+        @media (max-width: 768px) {
+            #preparationRemoveButtons .route-remove-btn,
+            #day1RemoveButtons .route-remove-btn {
+                padding: 8px 10px;
+                font-size: 0.85rem;
+            }
+        }
 
     </style>
 </head>
@@ -1760,15 +1779,34 @@
         syncSidePanelWithTop(currentMapType);
       }
       
-                    // 체크박스 상태 저장 함수
+                    // 체크박스 상태 저장 함수 (개선된 버전)
        async function saveCheckboxStates() {
+         // 동기화 중이면 무시 (무한 루프 방지)
+         if (isSyncing) {
+           console.log('동기화 중이므로 체크박스 저장 건너뜀');
+           return;
+         }
+         
          const checkboxes = document.querySelectorAll('.prep-checkbox');
          const states = {};
          checkboxes.forEach(checkbox => {
            states[checkbox.id] = checkbox.checked;
          });
          
+         // 현재 localStorage와 비교하여 변경사항이 있는지 확인
+         const currentStates = JSON.parse(localStorage.getItem('preparationCheckboxes') || '{}');
+         const hasChanges = JSON.stringify(currentStates) !== JSON.stringify(states);
+         
+         if (!hasChanges) {
+           console.log('체크박스 상태 변경 없음 - 저장 건너뜀');
+           return;
+         }
+         
          try {
+           // 동기화 상태 설정
+           isSyncing = true;
+           updateSyncStatus('체크박스 저장 중...', 'info');
+           
            // Firebase에 저장
            await window.firestore.setDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
              preparationCheckboxes: states,
@@ -1778,12 +1816,27 @@
            // 사용자 추가 항목의 체크박스 상태도 업데이트
            updateUserItemsCheckboxStates();
            
+           // localStorage 업데이트
+           localStorage.setItem('preparationCheckboxes', JSON.stringify(states));
+           
            console.log('Firebase에 체크박스 상태 저장 완료');
+           updateSyncStatus('체크박스 저장 완료', 'success');
+           
          } catch (error) {
            console.error('Firebase 저장 실패:', error);
            // 실패 시 localStorage에 백업
            localStorage.setItem('preparationCheckboxes', JSON.stringify(states));
-           alert('Firebase 저장에 실패했습니다. 로컬에 백업되었습니다.');
+           updateSyncStatus('저장 실패 - 로컬 백업', 'error');
+           
+           // 사용자에게 알림 (alert 대신 상태 표시기 사용)
+           setTimeout(() => {
+             updateSyncStatus('Firebase 연결 실패', 'error');
+           }, 2000);
+         } finally {
+           // 동기화 상태 해제 (지연을 두어 onSnapshot과의 충돌 방지)
+           setTimeout(() => {
+             isSyncing = false;
+           }, 500);
          }
        }
        
@@ -1970,24 +2023,15 @@
                  </div>
               </div>
               
-              <!-- 저장된 경로 섹션 추가 -->
+              <!-- 저장된 경로/마커 제거 버튼 섹션 -->
               <div class="info-section">
-                <h4>🗺️ 저장된 경로</h4>
-                <div id="preparationRouteRemoveBtn" style="display: none;">
-                  <button class="route-remove-btn" onclick="removeRoutesByLocation('사전준비')">경로제거</button>
-                  <p style="font-size: 0.63rem; color: #6b7280; margin-top: 4px;">
-                    사전준비에 저장된 경로들을 제거합니다.
-                  </p>
-                </div>
-              </div>
-              
-              <!-- 저장된 마커 섹션 추가 -->
-              <div class="info-section">
-                <h4>📍 저장된 마커</h4>
-                <div id="preparationMarkerRemoveBtn" style="display: none;">
-                  <button class="route-remove-btn" onclick="removeMarkersByLocation('사전준비')">마커제거</button>
-                  <p style="font-size: 0.63rem; color: #6b7280; margin-top: 4px;">
-                    사전준비에 저장된 마커들을 제거합니다.
+                <div id="preparationRemoveButtons" style="display: none;">
+                  <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <button class="route-remove-btn" onclick="removeRoutesByLocation('사전준비')" style="flex: 1;">경로제거</button>
+                    <button class="route-remove-btn" onclick="removeMarkersByLocation('사전준비')" style="flex: 1;">마커제거</button>
+                  </div>
+                  <p style="font-size: 0.63rem; color: #6b7280; margin: 0;">
+                    사전준비에 저장된 경로와 마커를 제거합니다.
                   </p>
                 </div>
               </div>
@@ -2112,23 +2156,15 @@
                </div>
              </div>
              
+             <!-- 저장된 경로/마커 제거 버튼 섹션 -->
              <div class="info-section">
-               <h4>🗺️ 저장된 경로</h4>
-               <div id="day1RouteRemoveBtn" style="display: none;">
-                 <button class="route-remove-btn" onclick="removeRoutesByLocation('1일차')">경로제거</button>
-                 <p style="font-size: 0.63rem; color: #6b7280; margin-top: 4px;">
-                   1일차에 저장된 경로들을 제거합니다.
-                 </p>
-               </div>
-             </div>
-             
-             <!-- 저장된 마커 섹션 추가 -->
-             <div class="info-section">
-               <h4>📍 저장된 마커</h4>
-               <div id="day1MarkerRemoveBtn" style="display: none;">
-                 <button class="route-remove-btn" onclick="removeMarkersByLocation('1일차')">마커제거</button>
-                 <p style="font-size: 0.63rem; color: #6b7280; margin-top: 4px;">
-                   1일차에 저장된 마커들을 제거합니다.
+               <div id="day1RemoveButtons" style="display: none;">
+                 <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                   <button class="route-remove-btn" onclick="removeRoutesByLocation('1일차')" style="flex: 1;">경로제거</button>
+                   <button class="route-remove-btn" onclick="removeMarkersByLocation('1일차')" style="flex: 1;">마커제거</button>
+                 </div>
+                 <p style="font-size: 0.63rem; color: #6b7280; margin: 0;">
+                   1일차에 저장된 경로와 마커를 제거합니다.
                  </p>
                </div>
              </div>
@@ -2401,7 +2437,7 @@
         window.print();
       }
       
-             // 새 항목 추가 함수
+             // 새 항목 추가 함수 (개선된 버전)
        async function addNewItem() {
          const titleInput = document.getElementById('newItemTitle');
          const descriptionInput = document.getElementById('newItemDescription');
@@ -2412,8 +2448,14 @@
          const link = linkInput.value.trim();
          
          if (!title) {
-           alert('항목 제목을 입력해주세요.');
+           updateSyncStatus('항목 제목을 입력해주세요', 'error');
            titleInput.focus();
+           return;
+         }
+         
+         // 동기화 중이면 무시
+         if (isSyncing) {
+           updateSyncStatus('동기화 중입니다. 잠시 후 다시 시도해주세요', 'warning');
            return;
          }
          
@@ -2428,27 +2470,48 @@
          };
          
          try {
+           // 동기화 상태 설정
+           isSyncing = true;
+           updateSyncStatus('새 항목 저장 중...', 'info');
+           
            // Firebase에 저장
            await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
              userAddedItems: window.firestore.arrayUnion(newItem)
            });
            
-           // Firebase 동기화가 완료될 때까지 잠시 대기 (중복 표시 방지)
-           await new Promise(resolve => setTimeout(resolve, 100));
-           
            // 폼 초기화
            clearForm();
            
            // 성공 메시지
-           alert('새 항목이 추가되었습니다!');
+           updateSyncStatus('새 항목이 추가되었습니다!', 'success');
            
            // 항목 추가 후 폼 자동 숨기기
            hideAddForm();
            
-           console.log('Firebase에 새 항목 저장 완료 - 동기화 대기 중');
+           console.log('Firebase에 새 항목 저장 완료');
+           
          } catch (error) {
            console.error('Firebase 저장 실패:', error);
-           alert('항목 추가에 실패했습니다. 다시 시도해주세요.');
+           updateSyncStatus('항목 추가에 실패했습니다', 'error');
+           
+           // 로컬에 임시 저장 (나중에 동기화)
+           const currentItems = JSON.parse(localStorage.getItem('userAddedItems') || '[]');
+           currentItems.push(newItem);
+           localStorage.setItem('userAddedItems', JSON.stringify(currentItems));
+           
+           // UI 업데이트
+           displayUserAddedItems();
+           
+           // 폼 초기화 및 숨기기
+           clearForm();
+           hideAddForm();
+           
+           updateSyncStatus('로컬에 저장됨 - 나중에 동기화', 'warning');
+         } finally {
+           // 동기화 상태 해제 (지연을 두어 onSnapshot과의 충돌 방지)
+           setTimeout(() => {
+             isSyncing = false;
+           }, 500);
          }
        }
       
@@ -2498,9 +2561,15 @@
       
 
       
-      // 사용자 추가 항목 삭제 함수
-      async function deleteUserItem(itemId) { // Make it async
+      // 사용자 추가 항목 삭제 함수 (개선된 버전)
+      async function deleteUserItem(itemId) {
         if (!confirm('이 항목을 삭제하시겠습니까?')) {
+          return;
+        }
+        
+        // 동기화 중이면 무시
+        if (isSyncing) {
+          updateSyncStatus('동기화 중입니다. 잠시 후 다시 시도해주세요', 'warning');
           return;
         }
         
@@ -2509,37 +2578,52 @@
         const updatedUserItems = userItems.filter(item => item.id !== itemId);
         
         try {
+          // 동기화 상태 설정
+          isSyncing = true;
+          updateSyncStatus('항목 삭제 중...', 'info');
+          
           // Firebase에서 항목 제거
           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
-            userAddedItems: updatedUserItems, // Overwrite with the filtered array
+            userAddedItems: updatedUserItems,
             lastUpdated: window.firestore.serverTimestamp()
           });
           
           // Firebase에서 해당 항목의 체크박스 상태도 제거
           const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
           if (docSnap.exists() && docSnap.data().preparationCheckboxes) {
-            const currentCheckboxStates = { ...docSnap.data().preparationCheckboxes }; // Create a copy
-            delete currentCheckboxStates[itemId]; // Remove the checkbox state for the deleted item
+            const currentCheckboxStates = { ...docSnap.data().preparationCheckboxes };
+            delete currentCheckboxStates[itemId];
             await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
               preparationCheckboxes: currentCheckboxStates,
               lastUpdated: window.firestore.serverTimestamp()
             });
           }
           
-          // localStorage에서도 항목 제거 (즉각적인 UI 업데이트를 위해)
+          // localStorage에서도 항목 제거
           localStorage.setItem('userAddedItems', JSON.stringify(updatedUserItems));
-          
-          // Firebase 동기화가 완료될 때까지 잠시 대기 (중복 표시 방지)
-          await new Promise(resolve => setTimeout(resolve, 100));
           
           // 화면에서 항목 제거
           displayUserAddedItems();
           
-          alert('항목이 삭제되었습니다.');
+          updateSyncStatus('항목이 삭제되었습니다', 'success');
           console.log('Firebase 및 localStorage에서 항목 삭제 완료');
+          
         } catch (error) {
           console.error('Firebase 삭제 실패:', error);
-          alert('항목 삭제에 실패했습니다. 로컬에만 반영되었습니다. Firebase 동기화 시 데이터가 다시 나타날 수 있습니다.');
+          updateSyncStatus('삭제 실패 - 로컬에만 반영', 'error');
+          
+          // 로컬에서만 삭제 (나중에 동기화)
+          localStorage.setItem('userAddedItems', JSON.stringify(updatedUserItems));
+          displayUserAddedItems();
+          
+          setTimeout(() => {
+            updateSyncStatus('Firebase 연결 실패', 'error');
+          }, 2000);
+        } finally {
+          // 동기화 상태 해제 (지연을 두어 onSnapshot과의 충돌 방지)
+          setTimeout(() => {
+            isSyncing = false;
+          }, 500);
         }
       }
       
@@ -2748,9 +2832,12 @@
       
 
       
-      // 페이지 로드 시 모바일 최적화 적용
+      // 페이지 로드 시 모바일 최적화 및 동기화 상태 확인
       document.addEventListener('DOMContentLoaded', function() {
         optimizeForMobile();
+        
+        // 동기화 상태 초기화
+        initializeSyncSystem();
         
         // 모바일에서 추가 최적화
         if (isMobile) {
@@ -2786,6 +2873,64 @@
           console.log('뷰포트 크기:', window.innerWidth + 'x' + window.innerHeight);
         }
       });
+      
+      // 동기화 시스템 초기화
+      function initializeSyncSystem() {
+        // 네트워크 상태 모니터링
+        window.addEventListener('online', function() {
+          console.log('네트워크 연결됨 - 동기화 재시도');
+          updateSyncStatus('네트워크 연결됨 - 동기화 재시도', 'info');
+          
+          // Firebase 동기화 재설정
+          if (window.unsubscribeFirebase) {
+            window.unsubscribeFirebase();
+          }
+          setTimeout(() => {
+            setupFirebaseSync();
+          }, 1000);
+        });
+        
+        window.addEventListener('offline', function() {
+          console.log('네트워크 연결 끊김 - 오프라인 모드');
+          updateSyncStatus('네트워크 연결 끊김 - 오프라인 모드', 'warning');
+          enableOfflineMode();
+        });
+        
+        // 페이지 가시성 변경 시 동기화 상태 확인
+        document.addEventListener('visibilitychange', function() {
+          if (!document.hidden && navigator.onLine) {
+            console.log('페이지 가시성 변경 - 동기화 상태 확인');
+            updateSyncStatus('동기화 상태 확인 중...', 'info');
+            
+            // Firebase 연결 상태 확인
+            setTimeout(() => {
+              if (window.db) {
+                updateSyncStatus('동기화 연결됨', 'success');
+              } else {
+                updateSyncStatus('동기화 연결 실패', 'error');
+              }
+            }, 1000);
+          }
+        });
+        
+        // 주기적 동기화 상태 확인 (5분마다)
+        setInterval(() => {
+          if (navigator.onLine && window.db && !isSyncing) {
+            console.log('주기적 동기화 상태 확인');
+            updateSyncStatus('동기화 상태 확인 중...', 'info');
+            
+            // 간단한 연결 테스트
+            window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'))
+              .then(() => {
+                updateSyncStatus('동기화 정상', 'success');
+              })
+              .catch(() => {
+                updateSyncStatus('동기화 연결 실패', 'error');
+                enableOfflineMode();
+              });
+          }
+        }, 5 * 60 * 1000); // 5분
+      }
       
       // 마커생성 모드 토글 함수
       function toggleMarkerMode() {
@@ -3282,10 +3427,16 @@
         }
       }
       
-      // 선택된 위치에 경로 저장
+      // 선택된 위치에 경로 저장 (개선된 버전)
       async function saveRouteToLocation(location) {
         if (userRouteMarkers.length < 2) {
-          alert('경로를 생성하려면 최소 2개의 위치가 필요합니다.');
+          updateSyncStatus('경로를 생성하려면 최소 2개의 위치가 필요합니다', 'error');
+          return;
+        }
+        
+        // 동기화 중이면 무시
+        if (isSyncing) {
+          updateSyncStatus('동기화 중입니다. 잠시 후 다시 시도해주세요', 'warning');
           return;
         }
         
@@ -3303,6 +3454,10 @@
         };
         
         try {
+          // 동기화 상태 설정
+          isSyncing = true;
+          updateSyncStatus('경로 저장 중...', 'info');
+          
           // Firebase에 저장
           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
             savedUserRoutes: window.firestore.arrayUnion(routeData),
@@ -3318,8 +3473,11 @@
           localStorage.setItem('savedUserRoutes', JSON.stringify(savedRoutes));
           
           console.log('Firebase에 경로 저장 완료');
+          updateSyncStatus('경로 저장 완료', 'success');
+          
         } catch (error) {
           console.error('Firebase 저장 실패:', error);
+          updateSyncStatus('Firebase 저장 실패 - 로컬에 백업', 'warning');
           
           // Firebase 실패 시 localStorage에만 저장
           let savedRoutes = JSON.parse(localStorage.getItem('savedUserRoutes') || '[]');
@@ -3329,7 +3487,14 @@
           // 전역 변수에 추가
           savedUserRoutes.push(routeData);
           
-          alert('Firebase 저장에 실패했습니다. 로컬에 백업되었습니다.');
+          setTimeout(() => {
+            updateSyncStatus('Firebase 연결 실패', 'error');
+          }, 2000);
+        } finally {
+          // 동기화 상태 해제 (지연을 두어 onSnapshot과의 충돌 방지)
+          setTimeout(() => {
+            isSyncing = false;
+          }, 500);
         }
         
         // 임시 마커들 제거
@@ -3359,9 +3524,6 @@
         
         // 다이얼로그 닫기
         closeRouteSaveDialog();
-        
-        // 성공 메시지
-        alert(`경로가 "${location}"에 저장되었습니다!`);
         
         // 저장된 경로들 다시 그리기
         drawAllSavedRoutes();
@@ -3494,9 +3656,16 @@
       }
       
       // 선택된 위치에 마커 저장
+      // 선택된 위치에 마커 저장 (개선된 버전)
       async function saveMarkersToLocation(location) {
         if (customMarkers.length === 0) {
-          alert('저장할 마커가 없습니다.');
+          updateSyncStatus('저장할 마커가 없습니다', 'error');
+          return;
+        }
+        
+        // 동기화 중이면 무시
+        if (isSyncing) {
+          updateSyncStatus('동기화 중입니다. 잠시 후 다시 시도해주세요', 'warning');
           return;
         }
         
@@ -3514,6 +3683,10 @@
         };
         
         try {
+          // 동기화 상태 설정
+          isSyncing = true;
+          updateSyncStatus('마커 저장 중...', 'info');
+          
           // Firebase에 저장
           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
             savedUserMarkers: window.firestore.arrayUnion(markerData),
@@ -3532,8 +3705,11 @@
           localStorage.setItem('savedUserMarkers', JSON.stringify(savedMarkers));
           
           console.log('Firebase에 마커 저장 완료');
+          updateSyncStatus('마커 저장 완료', 'success');
+          
         } catch (error) {
           console.error('Firebase 저장 실패:', error);
+          updateSyncStatus('Firebase 저장 실패 - 로컬에 백업', 'warning');
           
           // Firebase 실패 시 localStorage에만 저장
           let savedMarkers = JSON.parse(localStorage.getItem('savedUserMarkers') || '[]');
@@ -3546,7 +3722,14 @@
           }
           window.savedUserMarkers.push(markerData);
           
-          alert('Firebase 저장에 실패했습니다. 로컬에 백업되었습니다.');
+          setTimeout(() => {
+            updateSyncStatus('Firebase 연결 실패', 'error');
+          }, 2000);
+        } finally {
+          // 동기화 상태 해제 (지연을 두어 onSnapshot과의 충돌 방지)
+          setTimeout(() => {
+            isSyncing = false;
+          }, 500);
         }
         
         // 임시 마커들 제거
@@ -3568,9 +3751,6 @@
         
         // 다이얼로그 닫기
         closeMarkerSaveDialog();
-        
-        // 성공 메시지
-        alert(`마커가 "${location}"에 저장되었습니다!`);
         
         // 저장된 마커들 다시 그리기
         drawAllSavedMarkers();
@@ -3882,38 +4062,29 @@
          closePreparationInfo();
        }
        
-       // 경로제거 버튼들을 동적으로 표시/숨김하는 함수
+       // 경로/마커 제거 버튼들을 동적으로 표시/숨김하는 함수
        function updateRouteRemoveButtons() {
-         // 사전준비 경로제거 버튼
-         const prepBtn = document.getElementById('preparationRouteRemoveBtn');
+         // 사전준비 경로/마커 제거 버튼
+         const prepBtn = document.getElementById('preparationRemoveButtons');
          if (prepBtn) {
            const prepRoutes = savedUserRoutes.filter(route => route.location === '사전준비');
-           prepBtn.style.display = prepRoutes.length > 0 ? 'block' : 'none';
+           const prepMarkers = (window.savedUserMarkers || []).filter(marker => marker.location === '사전준비');
+           prepBtn.style.display = (prepRoutes.length > 0 || prepMarkers.length > 0) ? 'block' : 'none';
          }
          
-         // 1일차 경로제거 버튼
-         const day1Btn = document.getElementById('day1RouteRemoveBtn');
+         // 1일차 경로/마커 제거 버튼
+         const day1Btn = document.getElementById('day1RemoveButtons');
          if (day1Btn) {
            const day1Routes = savedUserRoutes.filter(route => route.location === '1일차');
-           day1Btn.style.display = day1Routes.length > 0 ? 'block' : 'none';
+           const day1Markers = (window.savedUserMarkers || []).filter(marker => marker.location === '1일차');
+           day1Btn.style.display = (day1Routes.length > 0 || day1Markers.length > 0) ? 'block' : 'none';
          }
        }
        
-       // 마커제거 버튼들을 동적으로 표시/숨김하는 함수
+       // 마커제거 버튼들을 동적으로 표시/숨김하는 함수 (하위 호환성을 위해 유지)
        function updateMarkerRemoveButtons() {
-         // 사전준비 마커제거 버튼
-         const prepBtn = document.getElementById('preparationMarkerRemoveBtn');
-         if (prepBtn) {
-           const prepMarkers = (window.savedUserMarkers || []).filter(marker => marker.location === '사전준비');
-           prepBtn.style.display = prepMarkers.length > 0 ? 'block' : 'none';
-         }
-         
-         // 1일차 마커제거 버튼
-         const day1Btn = document.getElementById('day1MarkerRemoveBtn');
-         if (day1Btn) {
-           const day1Markers = (window.savedUserMarkers || []).filter(marker => marker.location === '1일차');
-           day1Btn.style.display = day1Markers.length > 0 ? 'block' : 'none';
-         }
+         // 이 함수는 더 이상 사용되지 않으며, updateRouteRemoveButtons에서 통합 처리됩니다.
+         updateRouteRemoveButtons();
        }
        
        // 주소 검색 함수 - 모바일 최적화
@@ -4331,128 +4502,233 @@
         });
       }
       
-      // Firebase 실시간 동기화 설정
+      // 전역 동기화 상태 관리
+      let isSyncing = false;
+      let lastSyncTimestamp = 0;
+      let syncRetryCount = 0;
+      const MAX_SYNC_RETRIES = 3;
+      const SYNC_COOLDOWN = 1000; // 1초 쿨다운
+      
+      // Firebase 실시간 동기화 설정 (개선된 버전)
       function setupFirebaseSync() {
         try {
-          window.firestore.onSnapshot(window.firestore.doc(window.db, 'users', 'currentUser'), (doc) => {
-            if (doc.exists()) {
-              const data = doc.data();
+          // 동기화 상태 표시기 추가
+          addSyncStatusIndicator();
+          
+          const unsubscribe = window.firestore.onSnapshot(
+            window.firestore.doc(window.db, 'users', 'currentUser'), 
+            (doc) => {
+              // 동기화 중이면 무시 (무한 루프 방지)
+              if (isSyncing) {
+                console.log('동기화 중이므로 Firebase 업데이트 무시');
+                return;
+              }
               
-              // 체크박스 상태 동기화
-              if (data.preparationCheckboxes) {
-                Object.keys(data.preparationCheckboxes).forEach(id => {
-                  const checkbox = document.getElementById(id);
-                  if (checkbox && checkbox.checked !== data.preparationCheckboxes[id]) {
-                    checkbox.checked = data.preparationCheckboxes[id];
+              if (doc.exists()) {
+                const data = doc.data();
+                const currentTime = Date.now();
+                
+                // 마지막 동기화 후 쿨다운 시간 확인
+                if (currentTime - lastSyncTimestamp < SYNC_COOLDOWN) {
+                  console.log('쿨다운 시간으로 인해 동기화 건너뜀');
+                  return;
+                }
+                
+                console.log('Firebase에서 데이터 수신:', Object.keys(data));
+                
+                // 체크박스 상태 동기화 (충돌 방지)
+                if (data.preparationCheckboxes) {
+                  const currentStates = JSON.parse(localStorage.getItem('preparationCheckboxes') || '{}');
+                  const hasChanges = JSON.stringify(currentStates) !== JSON.stringify(data.preparationCheckboxes);
+                  
+                  if (hasChanges) {
+                    console.log('체크박스 상태 동기화 중...');
+                    Object.keys(data.preparationCheckboxes).forEach(id => {
+                      const checkbox = document.getElementById(id);
+                      if (checkbox && checkbox.checked !== data.preparationCheckboxes[id]) {
+                        checkbox.checked = data.preparationCheckboxes[id];
+                      }
+                    });
+                    localStorage.setItem('preparationCheckboxes', JSON.stringify(data.preparationCheckboxes));
+                    updateSyncStatus('체크박스 동기화 완료', 'success');
                   }
-                });
-                localStorage.setItem('preparationCheckboxes', JSON.stringify(data.preparationCheckboxes)); // Keep localStorage in sync
-              } else {
-                localStorage.removeItem('preparationCheckboxes');
-              }
-              
-              // 사용자 추가 항목 동기화 - 즉시 표시
-              if (data.userAddedItems && data.userAddedItems.length > 0) {
-                // 현재 localStorage와 비교하여 변경사항이 있을 때만 업데이트
-                const currentItems = JSON.parse(localStorage.getItem('userAddedItems') || '[]');
-                const currentItemIds = currentItems.map(item => item.id).sort();
-                const newItemIds = data.userAddedItems.map(item => item.id).sort();
-                
-                if (JSON.stringify(currentItemIds) !== JSON.stringify(newItemIds)) {
-                  localStorage.setItem('userAddedItems', JSON.stringify(data.userAddedItems)); // Keep localStorage in sync
-                  // 약간의 지연 후 UI 업데이트 (DOM이 준비될 때까지)
-                  setTimeout(() => {
-                    displayUserAddedItems(); // Display from localStorage
-                  }, 50);
                 }
+                
+                // 사용자 추가 항목 동기화
+                if (data.userAddedItems) {
+                  const currentItems = JSON.parse(localStorage.getItem('userAddedItems') || '[]');
+                  const hasChanges = JSON.stringify(currentItems.map(item => item.id).sort()) !== 
+                                   JSON.stringify(data.userAddedItems.map(item => item.id).sort());
+                  
+                  if (hasChanges) {
+                    console.log('사용자 항목 동기화 중...');
+                    localStorage.setItem('userAddedItems', JSON.stringify(data.userAddedItems));
+                    setTimeout(() => {
+                      displayUserAddedItems();
+                    }, 100);
+                    updateSyncStatus('사용자 항목 동기화 완료', 'success');
+                  }
+                }
+                
+                // 경로 동기화
+                if (data.savedUserRoutes) {
+                  const currentRouteIds = savedUserRoutes.map(route => route.id).sort();
+                  const newRouteIds = data.savedUserRoutes.map(route => route.id).sort();
+                  const hasChanges = JSON.stringify(currentRouteIds) !== JSON.stringify(newRouteIds);
+                  
+                  if (hasChanges) {
+                    console.log('경로 동기화 중...');
+                    savedUserRoutes = data.savedUserRoutes;
+                    localStorage.setItem('savedUserRoutes', JSON.stringify(data.savedUserRoutes));
+                    drawAllSavedRoutes();
+                    updateRouteRemoveButtons();
+                    updateSyncStatus('경로 동기화 완료', 'success');
+                  }
+                }
+                
+                // 마커 동기화
+                if (data.savedUserMarkers) {
+                  const currentMarkerIds = (window.savedUserMarkers || []).map(marker => marker.id).sort();
+                  const newMarkerIds = data.savedUserMarkers.map(marker => marker.id).sort();
+                  const hasChanges = JSON.stringify(currentMarkerIds) !== JSON.stringify(newMarkerIds);
+                  
+                  if (hasChanges) {
+                    console.log('마커 동기화 중...');
+                    window.savedUserMarkers = data.savedUserMarkers;
+                    localStorage.setItem('savedUserMarkers', JSON.stringify(data.savedUserMarkers));
+                    drawAllSavedMarkers();
+                    updateRouteRemoveButtons();
+                    updateSyncStatus('마커 동기화 완료', 'success');
+                  }
+                }
+                
+                lastSyncTimestamp = currentTime;
+                syncRetryCount = 0;
+                updateSyncStatus('동기화 완료', 'success');
+                
               } else {
-                localStorage.removeItem('userAddedItems');
+                // 문서가 존재하지 않는 경우
+                console.log('Firebase 문서가 존재하지 않음 - 로컬 데이터 초기화');
+                clearAllLocalData();
+                updateSyncStatus('데이터 초기화 완료', 'warning');
+              }
+            }, 
+            (error) => {
+              console.error('Firebase 실시간 동기화 오류:', error);
+              syncRetryCount++;
+              
+              if (syncRetryCount <= MAX_SYNC_RETRIES) {
+                updateSyncStatus(`동기화 오류 (${syncRetryCount}/${MAX_SYNC_RETRIES})`, 'error');
+                // 자동 재시도
                 setTimeout(() => {
-                  displayUserAddedItems(); // Clear display
-                }, 50);
-              }
-              
-              // 경로 동기화 추가
-              if (data.savedUserRoutes) {
-                // 기존 경로들과 비교하여 변경사항이 있을 때만 업데이트
-                const currentRouteIds = savedUserRoutes.map(route => route.id).sort();
-                const newRouteIds = data.savedUserRoutes.map(route => route.id).sort();
-                
-                if (JSON.stringify(currentRouteIds) !== JSON.stringify(newRouteIds)) {
-                  savedUserRoutes = data.savedUserRoutes;
-                  localStorage.setItem('savedUserRoutes', JSON.stringify(data.savedUserRoutes)); // Keep localStorage in sync
-                  drawAllSavedRoutes();
-                  // 경로제거 버튼 상태 업데이트
-                  updateRouteRemoveButtons();
-                  // 마커제거 버튼 상태 업데이트
-                  updateMarkerRemoveButtons();
-                  console.log('Firebase에서 경로 동기화 완료');
-                }
+                  console.log('동기화 재시도 중...');
+                  setupFirebaseSync();
+                }, 2000 * syncRetryCount);
               } else {
-                // If no saved routes in Firebase, clear local storage and display
-                savedUserRoutes = [];
-                localStorage.removeItem('savedUserRoutes');
-                drawAllSavedRoutes();
-                // 경로제거 버튼 상태 업데이트
-                updateRouteRemoveButtons();
-                // 마커제거 버튼 상태 업데이트
-                updateMarkerRemoveButtons();
-                console.log('Firebase 문서가 존재하지 않아 모든 로컬 데이터 초기화');
+                updateSyncStatus('동기화 실패 - 오프라인 모드', 'error');
+                // 오프라인 모드로 전환
+                enableOfflineMode();
               }
-              
-              // 마커 동기화 추가
-              if (data.savedUserMarkers) {
-                // 기존 마커들과 비교하여 변경사항이 있을 때만 업데이트
-                const currentMarkerIds = (window.savedUserMarkers || []).map(marker => marker.id).sort();
-                const newMarkerIds = data.savedUserMarkers.map(marker => marker.id).sort();
-                
-                if (JSON.stringify(currentMarkerIds) !== JSON.stringify(newMarkerIds)) {
-                  window.savedUserMarkers = data.savedUserMarkers;
-                  localStorage.setItem('savedUserMarkers', JSON.stringify(data.savedUserMarkers)); // Keep localStorage in sync
-                  drawAllSavedMarkers();
-                  // 마커제거 버튼 상태 업데이트
-                  updateMarkerRemoveButtons();
-                  console.log('Firebase에서 마커 동기화 완료');
-                }
-              } else {
-                // If no saved markers in Firebase, clear local storage and display
-                window.savedUserMarkers = [];
-                localStorage.removeItem('savedUserMarkers');
-                drawAllSavedMarkers();
-                // 마커제거 버튼 상태 업데이트
-                updateMarkerRemoveButtons();
-                console.log('Firebase 문서가 존재하지 않아 모든 로컬 마커 데이터 초기화');
-              }
-            } else {
-              // Document does not exist, clear all local data
-              localStorage.removeItem('preparationCheckboxes');
-              localStorage.removeItem('userAddedItems');
-              localStorage.removeItem('savedUserRoutes');
-              localStorage.removeItem('savedUserMarkers');
-              
-              // Clear UI
-              document.querySelectorAll('.prep-checkbox').forEach(cb => cb.checked = false);
-              setTimeout(() => {
-                displayUserAddedItems();
-              }, 50);
-              savedUserRoutes = [];
-              window.savedUserMarkers = [];
-              drawAllSavedRoutes();
-              drawAllSavedMarkers();
-              // 경로제거 버튼 상태 업데이트
-              updateRouteRemoveButtons();
-              // 마커제거 버튼 상태 업데이트
-              updateMarkerRemoveButtons();
-              console.log('Firebase 문서가 존재하지 않아 모든 로컬 데이터 초기화');
             }
-          }, (error) => {
-            console.error('Firebase 실시간 동기화 오류:', error);
-          });
+          );
+          
+          // 구독 해제 함수를 전역으로 저장
+          window.unsubscribeFirebase = unsubscribe;
           
           console.log('Firebase 실시간 동기화 설정 완료');
+          updateSyncStatus('동기화 연결됨', 'success');
+          
         } catch (error) {
           console.error('Firebase 동기화 설정 실패:', error);
+          updateSyncStatus('동기화 설정 실패', 'error');
+          enableOfflineMode();
         }
+      }
+      
+      // 로컬 데이터 초기화 함수
+      function clearAllLocalData() {
+        localStorage.removeItem('preparationCheckboxes');
+        localStorage.removeItem('userAddedItems');
+        localStorage.removeItem('savedUserRoutes');
+        localStorage.removeItem('savedUserMarkers');
+        
+        // UI 초기화
+        document.querySelectorAll('.prep-checkbox').forEach(cb => cb.checked = false);
+        setTimeout(() => {
+          displayUserAddedItems();
+        }, 100);
+        
+        savedUserRoutes = [];
+        window.savedUserMarkers = [];
+        drawAllSavedRoutes();
+        drawAllSavedMarkers();
+        updateRouteRemoveButtons();
+      }
+      
+      // 오프라인 모드 활성화
+      function enableOfflineMode() {
+        console.log('오프라인 모드 활성화');
+        updateSyncStatus('오프라인 모드', 'warning');
+        // 로컬 스토리지만 사용
+      }
+      
+      // 동기화 상태 표시기 추가
+      function addSyncStatusIndicator() {
+        if (document.getElementById('syncStatusIndicator')) return;
+        
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'syncStatusIndicator';
+        statusDiv.style.cssText = `
+          position: fixed;
+          top: 10px;
+          right: 10px;
+          z-index: 1000;
+          padding: 8px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          color: white;
+          background: rgba(0, 0, 0, 0.7);
+          backdrop-filter: blur(10px);
+          transition: all 0.3s ease;
+          opacity: 0;
+          transform: translateY(-20px);
+        `;
+        statusDiv.textContent = '동기화 준비 중...';
+        document.body.appendChild(statusDiv);
+        
+        // 애니메이션으로 표시
+        setTimeout(() => {
+          statusDiv.style.opacity = '1';
+          statusDiv.style.transform = 'translateY(0)';
+        }, 100);
+      }
+      
+      // 동기화 상태 업데이트
+      function updateSyncStatus(message, type = 'info') {
+        const indicator = document.getElementById('syncStatusIndicator');
+        if (!indicator) return;
+        
+        const colors = {
+          success: '#10b981',
+          error: '#ef4444',
+          warning: '#f59e0b',
+          info: '#3b82f6'
+        };
+        
+        indicator.textContent = message;
+        indicator.style.background = colors[type] || colors.info;
+        
+        // 3초 후 자동 숨김
+        setTimeout(() => {
+          indicator.style.opacity = '0';
+          indicator.style.transform = 'translateY(-20px)';
+          setTimeout(() => {
+            if (indicator.parentNode) {
+              indicator.parentNode.removeChild(indicator);
+            }
+          }, 300);
+        }, 3000);
       }
       
 
