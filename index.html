@@ -1867,10 +1867,8 @@
              updateSyncStatus('Firebase 연결 실패', 'error');
            }, 2000);
          } finally {
-           // 동기화 상태 해제 (지연을 두어 onSnapshot과의 충돌 방지)
-           setTimeout(() => {
-             isSyncing = false;
-           }, 500);
+           // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
+           isSyncing = false;
          }
        }
        
@@ -2480,6 +2478,15 @@
              userAddedItems: window.firestore.arrayUnion(newItem)
            });
            
+           // 전역 변수 즉시 업데이트 (실시간 반영을 위해)
+           if (!window.firebaseUserItems) {
+             window.firebaseUserItems = [];
+           }
+           window.firebaseUserItems.push(newItem);
+           
+           // UI 즉시 업데이트
+           displayUserAddedItemsFromFirebase(window.firebaseUserItems);
+           
            // 폼 초기화
            clearForm();
            
@@ -2489,7 +2496,7 @@
            // 항목 추가 후 폼 자동 숨기기
            hideAddForm();
            
-           console.log('Firebase에 새 항목 저장 완료');
+           console.log('Firebase에 새 항목 저장 완료 및 UI 즉시 업데이트');
            
          } catch (error) {
            console.error('Firebase 저장 실패:', error);
@@ -2508,10 +2515,8 @@
            
            updateSyncStatus('임시 저장됨 - 연결 복구 시 동기화', 'warning');
          } finally {
-           // 동기화 상태 해제 (지연을 두어 onSnapshot과의 충돌 방지)
-           setTimeout(() => {
-             isSyncing = false;
-           }, 500);
+           // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
+           isSyncing = false;
          }
        }
       
@@ -2594,10 +2599,8 @@
             updateSyncStatus('Firebase 연결 실패', 'error');
           }, 2000);
         } finally {
-          // 동기화 상태 해제 (지연을 두어 onSnapshot과의 충돌 방지)
-          setTimeout(() => {
-            isSyncing = false;
-          }, 500);
+          // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
+          isSyncing = false;
         }
       }
       
@@ -3465,10 +3468,8 @@
             updateSyncStatus('Firebase 연결 실패', 'error');
           }, 2000);
         } finally {
-          // 동기화 상태 해제 (지연을 두어 onSnapshot과의 충돌 방지)
-          setTimeout(() => {
-            isSyncing = false;
-          }, 500);
+          // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
+          isSyncing = false;
         }
         
         // 임시 마커들 제거
@@ -3700,10 +3701,8 @@
             updateSyncStatus('Firebase 연결 실패', 'error');
           }, 2000);
         } finally {
-          // 동기화 상태 해제 (지연을 두어 onSnapshot과의 충돌 방지)
-          setTimeout(() => {
-            isSyncing = false;
-          }, 500);
+          // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
+          isSyncing = false;
         }
         
         // 임시 마커들 제거
@@ -4493,12 +4492,6 @@
           const unsubscribe = window.firestore.onSnapshot(
             window.firestore.doc(window.db, 'users', 'currentUser'), 
             (doc) => {
-              // 동기화 중이면 무시 (무한 루프 방지)
-              if (isSyncing) {
-                console.log('동기화 중이므로 Firebase 업데이트 무시');
-                return;
-              }
-              
               if (doc.exists()) {
                 const data = doc.data();
                 const currentTime = Date.now();
@@ -4526,11 +4519,25 @@
                 // 사용자 추가 항목 동기화 (Firebase에서 직접)
                 if (data.userAddedItems) {
                   console.log('사용자 항목 동기화 중...');
-                  // 전역 변수에 직접 저장
-                  window.firebaseUserItems = data.userAddedItems;
-                  // UI 즉시 업데이트
-                  displayUserAddedItemsFromFirebase(data.userAddedItems);
-                  updateSyncStatus('사용자 항목 동기화 완료', 'success');
+                  
+                  // 기존 항목과 비교하여 변경사항이 있는지 확인
+                  const currentItems = window.firebaseUserItems || [];
+                  const newItems = data.userAddedItems;
+                  
+                  // 항목 개수나 ID가 다르면 업데이트
+                  if (currentItems.length !== newItems.length || 
+                      JSON.stringify(currentItems.map(item => item.id).sort()) !== 
+                      JSON.stringify(newItems.map(item => item.id).sort())) {
+                    
+                    console.log('사용자 항목 변경 감지 - UI 업데이트');
+                    // 전역 변수에 직접 저장
+                    window.firebaseUserItems = newItems;
+                    // UI 즉시 업데이트
+                    displayUserAddedItemsFromFirebase(newItems);
+                    updateSyncStatus('사용자 항목 동기화 완료', 'success');
+                  } else {
+                    console.log('사용자 항목 변경 없음 - UI 업데이트 건너뜀');
+                  }
                 }
                 
                 // 경로 동기화 (Firebase에서 직접)
