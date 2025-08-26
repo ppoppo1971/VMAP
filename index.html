@@ -2273,6 +2273,26 @@
               </div>
             </div>
             
+            <!-- 사용자 추가 항목 리스트 및 추가 UI -->
+            <div class="info-section">
+              <!-- 사용자 추가 항목 컨테이너 (사전준비와 동일 구조) -->
+              <div id="userAddedItems"></div>
+              <!-- 새 항목 추가 버튼 -->
+              <div class="add-item-section">
+                <button type="button" onclick="showAddForm()" class="toggle-add-btn" id="toggleAddBtn">+ 새 항목 추가</button>
+              </div>
+              <!-- 새 항목 추가 폼 (초기 숨김) -->
+              <div class="add-item-form" id="addItemForm" style="display: none;">
+                <div class="form-group">
+                  <input type="text" id="newItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50">
+                  <input type="url" id="newItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200">
+                </div>
+                <div class="form-buttons">
+                  <button type="button" onclick="addNewItem()" class="add-btn">추가</button>
+                </div>
+              </div>
+            </div>
+
             <div class="info-section">
               <div class="checklist-item" data-item-id="airportBus" data-item-type="existing">
                 <div class="item-content">
@@ -2377,6 +2397,10 @@
           restoreCheckboxStates();
           // 스와이프 기능 초기화
           initializeSwipeDelete();
+          // 사용자 추가 항목이 있다면 즉시 렌더링
+          if (typeof displayUserAddedItemsFromFirebase === 'function') {
+            displayUserAddedItemsFromFirebase(window.firebaseUserItems || []);
+          }
           if (typeof applyOverridesAndHides === 'function') {
             applyOverridesAndHides();
           }
@@ -4872,8 +4896,9 @@
           
           // 터치 시작 - 모바일 최적화
           item.addEventListener('touchstart', function(e) {
-            // 삭제 버튼이나 체크박스 클릭 시에는 스와이프 방지
-            if (e.target.classList.contains('swipe-delete-btn') ||
+            // 수정/삭제 버튼이나 체크박스 클릭 시에는 스와이프 방지
+            if (e.target.classList.contains('swipe-edit-btn') ||
+                e.target.classList.contains('swipe-delete-btn') ||
                 e.target.classList.contains('prep-checkbox')) {
               return;
             }
@@ -4924,19 +4949,28 @@
           
           // 클릭 시 스와이프 상태 해제 - 모바일 최적화
           item.addEventListener('click', function(e) {
-            // 수정/삭제 버튼 클릭이 아닌 경우에만 스와이프 해제
-            if (!e.target.classList.contains('swipe-edit-btn') &&
-                !e.target.classList.contains('swipe-delete-btn') &&
-                !e.target.classList.contains('prep-checkbox')) {
-              this.classList.remove('swiped');
-              this.querySelector('.item-content').style.transform = 'translateX(0)';
+            // 수정/삭제 버튼 또는 체크박스 클릭 시에는 유지
+            if (
+              e.target.classList.contains('swipe-edit-btn') ||
+              e.target.classList.contains('swipe-delete-btn') ||
+              e.target.classList.contains('prep-checkbox')
+            ) {
+              return;
             }
+            this.classList.remove('swiped');
+            this.querySelector('.item-content').style.transform = 'translateX(0)';
           });
           
           // 마우스 이벤트 (데스크톱 지원) - 모바일에서는 비활성화
           if (!isMobile) {
             item.addEventListener('mousedown', function(e) {
               if (e.button !== 0) return; // 왼쪽 버튼만
+              // 수정/삭제 버튼이나 체크박스 클릭 시에는 스와이프 방지
+              if (e.target.classList.contains('swipe-edit-btn') ||
+                  e.target.classList.contains('swipe-delete-btn') ||
+                  e.target.classList.contains('prep-checkbox')) {
+                return;
+              }
               
               startX = e.clientX;
               isSwiping = true;
