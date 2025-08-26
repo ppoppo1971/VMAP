@@ -958,7 +958,7 @@
     <div id="customMapMenu" class="hide">
       <h2>홋카이도 여행</h2>
       <div class="menu-group">
-        <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 96%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
+        <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
       <div class="menu-group">
         <button id="preparationBtn" class="toggle-btn" onclick="showPreparationInfo()">사전준비</button>
@@ -1610,11 +1610,18 @@
             
             // 사용자 추가 항목 복원 - 즉시 표시
             if (data.userAddedItems && data.userAddedItems.length > 0) {
-              localStorage.setItem('userAddedItems', JSON.stringify(data.userAddedItems)); // Cache to localStorage
-              // 약간의 지연 후 UI 업데이트 (DOM이 준비될 때까지)
-              setTimeout(() => {
-                displayUserAddedItems(); // Display from localStorage
-              }, 100);
+              // 현재 localStorage와 비교하여 변경사항이 있을 때만 업데이트
+              const currentItems = JSON.parse(localStorage.getItem('userAddedItems') || '[]');
+              const currentItemIds = currentItems.map(item => item.id).sort();
+              const newItemIds = data.userAddedItems.map(item => item.id).sort();
+              
+              if (JSON.stringify(currentItemIds) !== JSON.stringify(newItemIds)) {
+                localStorage.setItem('userAddedItems', JSON.stringify(data.userAddedItems)); // Cache to localStorage
+                // 약간의 지연 후 UI 업데이트 (DOM이 준비될 때까지)
+                setTimeout(() => {
+                  displayUserAddedItems(); // Display from localStorage
+                }, 100);
+              }
             } else {
               localStorage.removeItem('userAddedItems'); // Clear if no items in Firebase
               setTimeout(() => {
@@ -2162,13 +2169,8 @@
              userAddedItems: window.firestore.arrayUnion(newItem)
            });
            
-           // localStorage에도 추가 (index30m.html과 동일한 즉각적인 UI 업데이트를 위해)
-           let userItems = JSON.parse(localStorage.getItem('userAddedItems') || '[]');
-           userItems.push(newItem);
-           localStorage.setItem('userAddedItems', JSON.stringify(userItems));
-           
-           // 화면에 새 항목 표시
-           displayUserAddedItems();
+           // Firebase 동기화가 완료될 때까지 잠시 대기 (중복 표시 방지)
+           await new Promise(resolve => setTimeout(resolve, 100));
            
            // 폼 초기화
            clearForm();
@@ -2179,7 +2181,7 @@
            // 항목 추가 후 폼 자동 숨기기
            hideAddForm();
            
-           console.log('Firebase에 새 항목 저장 및 localStorage 업데이트 완료');
+           console.log('Firebase에 새 항목 저장 완료 - 동기화 대기 중');
          } catch (error) {
            console.error('Firebase 저장 실패:', error);
            alert('항목 추가에 실패했습니다. 다시 시도해주세요.');
@@ -2262,6 +2264,9 @@
           
           // localStorage에서도 항목 제거 (즉각적인 UI 업데이트를 위해)
           localStorage.setItem('userAddedItems', JSON.stringify(updatedUserItems));
+          
+          // Firebase 동기화가 완료될 때까지 잠시 대기 (중복 표시 방지)
+          await new Promise(resolve => setTimeout(resolve, 100));
           
           // 화면에서 항목 제거
           displayUserAddedItems();
@@ -3268,11 +3273,18 @@
               
               // 사용자 추가 항목 동기화 - 즉시 표시
               if (data.userAddedItems && data.userAddedItems.length > 0) {
-                localStorage.setItem('userAddedItems', JSON.stringify(data.userAddedItems)); // Keep localStorage in sync
-                // 약간의 지연 후 UI 업데이트 (DOM이 준비될 때까지)
-                setTimeout(() => {
-                  displayUserAddedItems(); // Display from localStorage
-                }, 50);
+                // 현재 localStorage와 비교하여 변경사항이 있을 때만 업데이트
+                const currentItems = JSON.parse(localStorage.getItem('userAddedItems') || '[]');
+                const currentItemIds = currentItems.map(item => item.id).sort();
+                const newItemIds = data.userAddedItems.map(item => item.id).sort();
+                
+                if (JSON.stringify(currentItemIds) !== JSON.stringify(newItemIds)) {
+                  localStorage.setItem('userAddedItems', JSON.stringify(data.userAddedItems)); // Keep localStorage in sync
+                  // 약간의 지연 후 UI 업데이트 (DOM이 준비될 때까지)
+                  setTimeout(() => {
+                    displayUserAddedItems(); // Display from localStorage
+                  }, 50);
+                }
               } else {
                 localStorage.removeItem('userAddedItems');
                 setTimeout(() => {
