@@ -1594,6 +1594,8 @@
           const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
           if (docSnap.exists()) {
             const data = docSnap.data();
+            
+            // 체크박스 상태 복원
             if (data.preparationCheckboxes) {
               Object.keys(data.preparationCheckboxes).forEach(id => {
                 const checkbox = document.getElementById(id);
@@ -1601,16 +1603,48 @@
                   checkbox.checked = data.preparationCheckboxes[id];
                 }
               });
+              localStorage.setItem('preparationCheckboxes', JSON.stringify(data.preparationCheckboxes)); // Cache to localStorage
+            } else {
+              localStorage.removeItem('preparationCheckboxes');
+            }
+            
+            // 사용자 추가 항목 복원 - 즉시 표시
+            if (data.userAddedItems && data.userAddedItems.length > 0) {
+              localStorage.setItem('userAddedItems', JSON.stringify(data.userAddedItems)); // Cache to localStorage
+              // 약간의 지연 후 UI 업데이트 (DOM이 준비될 때까지)
+              setTimeout(() => {
+                displayUserAddedItems(); // Display from localStorage
+              }, 100);
+            } else {
+              localStorage.removeItem('userAddedItems'); // Clear if no items in Firebase
+              setTimeout(() => {
+                displayUserAddedItems(); // Clear display
+              }, 100);
+            }
+          } else {
+            // No Firebase data, try to restore from localStorage
+            const savedStates = localStorage.getItem('preparationCheckboxes');
+            if (savedStates) {
+              const states = JSON.parse(savedStates);
+              Object.keys(states).forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) {
+                  checkbox.checked = states[id];
+                }
+              });
+            }
+            const savedUserItems = localStorage.getItem('userAddedItems');
+            if (savedUserItems) {
+              setTimeout(() => {
+                displayUserAddedItems(); // Display from localStorage
+              }, 100);
             }
           }
           
-          // 사용자 추가 항목들 복원
-          restoreUserAddedItems();
-          
-          console.log('Firebase에서 체크박스 상태 복원 완료');
+          console.log('Firebase 또는 localStorage에서 상태 복원 완료');
         } catch (error) {
           console.error('Firebase 로드 실패:', error);
-          // 실패 시 localStorage에서 복원
+          // Firebase 로드 실패 시 localStorage에서 복원 시도
           const savedStates = localStorage.getItem('preparationCheckboxes');
           if (savedStates) {
             const states = JSON.parse(savedStates);
@@ -1621,7 +1655,13 @@
               }
             });
           }
-          restoreUserAddedItems();
+          const savedUserItems = localStorage.getItem('userAddedItems');
+          if (savedUserItems) {
+            setTimeout(() => {
+              displayUserAddedItems(); // Display from localStorage
+            }, 100);
+          }
+          alert('Firebase 로드에 실패했습니다. 로컬 데이터로 복원되었습니다.');
         }
       }
        
@@ -2122,6 +2162,11 @@
              userAddedItems: window.firestore.arrayUnion(newItem)
            });
            
+           // localStorage에도 추가 (index30m.html과 동일한 즉각적인 UI 업데이트를 위해)
+           let userItems = JSON.parse(localStorage.getItem('userAddedItems') || '[]');
+           userItems.push(newItem);
+           localStorage.setItem('userAddedItems', JSON.stringify(userItems));
+           
            // 화면에 새 항목 표시
            displayUserAddedItems();
            
@@ -2134,7 +2179,7 @@
            // 항목 추가 후 폼 자동 숨기기
            hideAddForm();
            
-           console.log('Firebase에 새 항목 저장 완료');
+           console.log('Firebase에 새 항목 저장 및 localStorage 업데이트 완료');
          } catch (error) {
            console.error('Firebase 저장 실패:', error);
            alert('항목 추가에 실패했습니다. 다시 시도해주세요.');
@@ -2185,31 +2230,48 @@
         initializeSwipeDelete();
       }
       
-      // 사용자 추가 항목 복원 함수
-      function restoreUserAddedItems() {
-        setTimeout(() => {
-          displayUserAddedItems();
-        }, 100);
-      }
+
       
       // 사용자 추가 항목 삭제 함수
-      function deleteUserItem(itemId) {
+      async function deleteUserItem(itemId) { // Make it async
         if (!confirm('이 항목을 삭제하시겠습니까?')) {
           return;
         }
         
         // localStorage에서 항목 제거
         let userItems = JSON.parse(localStorage.getItem('userAddedItems') || '[]');
-        userItems = userItems.filter(item => item.id !== itemId);
-        localStorage.setItem('userAddedItems', JSON.stringify(userItems));
+        const updatedUserItems = userItems.filter(item => item.id !== itemId);
         
-        // 화면에서 항목 제거
-        displayUserAddedItems();
-        
-        // 체크박스 상태도 업데이트
-        saveCheckboxStates();
-        
-        alert('항목이 삭제되었습니다.');
+        try {
+          // Firebase에서 항목 제거
+          await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+            userAddedItems: updatedUserItems, // Overwrite with the filtered array
+            lastUpdated: window.firestore.serverTimestamp()
+          });
+          
+          // Firebase에서 해당 항목의 체크박스 상태도 제거
+          const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+          if (docSnap.exists() && docSnap.data().preparationCheckboxes) {
+            const currentCheckboxStates = { ...docSnap.data().preparationCheckboxes }; // Create a copy
+            delete currentCheckboxStates[itemId]; // Remove the checkbox state for the deleted item
+            await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+              preparationCheckboxes: currentCheckboxStates,
+              lastUpdated: window.firestore.serverTimestamp()
+            });
+          }
+          
+          // localStorage에서도 항목 제거 (즉각적인 UI 업데이트를 위해)
+          localStorage.setItem('userAddedItems', JSON.stringify(updatedUserItems));
+          
+          // 화면에서 항목 제거
+          displayUserAddedItems();
+          
+          alert('항목이 삭제되었습니다.');
+          console.log('Firebase 및 localStorage에서 항목 삭제 완료');
+        } catch (error) {
+          console.error('Firebase 삭제 실패:', error);
+          alert('항목 삭제에 실패했습니다. 로컬에만 반영되었습니다. Firebase 동기화 시 데이터가 다시 나타날 수 있습니다.');
+        }
       }
       
              // 사용자 항목 링크 열기 함수
@@ -3199,11 +3261,23 @@
                     checkbox.checked = data.preparationCheckboxes[id];
                   }
                 });
+                localStorage.setItem('preparationCheckboxes', JSON.stringify(data.preparationCheckboxes)); // Keep localStorage in sync
+              } else {
+                localStorage.removeItem('preparationCheckboxes');
               }
               
-              // 사용자 추가 항목 동기화
-              if (data.userAddedItems) {
-                displayUserAddedItemsFromFirebase(data.userAddedItems);
+              // 사용자 추가 항목 동기화 - 즉시 표시
+              if (data.userAddedItems && data.userAddedItems.length > 0) {
+                localStorage.setItem('userAddedItems', JSON.stringify(data.userAddedItems)); // Keep localStorage in sync
+                // 약간의 지연 후 UI 업데이트 (DOM이 준비될 때까지)
+                setTimeout(() => {
+                  displayUserAddedItems(); // Display from localStorage
+                }, 50);
+              } else {
+                localStorage.removeItem('userAddedItems');
+                setTimeout(() => {
+                  displayUserAddedItems(); // Clear display
+                }, 50);
               }
               
               // 경로 동기화 추가
@@ -3214,10 +3288,30 @@
                 
                 if (JSON.stringify(currentRouteIds) !== JSON.stringify(newRouteIds)) {
                   savedUserRoutes = data.savedUserRoutes;
+                  localStorage.setItem('savedUserRoutes', JSON.stringify(data.savedUserRoutes)); // Keep localStorage in sync
                   drawAllSavedRoutes();
                   console.log('Firebase에서 경로 동기화 완료');
                 }
+              } else {
+                // If no saved routes in Firebase, clear local storage and display
+                savedUserRoutes = [];
+                localStorage.removeItem('savedUserRoutes');
+                drawAllSavedRoutes();
               }
+            } else {
+              // Document does not exist, clear all local data
+              localStorage.removeItem('preparationCheckboxes');
+              localStorage.removeItem('userAddedItems');
+              localStorage.removeItem('savedUserRoutes');
+              
+              // Clear UI
+              document.querySelectorAll('.prep-checkbox').forEach(cb => cb.checked = false);
+              setTimeout(() => {
+                displayUserAddedItems();
+              }, 50);
+              savedUserRoutes = [];
+              drawAllSavedRoutes();
+              console.log('Firebase 문서가 존재하지 않아 모든 로컬 데이터 초기화');
             }
           }, (error) => {
             console.error('Firebase 실시간 동기화 오류:', error);
@@ -3229,39 +3323,7 @@
         }
       }
       
-      // Firebase에서 사용자 추가 항목 표시
-      function displayUserAddedItemsFromFirebase(userItems) {
-        const container = document.getElementById('userAddedItems');
-        if (!container) return;
-        
-        if (userItems.length === 0) {
-          container.innerHTML = '';
-          return;
-        }
-        
-        let html = '';
-        userItems.forEach(item => {
-          const titleElement = item.link 
-            ? `<span onclick="openUserItemLink('${item.link}')" style="cursor: pointer; color: #1d4ed8; text-decoration: underline;"><strong>${item.title}</strong></span>`
-            : `<strong>${item.title}</strong>`;
-          
-          html += `
-            <div class="user-added-item" data-item-id="${item.id}">
-              <div class="item-content">
-                <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
-                <span>${titleElement} - ${item.description}</span>
-                <button class="delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">×</button>
-              </div>
-              <button class="swipe-delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">삭제</button>
-            </div>
-          `;
-        });
-        
-        container.innerHTML = html;
-        
-        // 스와이프 삭제 기능 초기화
-        initializeSwipeDelete();
-      }
+
     </script>
 
          <!-- Firebase SDK 스크립트 -->
