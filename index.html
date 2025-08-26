@@ -1449,6 +1449,8 @@
           
           // 경로제거 버튼 상태 업데이트
           updateRouteRemoveButtons();
+          // 마커제거 버튼 상태 업데이트
+          updateMarkerRemoveButtons();
         });
         
         // 저장된 사용자 마커들 복원
@@ -1841,6 +1843,8 @@
             
             // 경로제거 버튼 상태 업데이트
             updateRouteRemoveButtons();
+            // 마커제거 버튼 상태 업데이트
+            updateMarkerRemoveButtons();
           } else {
             // No Firebase data, try to restore from localStorage
             const savedStates = localStorage.getItem('preparationCheckboxes');
@@ -1862,6 +1866,8 @@
             
             // 경로제거 버튼 상태 업데이트
             updateRouteRemoveButtons();
+            // 마커제거 버튼 상태 업데이트
+            updateMarkerRemoveButtons();
             
             alert('Firebase 로드에 실패했습니다. 로컬 데이터로 복원되었습니다.');
           }
@@ -1971,6 +1977,17 @@
                   <button class="route-remove-btn" onclick="removeRoutesByLocation('사전준비')">경로제거</button>
                   <p style="font-size: 0.63rem; color: #6b7280; margin-top: 4px;">
                     사전준비에 저장된 경로들을 제거합니다.
+                  </p>
+                </div>
+              </div>
+              
+              <!-- 저장된 마커 섹션 추가 -->
+              <div class="info-section">
+                <h4>📍 저장된 마커</h4>
+                <div id="preparationMarkerRemoveBtn" style="display: none;">
+                  <button class="route-remove-btn" onclick="removeMarkersByLocation('사전준비')">마커제거</button>
+                  <p style="font-size: 0.63rem; color: #6b7280; margin-top: 4px;">
+                    사전준비에 저장된 마커들을 제거합니다.
                   </p>
                 </div>
               </div>
@@ -2104,6 +2121,17 @@
                  </p>
                </div>
              </div>
+             
+             <!-- 저장된 마커 섹션 추가 -->
+             <div class="info-section">
+               <h4>📍 저장된 마커</h4>
+               <div id="day1MarkerRemoveBtn" style="display: none;">
+                 <button class="route-remove-btn" onclick="removeMarkersByLocation('1일차')">마커제거</button>
+                 <p style="font-size: 0.63rem; color: #6b7280; margin-top: 4px;">
+                   1일차에 저장된 마커들을 제거합니다.
+                 </p>
+               </div>
+             </div>
           </div>
         `;
         
@@ -2117,6 +2145,8 @@
         
         // 경로제거 버튼 상태 업데이트
         updateRouteRemoveButtons();
+        // 마커제거 버튼 상태 업데이트
+        updateMarkerRemoveButtons();
         
         // 정보창 위치 조정 - 모바일 최적화
         setTimeout(() => {
@@ -2760,6 +2790,12 @@
       // 마커생성 모드 토글 함수
       function toggleMarkerMode() {
         if (isMarkerMode) {
+          // 마커가 생성되어 있고 "마커완성" 상태라면 저장 다이얼로그 표시
+          if (customMarkers.length > 0) {
+            showMarkerSaveDialog();
+            return;
+          }
+          
           // 마커생성 모드 비활성화
           isMarkerMode = false;
           const markerBtn = document.getElementById('topMarkerBtn');
@@ -2771,11 +2807,6 @@
           if (window.markerModeMessage) {
             window.markerModeMessage.remove();
             window.markerModeMessage = null;
-          }
-          
-          // 마커가 생성되어 있으면 저장 다이얼로그 표시
-          if (customMarkers.length > 0) {
-            showMarkerSaveDialog();
           }
           
           console.log('마커생성 모드가 비활성화되었습니다.');
@@ -2811,9 +2842,7 @@
           markerBtn.style.background = 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
           markerBtn.style.color = 'white';
           
-          // 마커생성 모드 안내 메시지 표시
-          showMarkerModeMessage();
-          
+          // 안내 메시지 없이 바로 시작
           console.log('마커생성 모드가 활성화되었습니다. 지도를 클릭하여 마커를 생성하세요.');
         }
       }
@@ -2894,11 +2923,16 @@
         
         customMarkers.push(marker);
         
+        // 마커가 생성되면 버튼을 "마커완성"으로 변경
+        if (customMarkers.length >= 1) {
+          const markerBtn = document.getElementById('topMarkerBtn');
+          markerBtn.textContent = '마커완성';
+          markerBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+          markerBtn.style.color = 'white';
+        }
+        
         // 성공 메시지
         console.log(`마커 ${customMarkers.length}이 생성되었습니다.`);
-        
-        // 마커 생성 후 모드 비활성화 (선택사항)
-        // toggleMarkerMode(); // 이 줄을 주석 해제하면 마커 생성 후 자동으로 모드가 꺼집니다
       }
       
       // 사용자 정의 마커 제거 함수
@@ -2918,6 +2952,14 @@
               color: '#ffffff'
             });
           });
+          
+          // 마커가 모두 제거되면 버튼을 "마커생성 중..."으로 변경
+          if (customMarkers.length === 0) {
+            const markerBtn = document.getElementById('topMarkerBtn');
+            markerBtn.textContent = '마커생성 중...';
+            markerBtn.style.background = 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+            markerBtn.style.color = 'white';
+          }
           
           console.log(`마커가 제거되었습니다. 남은 마커: ${customMarkers.length}개`);
         }
@@ -3296,6 +3338,8 @@
         
         // 경로제거 버튼 상태 업데이트
         updateRouteRemoveButtons();
+        // 마커제거 버튼 상태 업데이트
+        updateMarkerRemoveButtons();
       }
       
       // 마커 저장 위치 선택 다이얼로그 표시
@@ -3435,6 +3479,9 @@
         
         // 저장된 마커들 다시 그리기
         drawAllSavedMarkers();
+        
+        // 마커제거 버튼 상태 업데이트
+        updateMarkerRemoveButtons();
       }
       
       // 저장된 모든 마커 그리기
@@ -3579,6 +3626,8 @@
                drawAllSavedRoutes();
                // 경로제거 버튼 상태 업데이트
                updateRouteRemoveButtons();
+               // 마커제거 버튼 상태 업데이트
+               updateMarkerRemoveButtons();
                console.log('Firebase에서 경로 복원 완료');
                return;
              }
@@ -3594,6 +3643,8 @@
            drawAllSavedRoutes();
            // 경로제거 버튼 상태 업데이트
            updateRouteRemoveButtons();
+           // 마커제거 버튼 상태 업데이트
+           updateMarkerRemoveButtons();
          }
        }
        
@@ -3680,6 +3731,62 @@
          closePreparationInfo();
        }
        
+       // 특정 위치의 마커를 제거하는 함수
+       async function removeMarkersByLocation(location) {
+         // 해당 위치의 마커가 있는지 확인
+         const locationMarkers = (window.savedUserMarkers || []).filter(marker => marker.location === location);
+         
+         if (locationMarkers.length === 0) {
+           alert(`${location}에 저장된 마커가 없습니다.`);
+           return;
+         }
+         
+         // 사용자 확인
+         if (!confirm(`${location}에 저장된 마커 ${locationMarkers.length}개를 모두 제거하시겠습니까?`)) {
+           return;
+         }
+         
+         // 해당 위치의 마커들만 제거
+         locationMarkers.forEach(markerGroup => {
+           if (markerGroup.markerElements) {
+             markerGroup.markerElements.forEach(marker => {
+               marker.setMap(null);
+             });
+           }
+         });
+         
+         // 배열에서 해당 위치 마커들 제거
+         window.savedUserMarkers = (window.savedUserMarkers || []).filter(marker => marker.location !== location);
+         
+         try {
+           // Firebase에서 해당 위치 마커들 제거
+           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+             savedUserMarkers: window.savedUserMarkers,
+             lastUpdated: window.firestore.serverTimestamp()
+           });
+           
+           // localStorage 업데이트
+           localStorage.setItem('savedUserMarkers', JSON.stringify(window.savedUserMarkers));
+           
+           console.log(`Firebase에서 ${location} 마커 제거 완료`);
+         } catch (error) {
+           console.error('Firebase 업데이트 실패:', error);
+           
+           // Firebase 실패 시 localStorage만 업데이트
+           localStorage.setItem('savedUserMarkers', JSON.stringify(window.savedUserMarkers));
+           alert('Firebase 업데이트에 실패했습니다. 로컬에만 반영되었습니다.');
+         }
+         
+         // 성공 메시지
+         alert(`${location} 마커 ${locationMarkers.length}개가 제거되었습니다.`);
+         
+         // 마커제거 버튼 상태 업데이트
+         updateMarkerRemoveButtons();
+         
+         // 정보창 닫기
+         closePreparationInfo();
+       }
+       
        // 경로제거 버튼들을 동적으로 표시/숨김하는 함수
        function updateRouteRemoveButtons() {
          // 사전준비 경로제거 버튼
@@ -3694,6 +3801,23 @@
          if (day1Btn) {
            const day1Routes = savedUserRoutes.filter(route => route.location === '1일차');
            day1Btn.style.display = day1Routes.length > 0 ? 'block' : 'none';
+         }
+       }
+       
+       // 마커제거 버튼들을 동적으로 표시/숨김하는 함수
+       function updateMarkerRemoveButtons() {
+         // 사전준비 마커제거 버튼
+         const prepBtn = document.getElementById('preparationMarkerRemoveBtn');
+         if (prepBtn) {
+           const prepMarkers = (window.savedUserMarkers || []).filter(marker => marker.location === '사전준비');
+           prepBtn.style.display = prepMarkers.length > 0 ? 'block' : 'none';
+         }
+         
+         // 1일차 마커제거 버튼
+         const day1Btn = document.getElementById('day1MarkerRemoveBtn');
+         if (day1Btn) {
+           const day1Markers = (window.savedUserMarkers || []).filter(marker => marker.location === '1일차');
+           day1Btn.style.display = day1Markers.length > 0 ? 'block' : 'none';
          }
        }
        
@@ -4165,6 +4289,8 @@
                   drawAllSavedRoutes();
                   // 경로제거 버튼 상태 업데이트
                   updateRouteRemoveButtons();
+                  // 마커제거 버튼 상태 업데이트
+                  updateMarkerRemoveButtons();
                   console.log('Firebase에서 경로 동기화 완료');
                 }
               } else {
@@ -4174,6 +4300,8 @@
                 drawAllSavedRoutes();
                 // 경로제거 버튼 상태 업데이트
                 updateRouteRemoveButtons();
+                // 마커제거 버튼 상태 업데이트
+                updateMarkerRemoveButtons();
                 console.log('Firebase 문서가 존재하지 않아 모든 로컬 데이터 초기화');
               }
               
@@ -4187,6 +4315,8 @@
                   window.savedUserMarkers = data.savedUserMarkers;
                   localStorage.setItem('savedUserMarkers', JSON.stringify(data.savedUserMarkers)); // Keep localStorage in sync
                   drawAllSavedMarkers();
+                  // 마커제거 버튼 상태 업데이트
+                  updateMarkerRemoveButtons();
                   console.log('Firebase에서 마커 동기화 완료');
                 }
               } else {
@@ -4194,6 +4324,8 @@
                 window.savedUserMarkers = [];
                 localStorage.removeItem('savedUserMarkers');
                 drawAllSavedMarkers();
+                // 마커제거 버튼 상태 업데이트
+                updateMarkerRemoveButtons();
                 console.log('Firebase 문서가 존재하지 않아 모든 로컬 마커 데이터 초기화');
               }
             } else {
@@ -4214,6 +4346,8 @@
               drawAllSavedMarkers();
               // 경로제거 버튼 상태 업데이트
               updateRouteRemoveButtons();
+              // 마커제거 버튼 상태 업데이트
+              updateMarkerRemoveButtons();
               console.log('Firebase 문서가 존재하지 않아 모든 로컬 데이터 초기화');
             }
           }, (error) => {
