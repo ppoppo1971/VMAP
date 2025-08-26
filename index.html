@@ -795,6 +795,7 @@
             padding: 4px 0;
             border-radius: 8px;
             transition: background-color 0.2s ease;
+            position: relative; /* 스와이프 버튼 위치를 위해 추가 */
         }
         
         .checklist-item:hover {
@@ -825,6 +826,15 @@
         
         .checklist-item:last-child {
             margin-bottom: 0;
+        }
+        
+        /* 기존 항목의 item-content 스타일 추가 */
+        .checklist-item .item-content {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            transition: transform 0.3s ease;
+            flex: 1;
         }
         
         /* 사용자 추가 항목 폼 스타일 */
@@ -882,9 +892,107 @@
              box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
          }
          
-         .add-btn:active {
-             transform: translateY(0);
-         }
+                 .add-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* 수정 폼 스타일 */
+        .edit-item-form {
+            position: fixed;
+            z-index: 20;
+            width: 400px;
+            max-width: 90vw;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .edit-form-header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .edit-form-header h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .edit-form-header .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s ease;
+        }
+        
+        .edit-form-header .close-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .edit-item-form .form-group {
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .edit-item-form .form-buttons {
+            padding: 0 20px 20px 20px;
+            gap: 12px;
+        }
+        
+        .save-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+        }
+        
+        .save-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
+        .cancel-btn {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+        }
+        
+        .cancel-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+        }
         
         /* 사용자 추가 항목 스타일 (기존 체크리스트와 동일한 스타일) */
         .user-added-item {
@@ -903,8 +1011,43 @@
             background-color: rgba(29, 78, 216, 0.05);
         }
         
-        /* 스와이프 삭제 기능을 위한 스타일 */
-        .user-added-item .swipe-delete-btn {
+        /* 스와이프 수정/삭제 기능을 위한 스타일 */
+        .user-added-item .swipe-edit-btn,
+        .checklist-item .swipe-edit-btn {
+            position: absolute;
+            right: -160px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            z-index: 10;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            min-height: 44px;
+            min-width: 60px;
+        }
+        
+        .user-added-item .swipe-edit-btn:hover,
+        .checklist-item .swipe-edit-btn:hover {
+            background: #2563eb;
+        }
+        
+        .user-added-item .swipe-edit-btn:active,
+        .checklist-item .swipe-edit-btn:active {
+            background: #2563eb;
+            transform: translateY(-50%) scale(0.95);
+        }
+        
+        .user-added-item .swipe-delete-btn,
+        .checklist-item .swipe-delete-btn {
             position: absolute;
             right: -80px;
             top: 50%;
@@ -926,11 +1069,13 @@
             min-width: 60px;
         }
         
-        .user-added-item .swipe-delete-btn:hover {
+        .user-added-item .swipe-delete-btn:hover,
+        .checklist-item .swipe-delete-btn:hover {
             background: #dc2626;
         }
         
-        .user-added-item .swipe-delete-btn:active {
+        .user-added-item .swipe-delete-btn:active,
+        .checklist-item .swipe-delete-btn:active {
             background: #dc2626;
             transform: translateY(-50%) scale(0.95);
         }
@@ -940,20 +1085,28 @@
             align-items: center;
             width: 100%;
             transition: transform 0.3s ease;
-            font-size: 0.665rem;
+            font-size: inherit;
             flex: 1;
         }
         
-        .user-added-item.swiped .item-content {
-            transform: translateX(-80px);
+        .user-added-item.swiped .item-content,
+        .checklist-item.swiped .item-content {
+            transform: translateX(-160px);
         }
         
-        .user-added-item.swiped .swipe-delete-btn {
+        .user-added-item.swiped .swipe-edit-btn,
+        .checklist-item.swiped .swipe-edit-btn {
+            right: 88px;
+        }
+        
+        .user-added-item.swiped .swipe-delete-btn,
+        .checklist-item.swiped .swipe-delete-btn {
             right: 8px;
         }
         
         /* 스와이프 애니메이션 */
-        .user-added-item.swiping .item-content {
+        .user-added-item.swiping .item-content,
+        .checklist-item.swiping .item-content {
             transition: transform 0.1s ease;
         }
         
@@ -1921,42 +2074,78 @@
             </div>
             <div class="info-content">
               <div class="info-section">
-                                <div class="checklist-item">
-                   <input type="checkbox" id="airline" class="prep-checkbox" onchange="saveCheckboxStates()">
-                   <span onclick="openPdfViewer()" style="cursor: pointer;"><strong>항공권</strong> - 예약확인서 및 전자항공권</span>
-                 </div>
-                <div class="checklist-item">
+                                              <div class="checklist-item" data-item-id="airline" data-item-type="existing">
+                <div class="item-content">
+                  <input type="checkbox" id="airline" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span onclick="openPdfViewer()" style="cursor: pointer;">항공권 - 예약확인서 및 전자항공권</span>
+                </div>
+                <button class="swipe-edit-btn" onclick="editExistingItem('airline', '항공권', '예약확인서 및 전자항공권', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('airline')" title="삭제">삭제</button>
+              </div>
+              <div class="checklist-item" data-item-id="parking" data-item-type="existing">
+                <div class="item-content">
                   <input type="checkbox" id="parking" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span><strong>공항주차</strong> - 장기주차 예약</span>
+                  <span>공항주차 - 장기주차 예약</span>
                 </div>
-                <div class="checklist-item">
+                <button class="swipe-edit-btn" onclick="editExistingItem('parking', '공항주차', '장기주차 예약', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('parking')" title="삭제">삭제</button>
+              </div>
+              <div class="checklist-item" data-item-id="insurance" data-item-type="existing">
+                <div class="item-content">
                   <input type="checkbox" id="insurance" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span><strong>여행자보험</strong> - 해외여행 보험 가입</span>
+                  <span>여행자보험 - 해외여행 보험 가입</span>
                 </div>
-                <div class="checklist-item">
+                <button class="swipe-edit-btn" onclick="editExistingItem('insurance', '여행자보험', '해외여행 보험 가입', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('insurance')" title="삭제">삭제</button>
+              </div>
+              <div class="checklist-item" data-item-id="sim" data-item-type="existing">
+                <div class="item-content">
                   <input type="checkbox" id="sim" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span><strong>이심</strong> - 일본 현지 인터넷 연결</span>
+                  <span>이심 - 일본 현지 인터넷 연결</span>
                 </div>
-                <div class="checklist-item">
+                <button class="swipe-edit-btn" onclick="editExistingItem('sim', '이심', '일본 현지 인터넷 연결', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('sim')" title="삭제">삭제</button>
+              </div>
+              <div class="checklist-item" data-item-id="visitjapan" data-item-type="existing">
+                <div class="item-content">
                   <input type="checkbox" id="visitjapan" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span onclick="openVisitJapanWeb()" style="cursor: pointer;"><strong>Visit Japan Web</strong> - 입국 수속 사전 등록</span>
+                  <span onclick="openVisitJapanWeb()" style="cursor: pointer;">Visit Japan Web - 입국 수속 사전 등록</span>
                 </div>
-                <div class="checklist-item">
+                <button class="swipe-edit-btn" onclick="editExistingItem('visitjapan', 'Visit Japan Web', '입국 수속 사전 등록', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('visitjapan')" title="삭제">삭제</button>
+              </div>
+              <div class="checklist-item" data-item-id="confirmations" data-item-type="existing">
+                <div class="item-content">
                   <input type="checkbox" id="confirmations" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span><strong>각종 확정서 출력</strong> - 호텔, 투어예약확인서</span>
+                  <span>각종 확정서 출력 - 호텔, 투어예약확인서</span>
                 </div>
-                <div class="checklist-item">
+                <button class="swipe-edit-btn" onclick="editExistingItem('confirmations', '각종 확정서 출력', '호텔, 투어예약확인서', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('confirmations')" title="삭제">삭제</button>
+              </div>
+              <div class="checklist-item" data-item-id="beergarden" data-item-type="existing">
+                <div class="item-content">
                   <input type="checkbox" id="beergarden" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span><strong>삿포로비어가든 예약</strong> - 징기스칸 예약</span>
+                  <span>삿포로비어가든 예약 - 징기스칸 예약</span>
                 </div>
-                <div class="checklist-item">
+                <button class="swipe-edit-btn" onclick="editExistingItem('beergarden', '징기스칸 예약', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('beergarden')" title="삭제">삭제</button>
+              </div>
+              <div class="checklist-item" data-item-id="songyeongbus" data-item-type="existing">
+                <div class="item-content">
                   <input type="checkbox" id="songyeongbus" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span onclick="openSongyeongBusPdf()" style="cursor: pointer;"><strong>송영버스 예약</strong> - 삿포로-마호바로 간 이동</span>
+                  <span onclick="openSongyeongBusPdf()" style="cursor: pointer;">송영버스 예약 - 삿포로-마호바로 간 이동</span>
                 </div>
-                <div class="checklist-item">
+                <button class="swipe-edit-btn" onclick="editExistingItem('songyeongbus', '송영버스 예약', '삿포로-마호바로 간 이동', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('songyeongbus')" title="삭제">삭제</button>
+              </div>
+              <div class="checklist-item" data-item-id="donanbus" data-item-type="existing">
+                <div class="item-content">
                   <input type="checkbox" id="donanbus" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span onclick="openDonanBusWebsite()" style="cursor: pointer;"><strong>도난버스 예약</strong> - 마호바로-항공 간 이동</span>
+                  <span onclick="openDonanBusWebsite()" style="cursor: pointer;">도난버스 예약 - 마호바로-항공 간 이동</span>
                 </div>
+                <button class="swipe-edit-btn" onclick="editExistingItem('donanbus', '도난버스 예약', '마호바로-항공 간 이동', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('donanbus')" title="삭제">삭제</button>
+              </div>
                                  <!-- 사용자 추가 항목들이 여기에 표시됩니다 -->
                  <div id="userAddedItems"></div>
                                    <!-- 새 항목 추가 버튼 -->
@@ -1996,6 +2185,8 @@
           // 저장된 체크박스 상태 복원
           setTimeout(() => {
             restoreCheckboxStates();
+            // 스와이프 기능 초기화
+            initializeSwipeDelete();
           }, 50);
           
                   // 정보창 위치 조정 - 모바일 최적화
@@ -2046,66 +2237,110 @@
           <div class="info-content">
             <div class="info-section">
               <h4>✈️ 공항 도착</h4>
-              <div class="checklist-item">
-                <input type="checkbox" id="arrival" class="prep-checkbox" onchange="saveCheckboxStates()">
-                <span><strong>신치토세공항 도착</strong> - 오후 12:30 (일본시간)</span>
+              <div class="checklist-item" data-item-id="arrival" data-item-type="existing">
+                <div class="item-content">
+                  <input type="checkbox" id="arrival" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span>신치토세공항 도착 - 오후 12:30 (일본시간)</span>
+                </div>
+                <button class="swipe-edit-btn" onclick="editExistingItem('arrival', '신치토세공항 도착', '오후 12:30 (일본시간)', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('arrival')" title="삭제">삭제</button>
               </div>
-              <div class="checklist-item">
-                <input type="checkbox" id="immigration" class="prep-checkbox" onchange="saveCheckboxStates()">
-                <span><strong>입국심사</strong> - 여권 및 Visit Japan Web QR코드 제시</span>
+              <div class="checklist-item" data-item-id="immigration" data-item-type="existing">
+                <div class="item-content">
+                  <input type="checkbox" id="immigration" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span>입국심사 - 여권 및 Visit Japan Web QR코드 제시</span>
+                </div>
+                <button class="swipe-edit-btn" onclick="editExistingItem('immigration', '입국심사', '여권 및 Visit Japan Web QR코드 제시', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('immigration')" title="삭제">삭제</button>
               </div>
-              <div class="checklist-item">
-                <input type="checkbox" id="baggage" class="prep-checkbox" onchange="saveCheckboxStates()">
-                <span><strong>수하물 수령</strong> - 위탁수하물 확인</span>
+              <div class="checklist-item" data-item-id="baggage" data-item-type="existing">
+                <div class="item-content">
+                  <input type="checkbox" id="baggage" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span>수하물 수령 - 위탁수하물 확인</span>
+                </div>
+                <button class="swipe-edit-btn" onclick="editExistingItem('baggage', '수하물 수령', '위탁수하물 확인', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('baggage')" title="삭제">삭제</button>
               </div>
             </div>
             
             <div class="info-section">
               <h4>🚌 공항 이동</h4>
-              <div class="checklist-item">
-                <input type="checkbox" id="airportBus" class="prep-checkbox" onchange="saveCheckboxStates()">
-                <span onclick="openSongyeongBusPdf()" style="cursor: pointer;"><strong>송영버스 탑승</strong> - 삿포로 시내행 버스</span>
+              <div class="checklist-item" data-item-id="airportBus" data-item-type="existing">
+                <div class="item-content">
+                  <input type="checkbox" id="airportBus" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span onclick="openSongyeongBusPdf()" style="cursor: pointer;">송영버스 탑승 - 삿포로 시내행 버스</span>
+                </div>
+                <button class="swipe-edit-btn" onclick="editExistingItem('airportBus', '송영버스 탑승', '삿포로 시내행 버스', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('airportBus')" title="삭제">삭제</button>
               </div>
-              <div class="checklist-item">
-                <input type="checkbox" id="sapporoArrival" class="prep-checkbox" onchange="saveCheckboxStates()">
-                <span><strong>삿포로 도착</strong> - 약 1시간 30분 소요</span>
+              <div class="checklist-item" data-item-id="sapporoArrival" data-item-type="existing">
+                <div class="item-content">
+                  <input type="checkbox" id="sapporoArrival" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span>삿포로 도착 - 약 1시간 30분 소요</span>
+                </div>
+                <button class="swipe-edit-btn" onclick="editExistingItem('sapporoArrival', '삿포로 도착', '약 1시간 30분 소요', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('sapporoArrival')" title="삭제">삭제</button>
               </div>
             </div>
             
             <div class="info-section">
               <h4>🏨 호텔 체크인</h4>
-              <div class="checklist-item">
-                <input type="checkbox" id="hotelCheckin" class="prep-checkbox" onchange="saveCheckboxStates()">
-                <span><strong>호텔 도착</strong> - 체크인 및 짐 정리</span>
+              <div class="checklist-item" data-item-id="hotelCheckin" data-item-type="existing">
+                <div class="item-content">
+                  <input type="checkbox" id="hotelCheckin" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span>호텔 도착 - 체크인 및 짐 정리</span>
+                </div>
+                <button class="swipe-edit-btn" onclick="editExistingItem('hotelCheckin', '호텔 도착', '체크인 및 짐 정리', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('hotelCheckin')" title="삭제">삭제</button>
               </div>
-              <div class="checklist-item">
-                <input type="checkbox" id="simActivation" class="prep-checkbox" onchange="saveCheckboxStates()">
-                <span><strong>이심 활성화</strong> - 일본 현지 인터넷 연결</span>
+              <div class="checklist-item" data-item-id="simActivation" data-item-type="existing">
+                <div class="item-content">
+                  <input type="checkbox" id="simActivation" class="prep-checkbox" onchange="saveCheckboxStates()">
+                  <span>이심 활성화 - 일본 현지 인터넷 연결</span>
+                </div>
+                <button class="swipe-edit-btn" onclick="editExistingItem('simActivation', '이심 활성화', '일본 현지 인터넷 연결', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('simActivation')" title="삭제">삭제</button>
               </div>
             </div>
             
             <div class="info-section">
               <h4>🍽️ 저녁 식사</h4>
-              <div class="checklist-item">
-                <input type="checkbox" id="dinner" class="prep-checkbox" onchange="saveCheckboxStates()">
-                <span><strong>징기스칸</strong> - 삿포로비어가든 예약</span>
-              </div>
-              <div class="checklist-item">
-                <input type="checkbox" id="beer" class="prep-checkbox" onchange="saveCheckboxStates()">
-                <span><strong>삿포로 맥주</strong> - 현지 맥주 시음</span>
-              </div>
+                             <div class="checklist-item" data-item-id="dinner" data-item-type="existing">
+                 <div class="item-content">
+                   <input type="checkbox" id="dinner" class="prep-checkbox" onchange="saveCheckboxStates()">
+                   <span>징기스칸 - 삿포로비어가든 예약</span>
+                 </div>
+                 <button class="swipe-edit-btn" onclick="editExistingItem('dinner', '징기스칸', '삿포로비어가든 예약', '')" title="수정">수정</button>
+                 <button class="swipe-delete-btn" onclick="deleteExistingItem('dinner')" title="삭제">삭제</button>
+               </div>
+               <div class="checklist-item" data-item-id="beer" data-item-type="existing">
+                 <div class="item-content">
+                   <input type="checkbox" id="beer" class="prep-checkbox" onchange="saveCheckboxStates()">
+                   <span>삿포로 맥주 - 현지 맥주 시음</span>
+                 </div>
+                 <button class="swipe-edit-btn" onclick="editExistingItem('beer', '삿포로 맥주', '현지 맥주 시음', '')" title="수정">수정</button>
+                 <button class="swipe-delete-btn" onclick="deleteExistingItem('beer')" title="삭제">삭제</button>
+               </div>
             </div>
             
                          <div class="info-section">
                <h4>🌙 첫날 마무리</h4>
-               <div class="checklist-item">
-                 <input type="checkbox" id="shopping" class="prep-checkbox" onchange="saveCheckboxStates()">
-                 <span><strong>편의점 쇼핑</strong> - 간식 및 생필품 구매</span>
+               <div class="checklist-item" data-item-id="shopping" data-item-type="existing">
+                 <div class="item-content">
+                   <input type="checkbox" id="shopping" class="prep-checkbox" onchange="saveCheckboxStates()">
+                   <span>편의점 쇼핑 - 간식 및 생필품 구매</span>
+                 </div>
+                 <button class="swipe-edit-btn" onclick="editExistingItem('shopping', '편의점 쇼핑', '간식 및 생필품 구매', '')" title="수정">수정</button>
+                 <button class="swipe-delete-btn" onclick="deleteExistingItem('shopping')" title="삭제">삭제</button>
                </div>
-               <div class="checklist-item">
-                 <input type="checkbox" id="rest" class="prep-checkbox" onchange="saveCheckboxStates()">
-                 <span><strong>호텔 휴식</strong> - 다음날 일정 준비</span>
-               </div>
+               <div class="checklist-item" data-item-id="rest" data-item-type="existing">
+                 <div class="item-content">
+                   <input type="checkbox" id="rest" class="prep-checkbox" onchange="saveCheckboxStates()">
+                   <span>호텔 휴식 - 다음날 일정 준비</span>
+                </div>
+                <button class="swipe-edit-btn" onclick="editExistingItem('rest', '호텔 휴식', '다음날 일정 준비', '')" title="수정">수정</button>
+                <button class="swipe-delete-btn" onclick="deleteExistingItem('rest')" title="삭제">삭제</button>
+              </div>
              </div>
              
              <!-- 저장된 경로/마커 제거 버튼 섹션 -->
@@ -2129,6 +2364,8 @@
         // 저장된 체크박스 상태 복원
         setTimeout(() => {
           restoreCheckboxStates();
+          // 스와이프 기능 초기화
+          initializeSwipeDelete();
         }, 50);
         
         // 경로제거 버튼 상태 업데이트
@@ -2560,7 +2797,200 @@
          }
       }
       
-             // 사용자 항목 링크 열기 함수
+             // 사용자 항목 수정 함수
+      function editUserItem(itemId, currentTitle, currentDescription, currentLink) {
+        // 수정 폼 표시
+        showEditForm(itemId, currentTitle, currentDescription, currentLink, 'user');
+      }
+      
+      // 기존 항목 수정 함수
+      function editExistingItem(itemId, currentTitle, currentDescription, currentLink) {
+        // 수정 폼 표시
+        showEditForm(itemId, currentTitle, currentDescription, currentLink, 'existing');
+      }
+      
+      // 기존 항목 삭제 함수
+      function deleteExistingItem(itemId) {
+        if (!confirm('이 항목을 삭제하시겠습니까?')) {
+          return;
+        }
+        
+        // 체크박스 상태 제거
+        const checkbox = document.getElementById(itemId);
+        if (checkbox) {
+          checkbox.remove();
+        }
+        
+        // 항목 제거
+        const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
+        if (itemElement) {
+          itemElement.remove();
+        }
+        
+        // Firebase에서 체크박스 상태 제거
+        saveCheckboxStates();
+        
+        updateSyncStatus('항목이 삭제되었습니다', 'success');
+      }
+      
+      // 수정 폼 표시 함수
+      function showEditForm(itemId, currentTitle, currentDescription, currentLink, itemType) {
+        // 기존 수정 폼이 있으면 제거
+        const existingForm = document.getElementById('editItemForm');
+        if (existingForm) {
+          existingForm.remove();
+        }
+        
+        // 수정 폼 생성
+        const editForm = document.createElement('div');
+        editForm.id = 'editItemForm';
+        editForm.className = 'edit-item-form';
+        editForm.innerHTML = `
+          <div class="edit-form-header">
+            <h4>항목 수정</h4>
+            <button class="close-btn" onclick="closeEditForm()">×</button>
+          </div>
+          <div class="form-group">
+            <input type="text" id="editItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50" value="${currentTitle}">
+            <input type="url" id="editItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200" value="${currentLink}">
+          </div>
+          <div class="form-buttons">
+            <button type="button" onclick="saveEditedItem('${itemId}', '${itemType}')" class="save-btn">저장</button>
+            <button type="button" onclick="closeEditForm()" class="cancel-btn">취소</button>
+          </div>
+        `;
+        
+        // 폼을 화면에 추가
+        document.body.appendChild(editForm);
+        
+        // 폼 위치 조정
+        setTimeout(() => {
+          const form = document.getElementById('editItemForm');
+          if (form) {
+            form.style.left = '50%';
+            form.style.transform = 'translateX(-50%)';
+            form.style.top = '120px';
+          }
+        }, 100);
+        
+        // 제목 입력란에 포커스
+        setTimeout(() => {
+          document.getElementById('editItemTitle').focus();
+        }, 100);
+      }
+      
+      // 수정 폼 닫기 함수
+      function closeEditForm() {
+        const editForm = document.getElementById('editItemForm');
+        if (editForm) {
+          editForm.remove();
+        }
+      }
+      
+      // 수정된 항목 저장 함수
+      async function saveEditedItem(itemId, itemType) {
+        const titleInput = document.getElementById('editItemTitle');
+        const linkInput = document.getElementById('editItemLink');
+        
+        const title = titleInput.value.trim();
+        const link = linkInput.value.trim();
+        
+        if (!title) {
+          updateSyncStatus('항목 제목을 입력해주세요', 'error');
+          titleInput.focus();
+          return;
+        }
+        
+        if (itemType === 'user') {
+          // 사용자 추가 항목 수정
+          await updateUserItem(itemId, title, link);
+        } else {
+          // 기존 항목 수정
+          await updateExistingItem(itemId, title, link);
+        }
+        
+        // 수정 폼 닫기
+        closeEditForm();
+      }
+      
+      // 사용자 항목 업데이트 함수
+      async function updateUserItem(itemId, title, link) {
+        try {
+          // 동기화 상태 설정
+          isSyncing = true;
+          updateSyncStatus('항목 수정 중...', 'info');
+          
+          // 현재 항목 찾기
+          const currentItems = window.firebaseUserItems || [];
+          const itemIndex = currentItems.findIndex(item => item.id === itemId);
+          
+          if (itemIndex === -1) {
+            updateSyncStatus('항목을 찾을 수 없습니다', 'error');
+            return;
+          }
+          
+          // 항목 업데이트
+          const updatedItem = {
+            ...currentItems[itemIndex],
+            title: title,
+            link: link || null,
+            timestamp: new Date().toISOString()
+          };
+          
+          currentItems[itemIndex] = updatedItem;
+          
+          // Firebase에 저장
+          await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+            userAddedItems: currentItems,
+            lastUpdated: window.firestore.serverTimestamp()
+          });
+          
+          // 전역 변수 업데이트
+          window.firebaseUserItems = currentItems;
+          
+          // UI 업데이트
+          displayUserAddedItemsFromFirebase(currentItems);
+          
+          updateSyncStatus('항목이 수정되었습니다', 'success');
+          
+        } catch (error) {
+          console.error('Firebase 업데이트 실패:', error);
+          updateSyncStatus('수정 실패', 'error');
+        } finally {
+          isSyncing = false;
+        }
+      }
+      
+      // 기존 항목 업데이트 함수
+      async function updateExistingItem(itemId, title, link) {
+        try {
+          // 동기화 상태 설정
+          isSyncing = true;
+          updateSyncStatus('항목 수정 중...', 'info');
+          
+          // HTML 요소 업데이트
+          const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
+          if (itemElement) {
+            const titleSpan = itemElement.querySelector('span');
+            if (titleSpan) {
+              titleSpan.innerHTML = `<strong>${title}</strong> - ${link || ''}`;
+            }
+          }
+          
+          // Firebase에 저장 (기존 항목은 체크박스 상태만 저장)
+          await saveCheckboxStates();
+          
+          updateSyncStatus('항목이 수정되었습니다', 'success');
+          
+        } catch (error) {
+          console.error('항목 수정 실패:', error);
+          updateSyncStatus('수정 실패', 'error');
+        } finally {
+          isSyncing = false;
+        }
+      }
+      
+      // 사용자 항목 링크 열기 함수
        function openUserItemLink(link) {
          if (!link) return;
          
@@ -4360,11 +4790,11 @@
         }
       }
 
-      // 스와이프 삭제 기능 초기화 - 모바일 최적화
+      // 스와이프 삭제/수정 기능 초기화 - 모바일 최적화
       function initializeSwipeDelete() {
-        const userItems = document.querySelectorAll('.user-added-item');
+        const allItems = document.querySelectorAll('.user-added-item, .checklist-item');
         
-        userItems.forEach(item => {
+        allItems.forEach(item => {
           let startX = 0;
           let currentX = 0;
           let isSwiping = false;
@@ -4396,7 +4826,7 @@
             
             // 빠른 스와이프 감지 (모바일에서 더 민감하게)
             if (diffX > 30 && diffTime < 500) {
-              const translateX = Math.min(diffX, 80);
+              const translateX = Math.min(diffX, 160);
               this.querySelector('.item-content').style.transform = `translateX(-${translateX}px)`;
               hasSwiped = true;
             }
@@ -4414,7 +4844,7 @@
             
             // 모바일에서 더 민감한 스와이프 감지
             if (hasSwiped && diffX > 30 && diffTime < 1000) {
-              // 스와이프 완료 - 삭제 버튼 표시
+              // 스와이프 완료 - 수정/삭제 버튼 표시
               this.classList.add('swiped');
             } else {
               // 스와이프 취소 - 원래 위치로 복원
@@ -4425,8 +4855,9 @@
           
           // 클릭 시 스와이프 상태 해제 - 모바일 최적화
           item.addEventListener('click', function(e) {
-            // 삭제 버튼 클릭이 아닌 경우에만 스와이프 해제
-            if (!e.target.classList.contains('swipe-delete-btn') &&
+            // 수정/삭제 버튼 클릭이 아닌 경우에만 스와이프 해제
+            if (!e.target.classList.contains('swipe-edit-btn') &&
+                !e.target.classList.contains('swipe-delete-btn') &&
                 !e.target.classList.contains('prep-checkbox')) {
               this.classList.remove('swiped');
               this.querySelector('.item-content').style.transform = 'translateX(0)';
@@ -4450,7 +4881,7 @@
                 const diffX = startX - currentX;
                 
                 if (diffX > 50) {
-                  const translateX = Math.min(diffX, 80);
+                  const translateX = Math.min(diffX, 160);
                   this.querySelector('.item-content').style.transform = `translateX(-${translateX}px)`;
                   hasSwiped = true;
                 }
@@ -4463,8 +4894,10 @@
                 this.classList.remove('swiping');
                 
                 if (hasSwiped && (startX - currentX) > 50) {
+                  // 스와이프 완료 - 수정/삭제 버튼 표시
                   this.classList.add('swiped');
                 } else {
+                  // 스와이프 취소 - 원래 위치로 복원
                   this.classList.remove('swiped');
                   this.querySelector('.item-content').style.transform = 'translateX(0)';
                 }
@@ -4663,15 +5096,16 @@
         let html = '';
         userItems.forEach(item => {
           const titleElement = item.link 
-            ? `<span onclick="openUserItemLink('${item.link}')" style="cursor: pointer; color: #1d4ed8; text-decoration: underline;"><strong>${item.title}</strong></span>`
-            : `<strong>${item.title}</strong>`;
+            ? `<span onclick="openUserItemLink('${item.link}')" style="cursor: pointer; color: #1d4ed8; text-decoration: underline;">${item.title}</span>`
+            : `${item.title}`;
           
           html += `
-            <div class="user-added-item" data-item-id="${item.id}">
+            <div class="user-added-item" data-item-id="${item.id}" data-item-type="user">
               <div class="item-content">
                 <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
                 <span>${titleElement}</span>
               </div>
+              <button class="swipe-edit-btn" onclick="editUserItem('${item.id}', '${item.title}', '${item.description || ''}', '${item.link || ''}')" title="수정">수정</button>
               <button class="swipe-delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">삭제</button>
             </div>
           `;
@@ -4682,33 +5116,58 @@
         // 스와이프 삭제 기능 초기화
         initializeSwipeDelete();
         
-        // 모바일에서 삭제 버튼 터치 이벤트 추가
+        // 모바일에서 수정/삭제 버튼 터치 이벤트 추가
         if (isMobile) {
+          const editButtons = container.querySelectorAll('.swipe-edit-btn');
           const deleteButtons = container.querySelectorAll('.swipe-delete-btn');
-          deleteButtons.forEach(btn => {
-            // 터치 시작 시 이벤트 전파 방지
+          
+          // 수정 버튼 터치 이벤트
+          editButtons.forEach(btn => {
             btn.addEventListener('touchstart', function(e) {
               e.stopPropagation();
               e.preventDefault();
               this.style.transform = 'scale(0.95)';
             }, { passive: false });
             
-            // 터치 종료 시 삭제 실행
+            btn.addEventListener('touchend', function(e) {
+              e.stopPropagation();
+              e.preventDefault();
+              this.style.transform = 'scale(1)';
+            }, { passive: false });
+            
+            btn.addEventListener('touchcancel', function(e) {
+              e.stopPropagation();
+              this.style.transform = 'scale(1)';
+            }, { passive: true });
+          });
+          
+          // 삭제 버튼 터치 이벤트
+          deleteButtons.forEach(btn => {
+            btn.addEventListener('touchstart', function(e) {
+              e.stopPropagation();
+              e.preventDefault();
+              this.style.transform = 'scale(0.95)';
+            }, { passive: false });
+            
             btn.addEventListener('touchend', function(e) {
               e.stopPropagation();
               e.preventDefault();
               this.style.transform = 'scale(1)';
               
-              const itemId = this.closest('.user-added-item').getAttribute('data-item-id');
+              const itemId = this.closest('.user-added-item, .checklist-item').getAttribute('data-item-id');
               if (itemId) {
                 // 약간의 지연을 두어 터치 피드백을 보여줌
                 setTimeout(() => {
-                  deleteUserItem(itemId);
+                  const itemType = this.closest('.user-added-item, .checklist-item').getAttribute('data-item-type');
+                  if (itemType === 'user') {
+                    deleteUserItem(itemId);
+                  } else {
+                    deleteExistingItem(itemId);
+                  }
                 }, 100);
               }
             }, { passive: false });
             
-            // 터치 취소 시 스타일 복원
             btn.addEventListener('touchcancel', function(e) {
               e.stopPropagation();
               this.style.transform = 'scale(1)';
