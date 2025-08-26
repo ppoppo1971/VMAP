@@ -1244,6 +1244,9 @@
         restoreSavedUserRoutes().then(() => {
           // Firebase 실시간 동기화 설정
           setupFirebaseSync();
+          
+          // 경로제거 버튼 상태 업데이트
+          updateRouteRemoveButtons();
         });
         
 
@@ -1630,6 +1633,9 @@
                 displayUserAddedItems(); // Clear display
               }, 100);
             }
+            
+            // 경로제거 버튼 상태 업데이트
+            updateRouteRemoveButtons();
           } else {
             // No Firebase data, try to restore from localStorage
             const savedStates = localStorage.getItem('preparationCheckboxes');
@@ -1648,6 +1654,11 @@
                 displayUserAddedItems(); // Display from localStorage
               }, 100);
             }
+            
+            // 경로제거 버튼 상태 업데이트
+            updateRouteRemoveButtons();
+            
+            alert('Firebase 로드에 실패했습니다. 로컬 데이터로 복원되었습니다.');
           }
           
           console.log('Firebase 또는 localStorage에서 상태 복원 완료');
@@ -1746,6 +1757,17 @@
                      <button type="button" onclick="addNewItem()" class="add-btn">추가</button>
                    </div>
                  </div>
+              </div>
+              
+              <!-- 저장된 경로 섹션 추가 -->
+              <div class="info-section">
+                <h4>🗺️ 저장된 경로</h4>
+                <div id="preparationRouteRemoveBtn" style="display: none;">
+                  <button class="route-remove-btn" onclick="removeRoutesByLocation('사전준비')">경로제거</button>
+                  <p style="font-size: 0.63rem; color: #6b7280; margin-top: 4px;">
+                    사전준비에 저장된 경로들을 제거합니다.
+                  </p>
+                </div>
               </div>
             </div>
           `;
@@ -1870,10 +1892,12 @@
              
              <div class="info-section">
                <h4>🗺️ 저장된 경로</h4>
-               <button class="route-remove-btn" onclick="removeDay1Routes()">경로제거</button>
-               <p style="font-size: 0.63rem; color: #6b7280; margin-top: 4px;">
-                 1일차에 저장된 경로들을 제거합니다.
-               </p>
+               <div id="day1RouteRemoveBtn" style="display: none;">
+                 <button class="route-remove-btn" onclick="removeRoutesByLocation('1일차')">경로제거</button>
+                 <p style="font-size: 0.63rem; color: #6b7280; margin-top: 4px;">
+                   1일차에 저장된 경로들을 제거합니다.
+                 </p>
+               </div>
              </div>
           </div>
         `;
@@ -1885,6 +1909,9 @@
         setTimeout(() => {
           restoreCheckboxStates();
         }, 50);
+        
+        // 경로제거 버튼 상태 업데이트
+        updateRouteRemoveButtons();
         
         // 정보창 위치 조정 - 모바일 최적화
         setTimeout(() => {
@@ -2809,6 +2836,9 @@
         
         // 저장된 경로들 다시 그리기
         drawAllSavedRoutes();
+        
+        // 경로제거 버튼 상태 업데이트
+        updateRouteRemoveButtons();
       }
       
       // 저장된 모든 경로 그리기
@@ -2873,6 +2903,8 @@
              if (data.savedUserRoutes && data.savedUserRoutes.length > 0) {
                savedUserRoutes = data.savedUserRoutes;
                drawAllSavedRoutes();
+               // 경로제거 버튼 상태 업데이트
+               updateRouteRemoveButtons();
                console.log('Firebase에서 경로 복원 완료');
                return;
              }
@@ -2886,26 +2918,28 @@
          if (savedRoutes) {
            savedUserRoutes = JSON.parse(savedRoutes);
            drawAllSavedRoutes();
+           // 경로제거 버튼 상태 업데이트
+           updateRouteRemoveButtons();
          }
        }
        
-       // 1일차 경로만 제거하는 함수
-       async function removeDay1Routes() {
-         // 1일차 경로가 있는지 확인
-         const day1Routes = savedUserRoutes.filter(route => route.location === '1일차');
+       // 특정 위치의 경로를 제거하는 함수
+       async function removeRoutesByLocation(location) {
+         // 해당 위치의 경로가 있는지 확인
+         const locationRoutes = savedUserRoutes.filter(route => route.location === location);
          
-         if (day1Routes.length === 0) {
-           alert('1일차에 저장된 경로가 없습니다.');
+         if (locationRoutes.length === 0) {
+           alert(`${location}에 저장된 경로가 없습니다.`);
            return;
          }
          
          // 사용자 확인
-         if (!confirm(`1일차에 저장된 경로 ${day1Routes.length}개를 모두 제거하시겠습니까?`)) {
+         if (!confirm(`${location}에 저장된 경로 ${locationRoutes.length}개를 모두 제거하시겠습니까?`)) {
            return;
          }
          
-         // 1일차 경로들만 제거
-         day1Routes.forEach(route => {
+         // 해당 위치의 경로들만 제거
+         locationRoutes.forEach(route => {
            if (route.pathElement) {
              route.pathElement.setMap(null);
            }
@@ -2914,11 +2948,11 @@
            }
          });
          
-         // 배열에서 1일차 경로들 제거
-         savedUserRoutes = savedUserRoutes.filter(route => route.location !== '1일차');
+         // 배열에서 해당 위치 경로들 제거
+         savedUserRoutes = savedUserRoutes.filter(route => route.location !== location);
          
          try {
-           // Firebase에서 1일차 경로들 제거
+           // Firebase에서 해당 위치 경로들 제거
            await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
              savedUserRoutes: savedUserRoutes,
              lastUpdated: window.firestore.serverTimestamp()
@@ -2927,7 +2961,7 @@
            // localStorage 업데이트
            localStorage.setItem('savedUserRoutes', JSON.stringify(savedUserRoutes));
            
-           console.log('Firebase에서 1일차 경로 제거 완료');
+           console.log(`Firebase에서 ${location} 경로 제거 완료`);
          } catch (error) {
            console.error('Firebase 업데이트 실패:', error);
            
@@ -2937,10 +2971,30 @@
          }
          
          // 성공 메시지
-         alert(`1일차 경로 ${day1Routes.length}개가 제거되었습니다.`);
+         alert(`${location} 경로 ${locationRoutes.length}개가 제거되었습니다.`);
+         
+         // 경로제거 버튼 상태 업데이트
+         updateRouteRemoveButtons();
          
          // 정보창 닫기
          closePreparationInfo();
+       }
+       
+       // 경로제거 버튼들을 동적으로 표시/숨김하는 함수
+       function updateRouteRemoveButtons() {
+         // 사전준비 경로제거 버튼
+         const prepBtn = document.getElementById('preparationRouteRemoveBtn');
+         if (prepBtn) {
+           const prepRoutes = savedUserRoutes.filter(route => route.location === '사전준비');
+           prepBtn.style.display = prepRoutes.length > 0 ? 'block' : 'none';
+         }
+         
+         // 1일차 경로제거 버튼
+         const day1Btn = document.getElementById('day1RouteRemoveBtn');
+         if (day1Btn) {
+           const day1Routes = savedUserRoutes.filter(route => route.location === '1일차');
+           day1Btn.style.display = day1Routes.length > 0 ? 'block' : 'none';
+         }
        }
        
        // 주소 검색 함수
@@ -3304,6 +3358,8 @@
                   savedUserRoutes = data.savedUserRoutes;
                   localStorage.setItem('savedUserRoutes', JSON.stringify(data.savedUserRoutes)); // Keep localStorage in sync
                   drawAllSavedRoutes();
+                  // 경로제거 버튼 상태 업데이트
+                  updateRouteRemoveButtons();
                   console.log('Firebase에서 경로 동기화 완료');
                 }
               } else {
@@ -3311,6 +3367,9 @@
                 savedUserRoutes = [];
                 localStorage.removeItem('savedUserRoutes');
                 drawAllSavedRoutes();
+                // 경로제거 버튼 상태 업데이트
+                updateRouteRemoveButtons();
+                console.log('Firebase 문서가 존재하지 않아 모든 로컬 데이터 초기화');
               }
             } else {
               // Document does not exist, clear all local data
@@ -3325,6 +3384,8 @@
               }, 50);
               savedUserRoutes = [];
               drawAllSavedRoutes();
+              // 경로제거 버튼 상태 업데이트
+              updateRouteRemoveButtons();
               console.log('Firebase 문서가 존재하지 않아 모든 로컬 데이터 초기화');
             }
           }, (error) => {
