@@ -433,6 +433,22 @@
                 left: 2.5vw !important;
                 transform: none !important;
             }
+            
+            /* 작은 화면에서 삭제 버튼 최적화 */
+            .user-added-item .delete-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 1.1rem;
+                min-height: 48px;
+                min-width: 48px;
+            }
+            
+            .user-added-item .swipe-delete-btn {
+                min-height: 52px;
+                min-width: 80px;
+                font-size: 1.1rem;
+                padding: 14px 24px;
+            }
         }
         
         /* 터치 최적화를 위한 추가 스타일 */
@@ -537,6 +553,22 @@
             .info-content::-webkit-scrollbar-thumb {
                 background: rgba(0, 0, 0, 0.3);
                 border-radius: 2px;
+            }
+            
+            /* 모바일에서 삭제 버튼 크기 최적화 */
+            .user-added-item .delete-btn {
+                width: 24px;
+                height: 24px;
+                font-size: 1rem;
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            .user-added-item .swipe-delete-btn {
+                min-height: 48px;
+                min-width: 70px;
+                font-size: 1rem;
+                padding: 12px 20px;
             }
         }
         
@@ -900,11 +932,18 @@
             justify-content: center;
             transition: all 0.2s ease;
             flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
         
         .user-added-item .delete-btn:hover {
             background: #dc2626;
             transform: scale(1.1);
+        }
+        
+        .user-added-item .delete-btn:active {
+            background: #dc2626;
+            transform: scale(0.95);
         }
         
         /* 스와이프 삭제 기능을 위한 스타일 */
@@ -924,10 +963,19 @@
             transition: all 0.3s ease;
             white-space: nowrap;
             z-index: 10;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            min-height: 44px;
+            min-width: 60px;
         }
         
         .user-added-item .swipe-delete-btn:hover {
             background: #dc2626;
+        }
+        
+        .user-added-item .swipe-delete-btn:active {
+            background: #dc2626;
+            transform: translateY(-50%) scale(0.95);
         }
         
         .user-added-item .item-content {
@@ -4320,15 +4368,19 @@
           
           // 터치 시작 - 모바일 최적화
           item.addEventListener('touchstart', function(e) {
+            // 삭제 버튼이나 체크박스 클릭 시에는 스와이프 방지
+            if (e.target.classList.contains('delete-btn') || 
+                e.target.classList.contains('swipe-delete-btn') ||
+                e.target.classList.contains('prep-checkbox')) {
+              return;
+            }
+            
             startX = e.touches[0].clientX;
             startTime = Date.now();
             isSwiping = true;
             hasSwiped = false;
             this.classList.add('swiping');
-            
-            // 모바일에서 스크롤 방지
-            e.preventDefault();
-          }, { passive: false });
+          }, { passive: true });
           
           // 터치 이동 - 모바일 최적화
           item.addEventListener('touchmove', function(e) {
@@ -4343,11 +4395,8 @@
               const translateX = Math.min(diffX, 80);
               this.querySelector('.item-content').style.transform = `translateX(-${translateX}px)`;
               hasSwiped = true;
-              
-              // 모바일에서 스크롤 방지
-              e.preventDefault();
             }
-          }, { passive: false });
+          }, { passive: true });
           
           // 터치 종료 - 모바일 최적화
           item.addEventListener('touchend', function(e) {
@@ -4594,6 +4643,40 @@
         
         // 스와이프 삭제 기능 초기화
         initializeSwipeDelete();
+        
+        // 모바일에서 삭제 버튼 터치 이벤트 추가
+        if (isMobile) {
+          const deleteButtons = container.querySelectorAll('.delete-btn, .swipe-delete-btn');
+          deleteButtons.forEach(btn => {
+            // 터치 시작 시 이벤트 전파 방지
+            btn.addEventListener('touchstart', function(e) {
+              e.stopPropagation();
+              e.preventDefault();
+              this.style.transform = 'scale(0.95)';
+            }, { passive: false });
+            
+            // 터치 종료 시 삭제 실행
+            btn.addEventListener('touchend', function(e) {
+              e.stopPropagation();
+              e.preventDefault();
+              this.style.transform = 'scale(1)';
+              
+              const itemId = this.closest('.user-added-item').getAttribute('data-item-id');
+              if (itemId) {
+                // 약간의 지연을 두어 터치 피드백을 보여줌
+                setTimeout(() => {
+                  deleteUserItem(itemId);
+                }, 100);
+              }
+            }, { passive: false });
+            
+            // 터치 취소 시 스타일 복원
+            btn.addEventListener('touchcancel', function(e) {
+              e.stopPropagation();
+              this.style.transform = 'scale(1)';
+            }, { passive: true });
+          });
+        }
       }
       
       // 오프라인 모드 활성화
