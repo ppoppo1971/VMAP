@@ -427,7 +427,7 @@
             }
             
             /* 작은 화면에서 정보창 최적화 */
-            #preparationInfo, #routeSaveDialog {
+            #preparationInfo, #routeSaveDialog, #markerSaveDialog {
                 width: 95vw;
                 max-width: 95vw;
                 left: 2.5vw !important;
@@ -733,7 +733,7 @@
                 margin: 0 auto;
             }
             
-            #routeSaveDialog {
+            #routeSaveDialog, #markerSaveDialog {
                 width: 350px;
                 left: 50% !important;
                 transform: translateX(-50%) !important;
@@ -752,7 +752,7 @@
                 max-width: 95vw;
             }
             
-            #routeSaveDialog {
+            #routeSaveDialog, #markerSaveDialog {
                 width: 320px;
                 top: 70px !important;
                 left: 50% !important;
@@ -990,7 +990,7 @@
         }
         
         /* 경로 저장 다이얼로그 스타일 */
-        #routeSaveDialog {
+        #routeSaveDialog, #markerSaveDialog {
             position: absolute;
             z-index: 15;
             width: 400px;
@@ -2789,13 +2789,33 @@
       
       // 마커생성 모드 토글 함수
       function toggleMarkerMode() {
+        console.log('toggleMarkerMode 호출됨, isMarkerMode:', isMarkerMode, 'customMarkers.length:', customMarkers.length);
+        
         if (isMarkerMode) {
+          console.log('마커 모드가 활성화되어 있음');
+          console.log('customMarkers 배열:', customMarkers);
+          console.log('customMarkers.length:', customMarkers.length);
+          
+          // 버튼 텍스트 확인
+          const markerBtn = document.getElementById('topMarkerBtn');
+          const buttonText = markerBtn.textContent;
+          console.log('현재 버튼 텍스트:', buttonText);
+          
           // 마커가 생성되어 있고 "마커완성" 상태라면 저장 다이얼로그 표시
-          if (customMarkers.length > 0) {
-            showMarkerSaveDialog();
+          if (customMarkers.length > 0 || buttonText === '마커완성') {
+            console.log('마커완성 상태: showMarkerSaveDialog 호출');
+            
+            try {
+              showMarkerSaveDialog();
+              console.log('showMarkerSaveDialog 호출 성공');
+            } catch (error) {
+              console.error('showMarkerSaveDialog 호출 실패:', error);
+              // 대안: 직접 다이얼로그 생성
+              createMarkerSaveDialogDirectly();
+            }
+            
             // 마커 모드 비활성화하여 더 이상 마커 생성 방지
             isMarkerMode = false;
-            const markerBtn = document.getElementById('topMarkerBtn');
             markerBtn.textContent = '마커생성';
             markerBtn.style.background = 'rgba(255, 255, 255, 0.12)';
             markerBtn.style.color = '#1a1a1a';
@@ -2804,7 +2824,6 @@
           
           // 마커생성 모드 비활성화
           isMarkerMode = false;
-          const markerBtn = document.getElementById('topMarkerBtn');
           markerBtn.textContent = '마커생성';
           markerBtn.style.background = 'rgba(255, 255, 255, 0.12)';
           markerBtn.style.color = '#1a1a1a';
@@ -2928,6 +2947,7 @@
         });
         
         customMarkers.push(marker);
+        console.log('마커 추가됨, 현재 customMarkers.length:', customMarkers.length);
         
         // 마커가 생성되면 버튼을 "마커완성"으로 변경
         if (customMarkers.length >= 1) {
@@ -2935,6 +2955,7 @@
           markerBtn.textContent = '마커완성';
           markerBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
           markerBtn.style.color = 'white';
+          console.log('버튼을 "마커완성"으로 변경');
         }
         
         // 성공 메시지
@@ -2943,10 +2964,12 @@
       
       // 사용자 정의 마커 제거 함수
       function removeCustomMarker(marker) {
+        console.log('removeCustomMarker 호출됨, 현재 customMarkers.length:', customMarkers.length);
         const index = customMarkers.indexOf(marker);
         if (index > -1) {
           marker.setMap(null);
           customMarkers.splice(index, 1);
+          console.log('마커 제거됨, 현재 customMarkers.length:', customMarkers.length);
           
           // 마커 번호 재정렬
           customMarkers.forEach((m, i) => {
@@ -2965,6 +2988,7 @@
             markerBtn.textContent = '마커생성 중...';
             markerBtn.style.background = 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
             markerBtn.style.color = 'white';
+            console.log('버튼을 "마커생성 중..."으로 변경');
           }
           
           console.log(`마커가 제거되었습니다. 남은 마커: ${customMarkers.length}개`);
@@ -3348,8 +3372,60 @@
         updateMarkerRemoveButtons();
       }
       
+      // 마커 저장 위치 선택 다이얼로그 직접 생성 (대안 함수)
+      function createMarkerSaveDialogDirectly() {
+        console.log('createMarkerSaveDialogDirectly 함수 호출됨');
+        
+        // 기존 다이얼로그가 있으면 제거
+        const existingDialog = document.getElementById('markerSaveDialog');
+        if (existingDialog) {
+          existingDialog.remove();
+        }
+        
+        // 다이얼로그 생성
+        const dialogDiv = document.createElement('div');
+        dialogDiv.id = 'markerSaveDialog';
+        dialogDiv.style.cssText = `
+          position: fixed;
+          z-index: 1000;
+          width: 400px;
+          max-width: 90vw;
+          background: rgba(255, 255, 255, 0.95);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 16px;
+          box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          overflow: hidden;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+        `;
+        
+        dialogDiv.innerHTML = `
+          <div style="padding: 20px; border-bottom: 1px solid rgba(0,0,0,0.1);">
+            <h3 style="margin: 0; color: #1a1a1a;">마커 저장 위치 선택</h3>
+            <button onclick="closeMarkerSaveDialog()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">×</button>
+          </div>
+          <div style="padding: 20px;">
+            <h4 style="margin: 0 0 20px 0; color: #1a1a1a;">어디에 마커를 저장하시겠습니까?</h4>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <button onclick="saveMarkersToLocation('사전준비')" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 8px; padding: 12px 16px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">사전준비</button>
+              <button onclick="saveMarkersToLocation('1일차')" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 8px; padding: 12px 16px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">1일차</button>
+              <button onclick="saveMarkersToLocation('새로운 항목')" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 8px; padding: 12px 16px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">새로운 항목</button>
+            </div>
+          </div>
+        `;
+        
+        console.log('대안 다이얼로그 생성 완료');
+        document.body.appendChild(dialogDiv);
+      }
+      
       // 마커 저장 위치 선택 다이얼로그 표시
       function showMarkerSaveDialog() {
+        console.log('showMarkerSaveDialog 함수 호출됨');
+        
         // 기존 다이얼로그가 있으면 제거
         const existingDialog = document.getElementById('markerSaveDialog');
         if (existingDialog) {
@@ -3377,6 +3453,7 @@
         `;
         
         // 다이얼로그를 지도 위에 표시
+        console.log('다이얼로그 DOM에 추가:', dialogDiv);
         document.body.appendChild(dialogDiv);
         
         // 다이얼로그 위치 조정 - 모바일 최적화
@@ -3395,6 +3472,7 @@
             dialogDiv.style.top = (mapRect.height / 2 - 150) + 'px';
             dialogDiv.style.transform = 'none';
           }
+          console.log('다이얼로그 위치 설정 완료');
         }, 100);
       }
       
