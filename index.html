@@ -434,14 +434,7 @@
                 transform: none !important;
             }
             
-            /* 작은 화면에서 삭제 버튼 최적화 */
-            .user-added-item .delete-btn {
-                width: 28px;
-                height: 28px;
-                font-size: 1.1rem;
-                min-height: 48px;
-                min-width: 48px;
-            }
+
             
             .user-added-item .swipe-delete-btn {
                 min-height: 52px;
@@ -555,14 +548,7 @@
                 border-radius: 2px;
             }
             
-            /* 모바일에서 삭제 버튼 크기 최적화 */
-            .user-added-item .delete-btn {
-                width: 24px;
-                height: 24px;
-                font-size: 1rem;
-                min-height: 44px;
-                min-width: 44px;
-            }
+
             
             .user-added-item .swipe-delete-btn {
                 min-height: 48px;
@@ -900,7 +886,7 @@
              transform: translateY(0);
          }
         
-        /* 사용자 추가 항목 스타일 */
+        /* 사용자 추가 항목 스타일 (기존 체크리스트와 동일한 스타일) */
         .user-added-item {
             display: flex;
             align-items: center;
@@ -915,35 +901,6 @@
         
         .user-added-item:hover {
             background-color: rgba(29, 78, 216, 0.05);
-        }
-        
-        .user-added-item .delete-btn {
-            background: #ef4444;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            margin-left: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            flex-shrink: 0;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-        }
-        
-        .user-added-item .delete-btn:hover {
-            background: #dc2626;
-            transform: scale(1.1);
-        }
-        
-        .user-added-item .delete-btn:active {
-            background: #dc2626;
-            transform: scale(0.95);
         }
         
         /* 스와이프 삭제 기능을 위한 스타일 */
@@ -983,11 +940,8 @@
             align-items: center;
             width: 100%;
             transition: transform 0.3s ease;
-            background: white;
-            padding: 4px 12px;
-            border-radius: 8px;
-            border: 1px solid rgba(29, 78, 216, 0.1);
             font-size: 0.665rem;
+            flex: 1;
         }
         
         .user-added-item.swiped .item-content {
@@ -2013,7 +1967,6 @@
                  <div class="add-item-form" id="addItemForm" style="display: none;">
                    <div class="form-group">
                      <input type="text" id="newItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50">
-                     <input type="text" id="newItemDescription" placeholder="설명을 입력하세요" maxlength="100">
                      <input type="url" id="newItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200">
                    </div>
                    <div class="form-buttons">
@@ -2439,11 +2392,9 @@
              // 새 항목 추가 함수 (localStorage 제거 버전)
        async function addNewItem() {
          const titleInput = document.getElementById('newItemTitle');
-         const descriptionInput = document.getElementById('newItemDescription');
          const linkInput = document.getElementById('newItemLink');
          
          const title = titleInput.value.trim();
-         const description = descriptionInput.value.trim();
          const link = linkInput.value.trim();
          
          if (!title) {
@@ -2458,11 +2409,11 @@
            return;
          }
          
-         // 새 항목 생성
+         // 새 항목 생성 (기존 항목과 동일한 스타일)
          const newItem = {
            id: 'user_' + Date.now(),
            title: title,
-           description: description,
+           description: '', // 빈 설명으로 설정하여 기존 항목과 동일한 스타일 유지
            link: link || null,
            checked: false,
            timestamp: new Date().toISOString()
@@ -2523,7 +2474,6 @@
       // 폼 지우기 함수
       function clearForm() {
         document.getElementById('newItemTitle').value = '';
-        document.getElementById('newItemDescription').value = '';
         document.getElementById('newItemLink').value = '';
         document.getElementById('newItemTitle').focus();
       }
@@ -2582,26 +2532,32 @@
           // 화면에서 항목 제거
           displayUserAddedItemsFromFirebase(updatedUserItems);
           
+          // 경로제거/마커제거 버튼 상태 업데이트
+          updateRouteRemoveButtons();
+          
           updateSyncStatus('항목이 삭제되었습니다', 'success');
           console.log('Firebase에서 항목 삭제 완료');
           
-        } catch (error) {
-          console.error('Firebase 삭제 실패:', error);
-          updateSyncStatus('삭제 실패', 'error');
-          
-          // Firebase 실패 시 UI만 업데이트
-          const currentItems = window.firebaseUserItems || [];
-          const updatedUserItems = currentItems.filter(item => item.id !== itemId);
-          window.firebaseUserItems = updatedUserItems;
-          displayUserAddedItemsFromFirebase(updatedUserItems);
-          
-          setTimeout(() => {
-            updateSyncStatus('Firebase 연결 실패', 'error');
-          }, 2000);
-        } finally {
-          // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
-          isSyncing = false;
-        }
+                 } catch (error) {
+           console.error('Firebase 삭제 실패:', error);
+           updateSyncStatus('삭제 실패', 'error');
+           
+           // Firebase 실패 시 UI만 업데이트
+           const currentItems = window.firebaseUserItems || [];
+           const updatedUserItems = currentItems.filter(item => item.id !== itemId);
+           window.firebaseUserItems = updatedUserItems;
+           displayUserAddedItemsFromFirebase(updatedUserItems);
+           
+           // 경로제거/마커제거 버튼 상태 업데이트
+           updateRouteRemoveButtons();
+           
+           setTimeout(() => {
+             updateSyncStatus('Firebase 연결 실패', 'error');
+           }, 2000);
+         } finally {
+           // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
+           isSyncing = false;
+         }
       }
       
              // 사용자 항목 링크 열기 함수
@@ -3924,6 +3880,12 @@
        
        // 특정 위치의 경로를 제거하는 함수
        async function removeRoutesByLocation(location) {
+         // 동기화 중이면 무시
+         if (isSyncing) {
+           updateSyncStatus('동기화 중입니다. 잠시 후 다시 시도해주세요', 'warning');
+           return;
+         }
+         
          // 해당 위치의 경로가 있는지 확인
          const locationRoutes = savedUserRoutes.filter(route => route.location === location);
          
@@ -3937,50 +3899,75 @@
            return;
          }
          
-         // 해당 위치의 경로들만 제거
-         locationRoutes.forEach(route => {
-           if (route.pathElement) {
-             route.pathElement.setMap(null);
-           }
-           if (route.dottedPathElement) {
-             route.dottedPathElement.setMap(null);
-           }
-         });
-         
-         // 배열에서 해당 위치 경로들 제거
-         savedUserRoutes = savedUserRoutes.filter(route => route.location !== location);
-         
          try {
+           // 동기화 상태 설정
+           isSyncing = true;
+           updateSyncStatus('경로 제거 중...', 'info');
+           
+           // 해당 위치의 경로들만 제거
+           locationRoutes.forEach(route => {
+             if (route.pathElement) {
+               route.pathElement.setMap(null);
+             }
+             if (route.dottedPathElement) {
+               route.dottedPathElement.setMap(null);
+             }
+           });
+           
+           // 배열에서 해당 위치 경로들 제거
+           const updatedRoutes = savedUserRoutes.filter(route => route.location !== location);
+           
            // Firebase에서 해당 위치 경로들 제거
            await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
-             savedUserRoutes: savedUserRoutes,
+             savedUserRoutes: updatedRoutes,
              lastUpdated: window.firestore.serverTimestamp()
            });
            
-           // localStorage 업데이트
-           localStorage.setItem('savedUserRoutes', JSON.stringify(savedUserRoutes));
+           // 전역 변수 업데이트
+           savedUserRoutes = updatedRoutes;
            
+           // UI 즉시 업데이트
+           drawAllSavedRoutes();
+           updateRouteRemoveButtons();
+           
+           updateSyncStatus('경로 제거 완료', 'success');
            console.log(`Firebase에서 ${location} 경로 제거 완료`);
+           
+           // 성공 메시지
+           alert(`${location} 경로 ${locationRoutes.length}개가 제거되었습니다.`);
+           
+           // 정보창 닫기
+           closePreparationInfo();
+           
          } catch (error) {
            console.error('Firebase 업데이트 실패:', error);
+           updateSyncStatus('경로 제거 실패', 'error');
            
-           // Firebase 실패 시 localStorage만 업데이트
-           localStorage.setItem('savedUserRoutes', JSON.stringify(savedUserRoutes));
+           // Firebase 실패 시 UI만 업데이트
+           const updatedRoutes = savedUserRoutes.filter(route => route.location !== location);
+           savedUserRoutes = updatedRoutes;
+           drawAllSavedRoutes();
+           updateRouteRemoveButtons();
+           
+           setTimeout(() => {
+             updateSyncStatus('Firebase 연결 실패', 'error');
+           }, 2000);
+           
            alert('Firebase 업데이트에 실패했습니다. 로컬에만 반영되었습니다.');
+         } finally {
+           // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
+           isSyncing = false;
          }
-         
-         // 성공 메시지
-         alert(`${location} 경로 ${locationRoutes.length}개가 제거되었습니다.`);
-         
-         // 경로제거 버튼 상태 업데이트
-         updateRouteRemoveButtons();
-         
-         // 정보창 닫기
-         closePreparationInfo();
        }
        
        // 특정 위치의 마커를 제거하는 함수
        async function removeMarkersByLocation(location) {
+         // 동기화 중이면 무시
+         if (isSyncing) {
+           updateSyncStatus('동기화 중입니다. 잠시 후 다시 시도해주세요', 'warning');
+           return;
+         }
+         
          // 해당 위치의 마커가 있는지 확인
          const locationMarkers = (window.savedUserMarkers || []).filter(marker => marker.location === location);
          
@@ -3994,45 +3981,64 @@
            return;
          }
          
-         // 해당 위치의 마커들만 제거
-         locationMarkers.forEach(markerGroup => {
-           if (markerGroup.markerElements) {
-             markerGroup.markerElements.forEach(marker => {
-               marker.setMap(null);
-             });
-           }
-         });
-         
-         // 배열에서 해당 위치 마커들 제거
-         window.savedUserMarkers = (window.savedUserMarkers || []).filter(marker => marker.location !== location);
-         
          try {
+           // 동기화 상태 설정
+           isSyncing = true;
+           updateSyncStatus('마커 제거 중...', 'info');
+           
+           // 해당 위치의 마커들만 제거
+           locationMarkers.forEach(markerGroup => {
+             if (markerGroup.markerElements) {
+               markerGroup.markerElements.forEach(marker => {
+                 marker.setMap(null);
+               });
+             }
+           });
+           
+           // 배열에서 해당 위치 마커들 제거
+           const updatedMarkers = (window.savedUserMarkers || []).filter(marker => marker.location !== location);
+           
            // Firebase에서 해당 위치 마커들 제거
            await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
-             savedUserMarkers: window.savedUserMarkers,
+             savedUserMarkers: updatedMarkers,
              lastUpdated: window.firestore.serverTimestamp()
            });
            
-           // localStorage 업데이트
-           localStorage.setItem('savedUserMarkers', JSON.stringify(window.savedUserMarkers));
+           // 전역 변수 업데이트
+           window.savedUserMarkers = updatedMarkers;
            
+           // UI 즉시 업데이트
+           drawAllSavedMarkers();
+           updateRouteRemoveButtons();
+           
+           updateSyncStatus('마커 제거 완료', 'success');
            console.log(`Firebase에서 ${location} 마커 제거 완료`);
+           
+           // 성공 메시지
+           alert(`${location} 마커 ${locationMarkers.length}개가 제거되었습니다.`);
+           
+           // 정보창 닫기
+           closePreparationInfo();
+           
          } catch (error) {
            console.error('Firebase 업데이트 실패:', error);
+           updateSyncStatus('마커 제거 실패', 'error');
            
-           // Firebase 실패 시 localStorage만 업데이트
-           localStorage.setItem('savedUserMarkers', JSON.stringify(window.savedUserMarkers));
+           // Firebase 실패 시 UI만 업데이트
+           const updatedMarkers = (window.savedUserMarkers || []).filter(marker => marker.location !== location);
+           window.savedUserMarkers = updatedMarkers;
+           drawAllSavedMarkers();
+           updateRouteRemoveButtons();
+           
+           setTimeout(() => {
+             updateSyncStatus('Firebase 연결 실패', 'error');
+           }, 2000);
+           
            alert('Firebase 업데이트에 실패했습니다. 로컬에만 반영되었습니다.');
+         } finally {
+           // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
+           isSyncing = false;
          }
-         
-         // 성공 메시지
-         alert(`${location} 마커 ${locationMarkers.length}개가 제거되었습니다.`);
-         
-         // 마커제거 버튼 상태 업데이트
-         updateMarkerRemoveButtons();
-         
-         // 정보창 닫기
-         closePreparationInfo();
        }
        
        // 경로/마커 제거 버튼들을 동적으로 표시/숨김하는 함수
@@ -4368,8 +4374,7 @@
           // 터치 시작 - 모바일 최적화
           item.addEventListener('touchstart', function(e) {
             // 삭제 버튼이나 체크박스 클릭 시에는 스와이프 방지
-            if (e.target.classList.contains('delete-btn') || 
-                e.target.classList.contains('swipe-delete-btn') ||
+            if (e.target.classList.contains('swipe-delete-btn') ||
                 e.target.classList.contains('prep-checkbox')) {
               return;
             }
@@ -4421,8 +4426,7 @@
           // 클릭 시 스와이프 상태 해제 - 모바일 최적화
           item.addEventListener('click', function(e) {
             // 삭제 버튼 클릭이 아닌 경우에만 스와이프 해제
-            if (!e.target.classList.contains('swipe-delete-btn') && 
-                !e.target.classList.contains('delete-btn') &&
+            if (!e.target.classList.contains('swipe-delete-btn') &&
                 !e.target.classList.contains('prep-checkbox')) {
               this.classList.remove('swiped');
               this.querySelector('.item-content').style.transform = 'translateX(0)';
@@ -4543,19 +4547,47 @@
                 // 경로 동기화 (Firebase에서 직접)
                 if (data.savedUserRoutes) {
                   console.log('경로 동기화 중...');
-                  savedUserRoutes = data.savedUserRoutes;
-                  drawAllSavedRoutes();
-                  updateRouteRemoveButtons();
-                  updateSyncStatus('경로 동기화 완료', 'success');
+                  
+                  // 기존 경로와 비교하여 변경사항이 있는지 확인
+                  const currentRoutes = savedUserRoutes || [];
+                  const newRoutes = data.savedUserRoutes;
+                  
+                  // 경로 개수나 ID가 다르면 업데이트
+                  if (currentRoutes.length !== newRoutes.length || 
+                      JSON.stringify(currentRoutes.map(route => route.id).sort()) !== 
+                      JSON.stringify(newRoutes.map(route => route.id).sort())) {
+                    
+                    console.log('경로 변경 감지 - UI 업데이트');
+                    savedUserRoutes = newRoutes;
+                    drawAllSavedRoutes();
+                    updateRouteRemoveButtons();
+                    updateSyncStatus('경로 동기화 완료', 'success');
+                  } else {
+                    console.log('경로 변경 없음 - UI 업데이트 건너뜀');
+                  }
                 }
                 
                 // 마커 동기화 (Firebase에서 직접)
                 if (data.savedUserMarkers) {
                   console.log('마커 동기화 중...');
-                  window.savedUserMarkers = data.savedUserMarkers;
-                  drawAllSavedMarkers();
-                  updateRouteRemoveButtons();
-                  updateSyncStatus('마커 동기화 완료', 'success');
+                  
+                  // 기존 마커와 비교하여 변경사항이 있는지 확인
+                  const currentMarkers = window.savedUserMarkers || [];
+                  const newMarkers = data.savedUserMarkers;
+                  
+                  // 마커 개수나 ID가 다르면 업데이트
+                  if (currentMarkers.length !== newMarkers.length || 
+                      JSON.stringify(currentMarkers.map(marker => marker.id).sort()) !== 
+                      JSON.stringify(newMarkers.map(marker => marker.id).sort())) {
+                    
+                    console.log('마커 변경 감지 - UI 업데이트');
+                    window.savedUserMarkers = newMarkers;
+                    drawAllSavedMarkers();
+                    updateRouteRemoveButtons();
+                    updateSyncStatus('마커 동기화 완료', 'success');
+                  } else {
+                    console.log('마커 변경 없음 - UI 업데이트 건너뜀');
+                  }
                 }
                 
                 lastSyncTimestamp = currentTime;
@@ -4638,8 +4670,7 @@
             <div class="user-added-item" data-item-id="${item.id}">
               <div class="item-content">
                 <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
-                <span>${titleElement} - ${item.description}</span>
-                <button class="delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">×</button>
+                <span>${titleElement}</span>
               </div>
               <button class="swipe-delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">삭제</button>
             </div>
@@ -4653,7 +4684,7 @@
         
         // 모바일에서 삭제 버튼 터치 이벤트 추가
         if (isMobile) {
-          const deleteButtons = container.querySelectorAll('.delete-btn, .swipe-delete-btn');
+          const deleteButtons = container.querySelectorAll('.swipe-delete-btn');
           deleteButtons.forEach(btn => {
             // 터치 시작 시 이벤트 전파 방지
             btn.addEventListener('touchstart', function(e) {
