@@ -4612,7 +4612,8 @@
         statusDiv.style.cssText = `
           position: fixed;
           top: 10px;
-          right: 10px;
+          left: 50%;
+          transform: translateX(-50%);
           z-index: 1000;
           padding: 8px 12px;
           border-radius: 20px;
@@ -4623,7 +4624,7 @@
           backdrop-filter: blur(10px);
           transition: all 0.3s ease;
           opacity: 0;
-          transform: translateY(-20px);
+          transform: translateX(-50%) translateY(-20px);
         `;
         statusDiv.textContent = '동기화 준비 중...';
         document.body.appendChild(statusDiv);
@@ -4631,7 +4632,7 @@
         // 애니메이션으로 표시
         setTimeout(() => {
           statusDiv.style.opacity = '1';
-          statusDiv.style.transform = 'translateY(0)';
+          statusDiv.style.transform = 'translateX(-50%) translateY(0)';
         }, 100);
       }
       
@@ -4653,7 +4654,7 @@
         // 3초 후 자동 숨김
         setTimeout(() => {
           indicator.style.opacity = '0';
-          indicator.style.transform = 'translateY(-20px)';
+          indicator.style.transform = 'translateX(-50%) translateY(-20px)';
           setTimeout(() => {
             if (indicator.parentNode) {
               indicator.parentNode.removeChild(indicator);
