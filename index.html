@@ -1304,7 +1304,7 @@
       let customMarkers = []; // 사용자가 생성한 마커들
       
       // 저장된 사용자 경로들
-      let savedUserRoutes = []; // localStorage에서 불러온 저장된 경로들
+      let savedUserRoutes = []; // Firestore가 단일 진실 소스. 로컬 백업 제거
       
 
       
@@ -3785,7 +3785,6 @@
           }
         });
         savedUserRoutes = [];
-        localStorage.removeItem('savedUserRoutes');
         
         // 경로 모드 비활성화
         isRouteMode = false;
@@ -3906,22 +3905,14 @@
           // 전역 변수에 추가
           savedUserRoutes.push(routeData);
           
-          // localStorage에도 백업 저장
-          let savedRoutes = JSON.parse(localStorage.getItem('savedUserRoutes') || '[]');
-          savedRoutes.push(routeData);
-          localStorage.setItem('savedUserRoutes', JSON.stringify(savedRoutes));
+          // 로컬 백업 제거: Firestore만 사용
           
           console.log('Firebase에 경로 저장 완료');
           updateSyncStatus('경로 저장 완료', 'success');
           
         } catch (error) {
           console.error('Firebase 저장 실패:', error);
-          updateSyncStatus('Firebase 저장 실패 - 로컬에 백업', 'warning');
-          
-          // Firebase 실패 시 localStorage에만 저장
-          let savedRoutes = JSON.parse(localStorage.getItem('savedUserRoutes') || '[]');
-          savedRoutes.push(routeData);
-          localStorage.setItem('savedUserRoutes', JSON.stringify(savedRoutes));
+          updateSyncStatus('Firebase 저장 실패', 'error');
           
           // 전역 변수에 추가
           savedUserRoutes.push(routeData);
@@ -4136,22 +4127,14 @@
           }
           window.savedUserMarkers.push(markerData);
           
-          // localStorage에도 백업 저장
-          let savedMarkers = JSON.parse(localStorage.getItem('savedUserMarkers') || '[]');
-          savedMarkers.push(markerData);
-          localStorage.setItem('savedUserMarkers', JSON.stringify(savedMarkers));
+          // 로컬 백업 제거: Firestore만 사용
           
           console.log('Firebase에 마커 저장 완료');
           updateSyncStatus('마커 저장 완료', 'success');
           
         } catch (error) {
           console.error('Firebase 저장 실패:', error);
-          updateSyncStatus('Firebase 저장 실패 - 로컬에 백업', 'warning');
-          
-          // Firebase 실패 시 localStorage에만 저장
-          let savedMarkers = JSON.parse(localStorage.getItem('savedUserMarkers') || '[]');
-          savedMarkers.push(markerData);
-          localStorage.setItem('savedUserMarkers', JSON.stringify(savedMarkers));
+          updateSyncStatus('Firebase 저장 실패', 'error');
           
           // 전역 변수에 추가
           if (!window.savedUserMarkers) {
@@ -5333,7 +5316,7 @@
        // Import the functions you need from the SDKs you need
        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
-       import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+       import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
        // TODO: Add SDKs for Firebase products that you want to use
        // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -5355,6 +5338,12 @@
        
        // Initialize Firestore
        const db = getFirestore(app);
+       try {
+         await enableIndexedDbPersistence(db);
+         console.log('Firestore 오프라인 퍼시스턴스 활성화됨');
+       } catch (err) {
+         console.warn('오프라인 퍼시스턴스 활성화 실패:', err);
+       }
        
        console.log('Firebase Firestore 연결 완료!');
        
