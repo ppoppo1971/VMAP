@@ -2032,6 +2032,12 @@
             updateMarkerRemoveButtons();
             
             console.log('Firebase에서 상태 복원 완료');
+            // 기존 항목 숨김/오버라이드 상태 복원 (없을 경우 기본값)
+            window.hiddenExistingItems = data.hiddenExistingItems || [];
+            window.existingItemOverrides = data.existingItemOverrides || {};
+            if (typeof applyOverridesAndHides === 'function') {
+              setTimeout(() => applyOverridesAndHides(), 0);
+            }
           } else {
             // Firebase 문서가 존재하지 않는 경우
             console.log('Firebase 문서가 존재하지 않음');
@@ -2236,7 +2242,6 @@
           </div>
           <div class="info-content">
             <div class="info-section">
-              <h4>✈️ 공항 도착</h4>
               <div class="checklist-item" data-item-id="arrival" data-item-type="existing">
                 <div class="item-content">
                   <input type="checkbox" id="arrival" class="prep-checkbox" onchange="saveCheckboxStates()">
@@ -2264,7 +2269,6 @@
             </div>
             
             <div class="info-section">
-              <h4>🚌 공항 이동</h4>
               <div class="checklist-item" data-item-id="airportBus" data-item-type="existing">
                 <div class="item-content">
                   <input type="checkbox" id="airportBus" class="prep-checkbox" onchange="saveCheckboxStates()">
@@ -2284,7 +2288,6 @@
             </div>
             
             <div class="info-section">
-              <h4>🏨 호텔 체크인</h4>
               <div class="checklist-item" data-item-id="hotelCheckin" data-item-type="existing">
                 <div class="item-content">
                   <input type="checkbox" id="hotelCheckin" class="prep-checkbox" onchange="saveCheckboxStates()">
@@ -2304,7 +2307,6 @@
             </div>
             
             <div class="info-section">
-              <h4>🍽️ 저녁 식사</h4>
                              <div class="checklist-item" data-item-id="dinner" data-item-type="existing">
                  <div class="item-content">
                    <input type="checkbox" id="dinner" class="prep-checkbox" onchange="saveCheckboxStates()">
@@ -2324,7 +2326,6 @@
             </div>
             
                          <div class="info-section">
-               <h4>🌙 첫날 마무리</h4>
                <div class="checklist-item" data-item-id="shopping" data-item-type="existing">
                  <div class="item-content">
                    <input type="checkbox" id="shopping" class="prep-checkbox" onchange="saveCheckboxStates()">
@@ -2366,6 +2367,9 @@
           restoreCheckboxStates();
           // 스와이프 기능 초기화
           initializeSwipeDelete();
+          if (typeof applyOverridesAndHides === 'function') {
+            applyOverridesAndHides();
+          }
         }, 50);
         
         // 경로제거 버튼 상태 업데이트
@@ -2454,6 +2458,38 @@
             detailedDiv.style.transform = 'none';
           }
         }, 100);
+      }
+
+      // 기존 항목 숨김/오버라이드 적용 함수
+      function applyOverridesAndHides() {
+        try {
+          const hidden = Array.isArray(window.hiddenExistingItems) ? window.hiddenExistingItems : [];
+          const overrides = window.existingItemOverrides || {};
+          document.querySelectorAll('.checklist-item[data-item-type="existing"]').forEach(el => {
+            const id = el.getAttribute('data-item-id');
+            // 숨김 적용
+            if (hidden.includes(id)) {
+              el.style.display = 'none';
+              return;
+            } else {
+              el.style.display = '';
+            }
+            // 제목/링크 오버라이드 적용
+            if (overrides[id]) {
+              const span = el.querySelector('.item-content span');
+              if (span) {
+                const { title, link } = overrides[id];
+                if (link) {
+                  span.innerHTML = `<span onclick="openUserItemLink('${link}')" style="cursor: pointer; color: #1d4ed8; text-decoration: underline;">${title}</span>`;
+                } else {
+                  span.textContent = title;
+                }
+              }
+            }
+          });
+        } catch (e) {
+          console.error('applyOverridesAndHides 실패:', e);
+        }
       }
       
       // 사이드 패널 토글 함수
@@ -2827,10 +2863,31 @@
           itemElement.remove();
         }
         
-        // Firebase에서 체크박스 상태 제거
-        saveCheckboxStates();
-        
-        updateSyncStatus('항목이 삭제되었습니다', 'success');
+        // 숨김 목록에 반영 및 Firebase 저장
+        (async () => {
+          try {
+            window.hiddenExistingItems = Array.isArray(window.hiddenExistingItems) ? window.hiddenExistingItems : [];
+            if (!window.hiddenExistingItems.includes(itemId)) {
+              window.hiddenExistingItems.push(itemId);
+            }
+            // 즉시 UI 반영
+            if (typeof applyOverridesAndHides === 'function') {
+              applyOverridesAndHides();
+            }
+            // 체크박스 상태도 동기 저장
+            saveCheckboxStates();
+            // Firebase 저장
+            await window.firestore.setDoc(
+              window.firestore.doc(window.db, 'users', 'currentUser'),
+              { hiddenExistingItems: window.firestore.arrayUnion(itemId), lastUpdated: window.firestore.serverTimestamp() },
+              { merge: true }
+            );
+            updateSyncStatus('항목이 삭제되었습니다', 'success');
+          } catch (e) {
+            console.error('항목 삭제 동기화 실패:', e);
+            updateSyncStatus('삭제는 로컬에만 반영됨', 'warning');
+          }
+        })();
       }
       
       // 수정 폼 표시 함수
@@ -2905,8 +2962,23 @@
           // 사용자 추가 항목 수정
           await updateUserItem(itemId, title, link);
         } else {
-          // 기존 항목 수정
+          // 기존 항목 수정: 오버라이드 저장
           await updateExistingItem(itemId, title, link);
+          // 오버라이드 정보 Firebase 저장 및 즉시 적용
+          try {
+            window.existingItemOverrides = window.existingItemOverrides || {};
+            window.existingItemOverrides[itemId] = { title, link };
+            if (typeof applyOverridesAndHides === 'function') {
+              applyOverridesAndHides();
+            }
+            await window.firestore.setDoc(
+              window.firestore.doc(window.db, 'users', 'currentUser'),
+              { existingItemOverrides: { [itemId]: { title, link } }, lastUpdated: window.firestore.serverTimestamp() },
+              { merge: true }
+            );
+          } catch (e) {
+            console.error('오버라이드 저장 실패:', e);
+          }
         }
         
         // 수정 폼 닫기
@@ -2973,12 +3045,16 @@
           if (itemElement) {
             const titleSpan = itemElement.querySelector('span');
             if (titleSpan) {
-              titleSpan.innerHTML = `<strong>${title}</strong> - ${link || ''}`;
+              titleSpan.innerHTML = `${title} - ${link || ''}`;
             }
           }
           
           // Firebase에 저장 (기존 항목은 체크박스 상태만 저장)
           await saveCheckboxStates();
+          
+          // 오버라이드 로컬 상태 업데이트 (화면 재오픈 시 반영)
+          window.existingItemOverrides = window.existingItemOverrides || {};
+          window.existingItemOverrides[itemId] = { title, link };
           
           updateSyncStatus('항목이 수정되었습니다', 'success');
           
@@ -4975,6 +5051,12 @@
                   } else {
                     console.log('사용자 항목 변경 없음 - UI 업데이트 건너뜀');
                   }
+                }
+                // 기존 항목 숨김/오버라이드 실시간 동기화
+                window.hiddenExistingItems = data.hiddenExistingItems || [];
+                window.existingItemOverrides = data.existingItemOverrides || {};
+                if (typeof applyOverridesAndHides === 'function') {
+                  applyOverridesAndHides();
                 }
                 
                 // 경로 동기화 (Firebase에서 직접)
