@@ -2273,26 +2273,6 @@
               </div>
             </div>
             
-            <!-- 사용자 추가 항목 리스트 및 추가 UI -->
-            <div class="info-section">
-              <!-- 사용자 추가 항목 컨테이너 (사전준비와 동일 구조) -->
-              <div id="userAddedItems"></div>
-              <!-- 새 항목 추가 버튼 -->
-              <div class="add-item-section">
-                <button type="button" onclick="showAddForm()" class="toggle-add-btn" id="toggleAddBtn">+ 새 항목 추가</button>
-              </div>
-              <!-- 새 항목 추가 폼 (초기 숨김) -->
-              <div class="add-item-form" id="addItemForm" style="display: none;">
-                <div class="form-group">
-                  <input type="text" id="newItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50">
-                  <input type="url" id="newItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200">
-                </div>
-                <div class="form-buttons">
-                  <button type="button" onclick="addNewItem()" class="add-btn">추가</button>
-                </div>
-              </div>
-            </div>
-
             <div class="info-section">
               <div class="checklist-item" data-item-id="airportBus" data-item-type="existing">
                 <div class="item-content">
@@ -2369,18 +2349,34 @@
               </div>
              </div>
              
-             <!-- 저장된 경로/마커 제거 버튼 섹션 -->
              <div class="info-section">
-               <div id="day1RemoveButtons" style="display: none;">
-                 <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                   <button class="route-remove-btn" onclick="removeRoutesByLocation('1일차')" style="flex: 1;">경로제거</button>
-                   <button class="route-remove-btn" onclick="removeMarkersByLocation('1일차')" style="flex: 1;">마커제거</button>
-                 </div>
-                 <p style="font-size: 0.63rem; color: #6b7280; margin: 0;">
-                   1일차에 저장된 경로와 마커를 제거합니다.
-                 </p>
-               </div>
-             </div>
+              <div id="userAddedItems"></div>
+              <div class="add-item-section">
+                <button type="button" onclick="showAddForm()" class="toggle-add-btn" id="toggleAddBtn">+ 새 항목 추가</button>
+              </div>
+              <div class="add-item-form" id="addItemForm" style="display: none;">
+                <div class="form-group">
+                  <input type="text" id="newItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50">
+                  <input type="url" id="newItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200">
+                </div>
+                <div class="form-buttons">
+                  <button type="button" onclick="addNewItem()" class="add-btn">추가</button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 저장된 경로/마커 제거 버튼 섹션 -->
+            <div class="info-section">
+              <div id="day1RemoveButtons" style="display: none;">
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                  <button class="route-remove-btn" onclick="removeRoutesByLocation('1일차')" style="flex: 1;">경로제거</button>
+                  <button class="route-remove-btn" onclick="removeMarkersByLocation('1일차')" style="flex: 1;">마커제거</button>
+                </div>
+                <p style="font-size: 0.63rem; color: #6b7280; margin: 0;">
+                  1일차에 저장된 경로와 마커를 제거합니다.
+                </p>
+              </div>
+            </div>
           </div>
         `;
         
@@ -2397,10 +2393,6 @@
           restoreCheckboxStates();
           // 스와이프 기능 초기화
           initializeSwipeDelete();
-          // 사용자 추가 항목이 있다면 즉시 렌더링
-          if (typeof displayUserAddedItemsFromFirebase === 'function') {
-            displayUserAddedItemsFromFirebase(window.firebaseUserItems || []);
-          }
           if (typeof applyOverridesAndHides === 'function') {
             applyOverridesAndHides();
           }
@@ -4896,9 +4888,8 @@
           
           // 터치 시작 - 모바일 최적화
           item.addEventListener('touchstart', function(e) {
-            // 수정/삭제 버튼이나 체크박스 클릭 시에는 스와이프 방지
-            if (e.target.classList.contains('swipe-edit-btn') ||
-                e.target.classList.contains('swipe-delete-btn') ||
+            // 삭제 버튼이나 체크박스 클릭 시에는 스와이프 방지
+            if (e.target.classList.contains('swipe-delete-btn') ||
                 e.target.classList.contains('prep-checkbox')) {
               return;
             }
@@ -4921,10 +4912,15 @@
             // 빠른 스와이프 감지 (모바일에서 더 민감하게)
             if (diffX > 30 && diffTime < 500) {
               const translateX = Math.min(diffX, 160);
-              this.querySelector('.item-content').style.transform = `translateX(-${translateX}px)`;
+              const contentEl = this.querySelector('.item-content');
+              if (contentEl) {
+                contentEl.style.transform = `translateX(-${translateX}px)`;
+              }
               hasSwiped = true;
+              // 가로 스와이프 중에는 기본 스크롤 방지 (텍스트만 이동)
+              e.preventDefault();
             }
-          }, { passive: true });
+          }, { passive: false });
           
           // 터치 종료 - 모바일 최적화
           item.addEventListener('touchend', function(e) {
@@ -4949,28 +4945,19 @@
           
           // 클릭 시 스와이프 상태 해제 - 모바일 최적화
           item.addEventListener('click', function(e) {
-            // 수정/삭제 버튼 또는 체크박스 클릭 시에는 유지
-            if (
-              e.target.classList.contains('swipe-edit-btn') ||
-              e.target.classList.contains('swipe-delete-btn') ||
-              e.target.classList.contains('prep-checkbox')
-            ) {
-              return;
+            // 수정/삭제 버튼 클릭이 아닌 경우에만 스와이프 해제
+            if (!e.target.classList.contains('swipe-edit-btn') &&
+                !e.target.classList.contains('swipe-delete-btn') &&
+                !e.target.classList.contains('prep-checkbox')) {
+              this.classList.remove('swiped');
+              this.querySelector('.item-content').style.transform = 'translateX(0)';
             }
-            this.classList.remove('swiped');
-            this.querySelector('.item-content').style.transform = 'translateX(0)';
           });
           
           // 마우스 이벤트 (데스크톱 지원) - 모바일에서는 비활성화
           if (!isMobile) {
             item.addEventListener('mousedown', function(e) {
               if (e.button !== 0) return; // 왼쪽 버튼만
-              // 수정/삭제 버튼이나 체크박스 클릭 시에는 스와이프 방지
-              if (e.target.classList.contains('swipe-edit-btn') ||
-                  e.target.classList.contains('swipe-delete-btn') ||
-                  e.target.classList.contains('prep-checkbox')) {
-                return;
-              }
               
               startX = e.clientX;
               isSwiping = true;
