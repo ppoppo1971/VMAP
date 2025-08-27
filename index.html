@@ -3000,6 +3000,9 @@
           }, 1000);
         });
         
+        // 페이지 복귀 감지 설정
+        setupPageVisibilityListener();
+        
         window.addEventListener('offline', function() {
           console.log('네트워크 연결 끊김 - 오프라인 모드');
           updateSyncStatus('네트워크 연결 끊김 - 오프라인 모드', 'warning');
@@ -3511,13 +3514,13 @@
               // 모바일: 구글맵 앱 직접 실행 (플랫폼 무관)
               const appUrl = buildGoogleMapsAppUrl(origin, destination, 'driving');
               
+              // 앱 실행 표시 설정 (페이지 복귀 감지용)
+              window.routeSearchExecuted = true;
+              
               // 즉시 앱 실행
               window.location.href = appUrl;
               console.log(`${isIOS ? 'iOS' : isAndroid ? 'Android' : '기타 모바일'}에서 구글맵 앱 직접 실행:`, appUrl);
               console.log(`검색된 경로: 거리 ${distance}, 소요시간 ${duration}`);
-              
-              // 앱 실행 후 상태 초기화 (안내창 없이)
-              setTimeout(resetRouteSearchState, 1000);
             } else {
               // 데스크탑: 바로 구글맵 웹페이지로 이동
               const webUrl = buildGoogleMapsUrlWithNames(searchStartMarker.getPosition(), searchEndMarker.getPosition(), 'driving');
@@ -3704,7 +3707,35 @@
           searchBtn.style.color = '#1a1a1a';
         }
         
+        // 앱 실행 플래그 리셋
+        window.routeSearchExecuted = false;
+        
         console.log('경로탐색 초기화 완료');
+      }
+      
+      // 페이지 가시성 변경 감지 (앱에서 복귀 감지)
+      function setupPageVisibilityListener() {
+        document.addEventListener('visibilitychange', function() {
+          if (document.visibilityState === 'visible' && window.routeSearchExecuted) {
+            console.log('앱에서 웹페이지로 복귀 감지됨');
+            // 약간의 지연 후 초기화 (안내창 없이)
+            setTimeout(() => {
+              resetRouteSearchState();
+            }, 500);
+          }
+        });
+        
+        // 포커스 이벤트도 감지 (iOS Safari 호환성)
+        window.addEventListener('focus', function() {
+          if (window.routeSearchExecuted) {
+            console.log('앱에서 웹페이지로 포커스 복귀 감지됨');
+            setTimeout(() => {
+              resetRouteSearchState();
+            }, 500);
+          }
+        });
+        
+        console.log('페이지 복귀 감지 리스너 설정 완료');
       }
       
       // 모바일 구글맵 앱 직접 연결 URL 스킴 생성 함수
@@ -3760,30 +3791,7 @@
         return appUrl;
       }
       
-      // iOS 전용 Apple Maps 폴백 함수 (옵션)
-      function buildAppleMapsUrl(origin, destination, travelMode = 'driving') {
-        const originStr = `${origin.lat()},${origin.lng()}`;
-        const destinationStr = `${destination.lat()},${destination.lng()}`;
-        
-        // Apple Maps URL 스킴
-        let appleMapsUrl = `http://maps.apple.com/?saddr=${originStr}&daddr=${destinationStr}`;
-        
-        // 교통수단별 파라미터 (Apple Maps 형식)
-        switch(travelMode) {
-          case 'walking':
-            appleMapsUrl += '&dirflg=w';
-            break;
-          case 'transit':
-            appleMapsUrl += '&dirflg=r';
-            break;
-          case 'driving':
-          default:
-            appleMapsUrl += '&dirflg=d';
-            break;
-        }
-        
-        return appleMapsUrl;
-      }
+
       
       // 구글맵 URL을 더 사용자 친화적으로 생성하는 대안 함수
       function buildGoogleMapsUrlWithNames(origin, destination, travelMode = 'driving') {
