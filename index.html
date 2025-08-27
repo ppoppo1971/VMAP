@@ -1368,6 +1368,295 @@
             }
         }
 
+        /* 구글맵 스타일 경로 정보 패널 */
+        #routeDetailPanel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.1);
+            z-index: 20;
+            display: none;
+        }
+
+        .route-detail-content {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            bottom: 20px;
+            width: 360px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .route-detail-header {
+            background: white;
+            padding: 16px 20px 12px 20px;
+            border-bottom: 1px solid #e8eaed;
+            position: relative;
+        }
+
+        .route-detail-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 400;
+            color: #3c4043;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .route-close-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #5f6368;
+            font-size: 20px;
+            transition: background-color 0.2s;
+        }
+
+        .route-close-btn:hover {
+            background-color: #f8f9fa;
+        }
+
+        .route-travel-mode {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0 8px 0;
+        }
+
+        .travel-mode-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border: 1px solid #e8eaed;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+
+        .travel-mode-btn.active {
+            background: #1a73e8;
+            color: white;
+            border-color: #1a73e8;
+        }
+
+        .travel-mode-btn:hover:not(.active) {
+            background-color: #f8f9fa;
+        }
+
+        .route-summary {
+            background: #f8f9fa;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e8eaed;
+        }
+
+        .route-main-info {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .route-duration {
+            font-size: 24px;
+            font-weight: 400;
+            color: #1f2937;
+        }
+
+        .route-distance {
+            font-size: 14px;
+            color: #5f6368;
+        }
+
+        .route-time-info {
+            font-size: 12px;
+            color: #5f6368;
+            margin-top: 4px;
+        }
+
+        .route-addresses {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e8eaed;
+        }
+
+        .route-address {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .route-address:last-child {
+            margin-bottom: 0;
+        }
+
+        .route-address-marker {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-top: 4px;
+            flex-shrink: 0;
+        }
+
+        .route-address-marker.start {
+            background: #34a853;
+        }
+
+        .route-address-marker.end {
+            background: #ea4335;
+        }
+
+        .route-address-text {
+            font-size: 14px;
+            color: #3c4043;
+            line-height: 1.4;
+        }
+
+        .route-steps-container {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .route-steps-header {
+            padding: 16px 20px 8px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #5f6368;
+            border-bottom: 1px solid #e8eaed;
+        }
+
+        .route-steps {
+            padding: 0;
+        }
+
+        .route-step {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px 20px;
+            border-bottom: 1px solid #f1f3f4;
+            gap: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .route-step:hover {
+            background-color: #f8f9fa;
+        }
+
+        .route-step:last-child {
+            border-bottom: none;
+        }
+
+        .route-step-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            color: #5f6368;
+        }
+
+        .route-step-content {
+            flex: 1;
+        }
+
+        .route-step-instruction {
+            font-size: 14px;
+            color: #3c4043;
+            line-height: 1.4;
+            margin-bottom: 2px;
+        }
+
+        .route-step-distance {
+            font-size: 12px;
+            color: #5f6368;
+        }
+
+        .route-actions {
+            padding: 16px 20px;
+            border-top: 1px solid #e8eaed;
+            background: white;
+        }
+
+        .route-save-button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+
+        .route-save-button:hover {
+            background: #1557b0;
+        }
+
+        .route-google-maps-btn {
+            background: white;
+            color: #1a73e8;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .route-google-maps-btn:hover {
+            background: #f8f9fa;
+            border-color: #1a73e8;
+        }
+
+        .route-google-maps-btn:before {
+            content: "🗺️";
+            font-size: 16px;
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            .route-detail-content {
+                left: 8px;
+                right: 8px;
+                top: 8px;
+                bottom: 8px;
+                width: auto;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -1384,6 +1673,7 @@
     <div id="mapTypeSelector" class="hide">
         <button class="map-type-btn" onclick="toggleMarkerMode()" id="topMarkerBtn">마커생성</button>
         <button class="map-type-btn" onclick="toggleRouteMode()" id="topRouteBtn">경로생성</button>
+        <button class="map-type-btn" onclick="toggleRouteSearch()" id="topRouteSearchBtn">경로탐색</button>
         <button class="map-type-btn" onclick="setMapTypeFromTop('roadmap')" id="topRoadmapBtn">일반</button>
         <button class="map-type-btn" onclick="setMapTypeFromTop('satellite')" id="topSatelliteBtn">위성</button>
         <button class="map-type-btn sub-option" onclick="toggleHybridLabel()" id="topHybridBtn">라벨</button>
@@ -1414,6 +1704,24 @@
       </div>
     </div>
     
+    <!-- 구글맵 스타일 경로 정보 패널 -->
+    <div id="routeDetailPanel" onclick="closeRouteDetailPanel()">
+        <div class="route-detail-content" onclick="event.stopPropagation()">
+            <div class="route-detail-header">
+                <h3>🚗 경로</h3>
+                <button class="route-close-btn" onclick="closeRouteDetailPanel()">×</button>
+                <div class="route-travel-mode">
+                    <button class="travel-mode-btn active" onclick="changeTravelMode('DRIVING')" title="자동차">🚗</button>
+                    <button class="travel-mode-btn" onclick="changeTravelMode('WALKING')" title="도보">🚶</button>
+                    <button class="travel-mode-btn" onclick="changeTravelMode('TRANSIT')" title="대중교통">🚌</button>
+                    <button class="travel-mode-btn" onclick="changeTravelMode('BICYCLING')" title="자전거">🚴</button>
+                </div>
+            </div>
+            <div id="routeDetailContent">
+                <!-- 동적으로 생성되는 경로 정보 -->
+            </div>
+        </div>
+    </div>
 
     
     <script>
@@ -1725,6 +2033,12 @@
           // 경로 생성 모드일 때는 위치 추가
           if (isRouteMode) {
             addUserRoutePoint(event.latLng);
+            return;
+          }
+          
+          // 경로탐색 모드일 때는 출발지/도착지 설정
+          if (isRouteSearchMode) {
+            addRouteSearchPoint(event.latLng);
             return;
           }
           
@@ -3105,6 +3419,11 @@
             }
           }
           
+          // 경로탐색 모드가 활성화되어 있으면 비활성화
+          if (isRouteSearchMode) {
+            toggleRouteSearch();
+          }
+          
           // 마커생성 모드 활성화
           isMarkerMode = true;
           const markerBtn = document.getElementById('topMarkerBtn');
@@ -3247,6 +3566,11 @@
           toggleMarkerMode();
         }
         
+        // 경로탐색 모드가 활성화되어 있으면 비활성화
+        if (isRouteSearchMode) {
+          toggleRouteSearch();
+        }
+        
         if (userRouteMarkers.length === 0) {
           // 첫 번째 클릭: 경로 생성 모드 시작
           isRouteMode = true;
@@ -3266,6 +3590,909 @@
           // 경로 저장 위치 선택 다이얼로그 표시
           showRouteSaveDialog();
         }
+      }
+      
+      // 경로탐색 모드 관련 변수
+      let isRouteSearchMode = false;
+      let searchStartMarker = null;
+      let searchEndMarker = null;
+      let directionsService = null;
+      let directionsRenderer = null;
+      
+      // 경로탐색 모드 토글 함수
+      function toggleRouteSearch() {
+        // 다른 모드들 비활성화
+        if (isMarkerMode) {
+          toggleMarkerMode();
+        }
+        if (isRouteMode) {
+          // 경로생성 모드 비활성화
+          isRouteMode = false;
+          const routeBtn = document.getElementById('topRouteBtn');
+          routeBtn.textContent = '경로생성';
+          routeBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+          routeBtn.style.color = '#1a1a1a';
+          
+          // 경로 관련 마커들 제거
+          userRouteMarkers.forEach(marker => marker.setMap(null));
+          userRouteMarkers = [];
+          
+          // 경로 폴리라인 제거
+          if (userRoutePath) {
+            userRoutePath.setMap(null);
+            userRoutePath = null;
+          }
+          if (userRouteDottedPath) {
+            userRouteDottedPath.setMap(null);
+            userRouteDottedPath = null;
+          }
+        }
+        
+        const searchBtn = document.getElementById('topRouteSearchBtn');
+        
+        if (!isRouteSearchMode) {
+          // 경로탐색 모드 활성화
+          isRouteSearchMode = true;
+          searchBtn.textContent = '탐색 중...';
+          searchBtn.style.background = 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+          searchBtn.style.color = 'white';
+          
+          // Directions 서비스 초기화
+          if (!directionsService) {
+            try {
+              directionsService = new google.maps.DirectionsService();
+              directionsRenderer = new google.maps.DirectionsRenderer({
+                draggable: true,
+                strokeColor: '#ff6b35',
+                strokeOpacity: 0.8,
+                strokeWeight: 6
+              });
+              directionsRenderer.setMap(map);
+              console.log('Directions 서비스 초기화 완료');
+            } catch (error) {
+              console.error('Directions 서비스 초기화 실패:', error);
+              alert('경로탐색 기능을 사용할 수 없습니다. Directions API가 활성화되지 않았을 수 있습니다.');
+              return;
+            }
+          }
+          
+          console.log('경로탐색 모드가 활성화되었습니다. 출발지와 도착지를 클릭하세요.');
+          
+          // API 상태 확인
+          checkDirectionsApiStatus();
+        } else {
+          // 경로탐색 모드 비활성화
+          isRouteSearchMode = false;
+          searchBtn.textContent = '경로탐색';
+          searchBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+          searchBtn.style.color = '#1a1a1a';
+          
+          // 검색 마커들 제거
+          if (searchStartMarker) {
+            searchStartMarker.setMap(null);
+            searchStartMarker = null;
+          }
+          if (searchEndMarker) {
+            searchEndMarker.setMap(null);
+            searchEndMarker = null;
+          }
+          
+          // 경로 제거
+          if (directionsRenderer) {
+            directionsRenderer.setMap(null);
+          }
+          
+          console.log('경로탐색 모드가 비활성화되었습니다.');
+        }
+      }
+      
+      // 경로탐색 포인트 추가 함수
+      function addRouteSearchPoint(latLng) {
+        if (!isRouteSearchMode) return;
+        
+        if (!searchStartMarker) {
+          // 출발지 설정
+          searchStartMarker = new google.maps.Marker({
+            position: latLng,
+            map: map,
+            title: '출발지',
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              fillColor: '#22c55e',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 3,
+              scale: 15
+            },
+            label: {
+              text: 'A',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              color: '#ffffff'
+            }
+          });
+          
+          console.log('출발지가 설정되었습니다. 도착지를 클릭하세요.');
+        } else if (!searchEndMarker) {
+          // 도착지 설정
+          searchEndMarker = new google.maps.Marker({
+            position: latLng,
+            map: map,
+            title: '도착지',
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              fillColor: '#ef4444',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 3,
+              scale: 15
+            },
+            label: {
+              text: 'B',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              color: '#ffffff'
+            }
+          });
+          
+          // 경로 검색 실행
+          searchRoute();
+        } else {
+          // 이미 출발지와 도착지가 설정된 경우 - 새로운 검색 시작
+          searchStartMarker.setMap(null);
+          searchEndMarker.setMap(null);
+          if (directionsRenderer) {
+            directionsRenderer.setDirections({routes: []});
+          }
+          
+          // 새로운 출발지로 설정
+          searchStartMarker = new google.maps.Marker({
+            position: latLng,
+            map: map,
+            title: '출발지',
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              fillColor: '#22c55e',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 3,
+              scale: 15
+            },
+            label: {
+              text: 'A',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              color: '#ffffff'
+            }
+          });
+          
+          searchEndMarker = null;
+          console.log('새로운 출발지가 설정되었습니다. 도착지를 클릭하세요.');
+        }
+      }
+      
+      // 경로 검색 실행 함수
+      function searchRoute() {
+        if (!searchStartMarker || !searchEndMarker || !directionsService) return;
+        
+        const request = {
+          origin: searchStartMarker.getPosition(),
+          destination: searchEndMarker.getPosition(),
+          travelMode: google.maps.TravelMode.DRIVING,
+          unitSystem: google.maps.UnitSystem.METRIC
+          // region 제한 제거: 전 세계 경로탐색 가능
+        };
+        
+        console.log('경로를 검색하고 있습니다...');
+        
+        directionsService.route(request, (result, status) => {
+          console.log('경로 검색 응답:', { status, result });
+          
+          if (status === 'OK') {
+            directionsRenderer.setDirections(result);
+            
+            // 경로 정보 표시
+            const route = result.routes[0];
+            const leg = route.legs[0];
+            const distance = leg.distance.text;
+            const duration = leg.duration.text;
+            
+            console.log(`경로 검색 완료: 거리 ${distance}, 소요시간 ${duration}`);
+            
+            // 상세 경로 정보 패널 표시
+            showDetailedRoutePanel(result);
+            
+            // iOS 및 모바일에서 앱으로 이동 옵션 제공
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isAndroid = /Android/.test(navigator.userAgent);
+            const isMobile = isIOS || isAndroid || /BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+              let message, confirmText, cancelText;
+              
+              if (isIOS) {
+                // iOS: 구글맵과 Apple Maps 선택 옵션
+                message = '지도 앱에서 경로를 확인하시겠습니까?';
+                confirmText = '구글맵으로 이동';
+                cancelText = '현재 페이지에서 확인';
+                
+                const shouldOpenInApp = confirm(`${message}\n\n확인: ${confirmText}\n취소: ${cancelText}`);
+                if (shouldOpenInApp) {
+                  // 구글맵 앱으로 이동
+                  const googleMapsUrl = buildGoogleMapsAppUrl(searchStartMarker.getPosition(), searchEndMarker.getPosition(), 'driving');
+                  window.open(googleMapsUrl, '_blank');
+                  console.log('iOS에서 구글맵 앱으로 이동:', googleMapsUrl);
+                  
+                  // 구글맵이 없는 경우를 대비한 Apple Maps 폴백 옵션
+                  setTimeout(() => {
+                    const useAppleMaps = confirm('구글맵 앱을 찾을 수 없습니다.\nApple Maps를 사용하시겠습니까?');
+                    if (useAppleMaps) {
+                      const appleMapsUrl = buildAppleMapsUrl(searchStartMarker.getPosition(), searchEndMarker.getPosition(), 'driving');
+                      window.open(appleMapsUrl, '_blank');
+                      console.log('iOS에서 Apple Maps로 이동:', appleMapsUrl);
+                    }
+                  }, 2000);
+                }
+              } else if (isAndroid) {
+                // Android: 구글맵 앱 (기본 설치)
+                message = '구글맵 앱에서 경로를 확인하시겠습니까?';
+                confirmText = '구글맵 앱으로 이동';
+                cancelText = '현재 페이지에서 확인';
+                
+                const shouldOpenInApp = confirm(`${message}\n\n확인: ${confirmText}\n취소: ${cancelText}`);
+                if (shouldOpenInApp) {
+                  const appUrl = buildGoogleMapsAppUrl(searchStartMarker.getPosition(), searchEndMarker.getPosition(), 'driving');
+                  window.open(appUrl, '_blank');
+                  console.log('Android에서 구글맵 앱으로 이동:', appUrl);
+                }
+              } else {
+                // 기타 모바일: 기본 웹 브라우저
+                const shouldOpenInApp = confirm('지도 앱에서 경로를 확인하시겠습니까?\n\n확인: 지도 앱으로 이동\n취소: 현재 페이지에서 확인');
+                if (shouldOpenInApp) {
+                  const appUrl = buildGoogleMapsAppUrl(searchStartMarker.getPosition(), searchEndMarker.getPosition(), 'driving');
+                  window.open(appUrl, '_blank');
+                  console.log('기타 모바일에서 지도 앱으로 이동:', appUrl);
+                }
+              }
+            }
+            
+          } else {
+            console.error('경로 검색 실패:', status);
+            let errorMessage = '경로를 찾을 수 없습니다.';
+            
+            switch (status) {
+              case 'NOT_FOUND':
+                errorMessage = '출발지 또는 도착지를 찾을 수 없습니다.';
+                break;
+              case 'ZERO_RESULTS':
+                errorMessage = '출발지와 도착지 사이의 경로를 찾을 수 없습니다.';
+                break;
+              case 'MAX_WAYPOINTS_EXCEEDED':
+                errorMessage = '경유지가 너무 많습니다.';
+                break;
+              case 'INVALID_REQUEST':
+                errorMessage = '잘못된 요청입니다.';
+                break;
+              case 'OVER_QUERY_LIMIT':
+                errorMessage = 'API 사용량 한도를 초과했습니다.';
+                break;
+              case 'REQUEST_DENIED':
+                errorMessage = 'Directions API 사용이 거부되었습니다. API 키를 확인해주세요.';
+                break;
+              case 'UNKNOWN_ERROR':
+                errorMessage = '서버 오류입니다. 잠시 후 다시 시도해주세요.';
+                break;
+            }
+            
+            alert(errorMessage);
+          }
+        });
+      }
+      
+      // Directions API 상태 확인 함수
+      function checkDirectionsApiStatus() {
+        console.log('=== Directions API 상태 확인 ===');
+        
+        // 현재 사용 중인 API 키 표시
+        console.log('🔑 현재 API 키:', 'AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg');
+        
+        // 기본 확인사항
+        if (typeof google === 'undefined') {
+          console.error('❌ Google Maps API가 로드되지 않았습니다.');
+          return;
+        }
+        
+        if (typeof google.maps === 'undefined') {
+          console.error('❌ Google Maps 객체가 없습니다.');
+          return;
+        }
+        
+        if (typeof google.maps.DirectionsService === 'undefined') {
+          console.error('❌ DirectionsService가 로드되지 않았습니다. directions 라이브러리를 확인하세요.');
+          return;
+        }
+        
+        if (typeof google.maps.DirectionsRenderer === 'undefined') {
+          console.error('❌ DirectionsRenderer가 로드되지 않았습니다. directions 라이브러리를 확인하세요.');
+          return;
+        }
+        
+        console.log('✅ Directions API 기본 객체들이 정상적으로 로드되었습니다.');
+        console.log('✅ DirectionsService:', typeof google.maps.DirectionsService);
+        console.log('✅ DirectionsRenderer:', typeof google.maps.DirectionsRenderer);
+        console.log('✅ 현재 directionsService 인스턴스:', directionsService ? '생성됨' : '미생성');
+        console.log('✅ 현재 directionsRenderer 인스턴스:', directionsRenderer ? '생성됨' : '미생성');
+        
+        // API 권한 테스트를 위한 간단한 요청
+        console.log('🧪 API 권한 테스트 시작...');
+        testDirectionsApiPermission();
+      }
+      
+      // API 권한 테스트 함수
+      function testDirectionsApiPermission() {
+        if (!directionsService) {
+          console.log('DirectionsService 인스턴스가 없어 테스트를 건너뜁니다.');
+          return;
+        }
+        
+        // 간단한 테스트 요청 (서울역 → 강남역 - 전 세계 테스트)
+        const testRequest = {
+          origin: new google.maps.LatLng(37.5547, 126.9707), // 서울역
+          destination: new google.maps.LatLng(37.4979, 127.0276), // 강남역
+          travelMode: google.maps.TravelMode.DRIVING
+        };
+        
+        console.log('🧪 테스트 경로 요청:', testRequest);
+        
+        directionsService.route(testRequest, (result, status) => {
+          console.log('🧪 테스트 결과:', { status, result });
+          
+          if (status === 'OK') {
+            console.log('✅ Directions API 권한 테스트 성공! 경로탐색 기능을 사용할 수 있습니다.');
+          } else if (status === 'REQUEST_DENIED') {
+            console.error('❌ API 키에 Directions API 권한이 없습니다.');
+            console.error('📋 해결 방법:');
+            console.error('   1. Google Cloud Console (https://console.cloud.google.com/) 접속');
+            console.error('   2. API 및 서비스 → 라이브러리 메뉴');
+            console.error('   3. "Directions API" 검색 후 활성화');
+            console.error('   4. API 키 권한 설정에서 Directions API 추가');
+          } else {
+            console.warn('⚠️ 테스트 실패:', status);
+          }
+        });
+      }
+      
+      // 구글맵 스타일 상세 경로 정보 패널 표시 함수
+      function showDetailedRoutePanel(directionsResult) {
+        const route = directionsResult.routes[0];
+        const leg = route.legs[0];
+        
+        // 경로 요약 정보
+        const distance = leg.distance.text;
+        const duration = leg.duration.text;
+        const startAddress = leg.start_address;
+        const endAddress = leg.end_address;
+        
+        // 출발 시간 계산 (현재 시간 기준)
+        const now = new Date();
+        const arrivalTime = new Date(now.getTime() + leg.duration.value * 1000);
+        const timeInfo = `지금 출발하면 ${arrivalTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}에 도착`;
+        
+        // 단계별 안내 정보
+        const steps = leg.steps;
+        
+        // HTML 생성
+        let stepsHtml = '';
+        steps.forEach((step, index) => {
+          const instruction = step.instructions.replace(/<[^>]*>/g, ''); // HTML 태그 제거
+          const stepDistance = step.distance.text;
+          const icon = getGoogleMapStepIcon(step.maneuver);
+          
+          stepsHtml += `
+            <div class="route-step" onclick="focusOnStep(${index})">
+              <div class="route-step-icon">${icon}</div>
+              <div class="route-step-content">
+                <div class="route-step-instruction">${instruction}</div>
+                <div class="route-step-distance">${stepDistance}</div>
+              </div>
+            </div>
+          `;
+        });
+        
+        const contentHtml = `
+          <div class="route-summary">
+            <div class="route-main-info">
+              <div class="route-duration">${duration}</div>
+              <div class="route-distance">(${distance})</div>
+            </div>
+            <div class="route-time-info">${timeInfo}</div>
+          </div>
+          
+          <div class="route-addresses">
+            <div class="route-address">
+              <div class="route-address-marker start"></div>
+              <div class="route-address-text">${startAddress}</div>
+            </div>
+            <div class="route-address">
+              <div class="route-address-marker end"></div>
+              <div class="route-address-text">${endAddress}</div>
+            </div>
+          </div>
+          
+          <div class="route-steps-container">
+            <div class="route-steps-header">단계별 안내</div>
+            <div class="route-steps">
+              ${stepsHtml}
+            </div>
+          </div>
+          
+          <div class="route-actions">
+            <button class="route-save-button" onclick="saveSearchedRoute()">
+              경로 저장하기
+            </button>
+            <button class="route-google-maps-btn" onclick="openInGoogleMaps()">
+              구글맵에서 보기
+            </button>
+          </div>
+        `;
+        
+        // 패널에 내용 설정 및 표시
+        document.getElementById('routeDetailContent').innerHTML = contentHtml;
+        document.getElementById('routeDetailPanel').style.display = 'block';
+        
+        // 임시로 경로 결과 저장 (저장 기능용)
+        window.currentDirectionsResult = directionsResult;
+      }
+      
+      // 구글맵 스타일 경로 단계 아이콘 반환 함수
+      function getGoogleMapStepIcon(maneuver) {
+        switch(maneuver) {
+          case 'turn-left': return '↰';
+          case 'turn-right': return '↱';
+          case 'turn-slight-left': return '↖';
+          case 'turn-slight-right': return '↗';
+          case 'turn-sharp-left': return '↺';
+          case 'turn-sharp-right': return '↻';
+          case 'straight': return '↑';
+          case 'ramp-left': return '↰';
+          case 'ramp-right': return '↱';
+          case 'merge': return '⤴';
+          case 'fork-left': return '↖';
+          case 'fork-right': return '↗';
+          case 'ferry': return '⛴';
+          case 'roundabout-left': return '↺';
+          case 'roundabout-right': return '↻';
+          case 'uturn-left': return '↩';
+          case 'uturn-right': return '↪';
+          default: return '→';
+        }
+      }
+      
+      // 교통수단 변경 함수
+      function changeTravelMode(mode) {
+        // 현재 활성화된 버튼 스타일 업데이트
+        document.querySelectorAll('.travel-mode-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        
+        // 선택된 교통수단에 맞는 이모지와 타이틀 업데이트
+        let emoji, title;
+        switch(mode) {
+          case 'DRIVING':
+            emoji = '🚗';
+            title = '자동차';
+            break;
+          case 'WALKING':
+            emoji = '🚶';
+            title = '도보';
+            break;
+          case 'TRANSIT':
+            emoji = '🚌';
+            title = '대중교통';
+            break;
+          case 'BICYCLING':
+            emoji = '🚴';
+            title = '자전거';
+            break;
+        }
+        
+        // 버튼 활성화 및 헤더 업데이트
+        event.target.classList.add('active');
+        document.querySelector('.route-detail-header h3').textContent = `${emoji} 경로`;
+        
+        // 새로운 교통수단으로 경로 재검색
+        if (searchStartMarker && searchEndMarker) {
+          searchRouteWithMode(mode);
+        }
+      }
+      
+      // 특정 교통수단으로 경로 검색
+      function searchRouteWithMode(travelMode) {
+        if (!searchStartMarker || !searchEndMarker || !directionsService) return;
+        
+        const request = {
+          origin: searchStartMarker.getPosition(),
+          destination: searchEndMarker.getPosition(),
+          travelMode: google.maps.TravelMode[travelMode],
+          unitSystem: google.maps.UnitSystem.METRIC
+        };
+        
+        console.log(`${travelMode} 모드로 경로를 재검색하고 있습니다...`);
+        
+                directionsService.route(request, (result, status) => {
+          if (status === 'OK') {
+            directionsRenderer.setDirections(result);
+            showDetailedRoutePanel(result);
+            
+
+        } else {
+            console.error(`${travelMode} 경로 검색 실패:`, status);
+            
+            // 교통수단별 적절한 에러 메시지
+            let errorMessage;
+            switch(travelMode) {
+              case 'TRANSIT':
+                errorMessage = '대중교통 경로를 찾을 수 없습니다. 이 지역에서는 대중교통 정보가 제공되지 않을 수 있습니다.';
+                break;
+              case 'BICYCLING':
+                errorMessage = '자전거 경로를 찾을 수 없습니다. 이 지역에서는 자전거 도로 정보가 없을 수 있습니다.';
+                break;
+              default:
+                errorMessage = `${travelMode} 경로를 찾을 수 없습니다.`;
+            }
+            
+            alert(errorMessage);
+          }
+        });
+      }
+      
+      // 단계별 안내 클릭 시 지도에서 해당 위치로 이동
+      function focusOnStep(stepIndex) {
+        const directionsResult = window.currentDirectionsResult;
+        if (!directionsResult) return;
+        
+        const step = directionsResult.routes[0].legs[0].steps[stepIndex];
+        if (step) {
+          // 해당 단계의 시작 위치로 지도 이동
+          map.setCenter(step.start_location);
+          map.setZoom(16);
+          
+          console.log(`단계 ${stepIndex + 1}로 지도 이동:`, step.instructions.replace(/<[^>]*>/g, ''));
+        }
+      }
+      
+      // 구글맵에서 보기 기능 (모바일 앱 우선)
+      function openInGoogleMaps() {
+        const directionsResult = window.currentDirectionsResult;
+        if (!directionsResult || !searchStartMarker || !searchEndMarker) {
+          alert('경로 정보를 찾을 수 없습니다.');
+          return;
+        }
+        
+        // 출발지와 도착지 좌표 가져오기
+        const origin = searchStartMarker.getPosition();
+        const destination = searchEndMarker.getPosition();
+        
+        // 현재 선택된 교통수단 확인
+        const activeTravelModeBtn = document.querySelector('.travel-mode-btn.active');
+        let travelMode = 'driving'; // 기본값
+        
+        if (activeTravelModeBtn) {
+          const onclickAttr = activeTravelModeBtn.getAttribute('onclick');
+          if (onclickAttr.includes('WALKING')) {
+            travelMode = 'walking';
+          } else if (onclickAttr.includes('TRANSIT')) {
+            travelMode = 'transit';
+          } else if (onclickAttr.includes('BICYCLING')) {
+            travelMode = 'bicycling';
+          }
+        }
+        
+        // iOS 및 모바일 기기 감지
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isAndroid = /Android/.test(navigator.userAgent);
+        const isMobile = isIOS || isAndroid || /BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        let googleMapsUrl;
+        
+        if (isMobile) {
+          if (isIOS) {
+            // iOS: 구글맵 앱 우선, Apple Maps 폴백 옵션
+            googleMapsUrl = buildGoogleMapsAppUrl(origin, destination, travelMode);
+            console.log('iOS에서 구글맵 앱으로 열기:', googleMapsUrl);
+            
+            // 구글맵이 설치되지 않은 경우를 대비한 Apple Maps 옵션 안내
+            setTimeout(() => {
+              if (confirm('구글맵이 설치되지 않았다면 Apple Maps를 사용하시겠습니까?')) {
+                const appleMapsUrl = buildAppleMapsUrl(origin, destination, travelMode);
+                window.open(appleMapsUrl, '_blank');
+                console.log('iOS에서 Apple Maps로 열기:', appleMapsUrl);
+              }
+            }, 1500);
+          } else {
+            // Android 및 기타 모바일: 구글맵 앱 사용
+            googleMapsUrl = buildGoogleMapsAppUrl(origin, destination, travelMode);
+            console.log('모바일에서 구글맵 앱으로 열기:', googleMapsUrl);
+          }
+        } else {
+          // 데스크탑: 웹 구글맵 사용
+          googleMapsUrl = buildGoogleMapsUrlWithNames(origin, destination, travelMode);
+          console.log('데스크탑에서 구글맵 웹으로 열기:', googleMapsUrl);
+        }
+        
+        // 구글맵 열기
+        window.open(googleMapsUrl, '_blank');
+      }
+      
+      // 구글맵 URL 생성 함수
+      function buildGoogleMapsUrl(origin, destination, travelMode = 'driving') {
+        const baseUrl = 'https://www.google.com/maps/dir/';
+        
+        // 좌표를 문자열로 변환
+        const originStr = `${origin.lat()},${origin.lng()}`;
+        const destinationStr = `${destination.lat()},${destination.lng()}`;
+        
+        // 교통수단별 파라미터
+        let modeParam = '';
+        switch(travelMode) {
+          case 'walking':
+            modeParam = '&dirflg=w';
+            break;
+          case 'transit':
+            modeParam = '&dirflg=r';
+            break;
+          case 'bicycling':
+            modeParam = '&dirflg=b';
+            break;
+          case 'driving':
+          default:
+            modeParam = '&dirflg=d';
+            break;
+        }
+        
+        // 최종 URL 구성
+        const fullUrl = `${baseUrl}${originStr}/${destinationStr}/@${originStr},15z${modeParam}&hl=ko`;
+        
+        return fullUrl;
+      }
+      
+      // iOS/Android 최적화 구글맵 앱 URL 스킴 생성 함수
+      function buildGoogleMapsAppUrl(origin, destination, travelMode = 'driving') {
+        // 좌표를 문자열로 변환
+        const originStr = `${origin.lat()},${origin.lng()}`;
+        const destinationStr = `${destination.lat()},${destination.lng()}`;
+        
+        // iOS/Android 기기 감지
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isAndroid = /Android/.test(navigator.userAgent);
+        
+        // 교통수단별 파라미터
+        let modeParam = '';
+        switch(travelMode) {
+          case 'walking':
+            modeParam = isIOS ? '&directionsmode=walking' : '&mode=walking';
+            break;
+          case 'transit':
+            modeParam = isIOS ? '&directionsmode=transit' : '&mode=transit';
+            break;
+          case 'bicycling':
+            modeParam = isIOS ? '&directionsmode=bicycling' : '&mode=bicycling';
+            break;
+          case 'driving':
+          default:
+            modeParam = isIOS ? '&directionsmode=driving' : '&mode=driving';
+            break;
+        }
+        
+        let appUrl;
+        
+        if (isIOS) {
+          // iOS: 구글맵 앱 우선, 실패시 Apple Maps 폴백
+          // comgooglemaps:// 스킴은 구글맵 앱이 설치된 경우에만 작동
+          // 유니버설 링크를 사용하여 자동 폴백 제공
+          appUrl = `https://www.google.com/maps/dir/?api=1&origin=${originStr}&destination=${destinationStr}${modeParam}&hl=ko`;
+          
+          console.log('iOS에서 구글맵 앱 URL 생성:', appUrl);
+        } else if (isAndroid) {
+          // Android: 구글맵 앱이 기본 설치되어 있음
+          appUrl = `https://www.google.com/maps/dir/?api=1&origin=${originStr}&destination=${destinationStr}${modeParam}&hl=ko`;
+          
+          console.log('Android에서 구글맵 앱 URL 생성:', appUrl);
+        } else {
+          // 기타 모바일 기기: 웹 구글맵 사용
+          appUrl = `https://www.google.com/maps/dir/${originStr}/${destinationStr}${modeParam}&hl=ko`;
+          
+          console.log('기타 모바일에서 웹 구글맵 URL 생성:', appUrl);
+        }
+        
+        return appUrl;
+      }
+      
+      // iOS 전용 Apple Maps 폴백 함수 (옵션)
+      function buildAppleMapsUrl(origin, destination, travelMode = 'driving') {
+        const originStr = `${origin.lat()},${origin.lng()}`;
+        const destinationStr = `${destination.lat()},${destination.lng()}`;
+        
+        // Apple Maps URL 스킴
+        let appleMapsUrl = `http://maps.apple.com/?saddr=${originStr}&daddr=${destinationStr}`;
+        
+        // 교통수단별 파라미터 (Apple Maps 형식)
+        switch(travelMode) {
+          case 'walking':
+            appleMapsUrl += '&dirflg=w';
+            break;
+          case 'transit':
+            appleMapsUrl += '&dirflg=r';
+            break;
+          case 'driving':
+          default:
+            appleMapsUrl += '&dirflg=d';
+            break;
+        }
+        
+        return appleMapsUrl;
+      }
+      
+      // 구글맵 URL을 더 사용자 친화적으로 생성하는 대안 함수
+      function buildGoogleMapsUrlWithNames(origin, destination, travelMode = 'driving') {
+        const directionsResult = window.currentDirectionsResult;
+        if (!directionsResult) return buildGoogleMapsUrl(origin, destination, travelMode);
+        
+        const route = directionsResult.routes[0];
+        const leg = route.legs[0];
+        
+        // 주소명이 있는 경우 사용
+        const startAddress = encodeURIComponent(leg.start_address);
+        const endAddress = encodeURIComponent(leg.end_address);
+        
+        const baseUrl = 'https://www.google.com/maps/dir/';
+        
+        // 교통수단별 파라미터
+        let modeParam = '';
+        switch(travelMode) {
+          case 'walking':
+            modeParam = '&dirflg=w';
+            break;
+          case 'transit':
+            modeParam = '&dirflg=r';
+            break;
+          case 'bicycling':
+            modeParam = '&dirflg=b';
+            break;
+          case 'driving':
+          default:
+            modeParam = '&dirflg=d';
+            break;
+        }
+        
+        // 주소명으로 URL 구성
+        const fullUrl = `${baseUrl}${startAddress}/${endAddress}${modeParam}&hl=ko`;
+        
+        return fullUrl;
+      }
+      
+      // 상세 경로 정보 패널 닫기 함수
+      function closeRouteDetailPanel() {
+        document.getElementById('routeDetailPanel').style.display = 'none';
+        delete window.currentDirectionsResult;
+      }
+      
+      // 검색된 경로 저장 함수 (수정)
+      function saveSearchedRoute() {
+        const directionsResult = window.currentDirectionsResult;
+        if (!directionsResult) {
+          alert('저장할 경로가 없습니다.');
+          return;
+        }
+        
+        const route = directionsResult.routes[0];
+        const path = route.overview_path;
+        const leg = route.legs[0];
+        
+        // 경로 데이터 변환
+        const routeData = {
+          id: 'search_' + Date.now(),
+          name: '검색된 경로',
+          path: path.map(point => ({
+            lat: point.lat(),
+            lng: point.lng()
+          })),
+          distance: leg.distance.text,
+          duration: leg.duration.text,
+          startAddress: leg.start_address,
+          endAddress: leg.end_address,
+          createdAt: new Date()
+        };
+        
+        // 경로 저장 다이얼로그 표시
+        showRouteSaveDialogForSearched(routeData);
+      }
+      
+
+      
+      // 검색된 경로용 저장 다이얼로그
+      function showRouteSaveDialogForSearched(routeData) {
+        // 기존 다이얼로그가 있으면 제거
+        const existingDialog = document.getElementById('routeSaveDialog');
+        if (existingDialog) {
+          existingDialog.remove();
+        }
+        
+        // 현재 활성화된 일정 항목들 가져오기
+        const scheduleItems = getActiveScheduleItems();
+        
+        // 일정 항목 버튼들 생성
+        let scheduleButtons = '';
+        if (scheduleItems.length === 0) {
+          scheduleButtons = '<p style="text-align: center; color: #666; margin: 20px 0;">먼저 일정을 추가해주세요.</p>';
+        } else {
+          scheduleItems.forEach(item => {
+            scheduleButtons += `<button class="route-save-btn" onclick="saveSearchedRouteToLocation('${item.title}', '${routeData.id}')">${item.title}</button>`;
+          });
+        }
+        
+        // 다이얼로그 생성
+        const dialogDiv = document.createElement('div');
+        dialogDiv.id = 'routeSaveDialog';
+        dialogDiv.innerHTML = `
+          <div class="info-header">
+            <h3>경로 저장 위치 선택</h3>
+            <button class="close-btn" onclick="closeRouteSaveDialog()">×</button>
+          </div>
+          <div class="info-content">
+            <div class="info-section">
+              <h4>검색된 경로를 어디에 저장하시겠습니까?</h4>
+              <p style="color: #666; font-size: 0.9rem; margin-bottom: 16px;">
+                거리: ${routeData.distance} | 소요시간: ${routeData.duration}
+              </p>
+              <div class="route-save-options">
+                ${scheduleButtons}
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // 임시로 routeData를 전역에 저장
+        window.tempSearchedRoute = routeData;
+        
+        // 다이얼로그를 지도 위에 표시
+        document.body.appendChild(dialogDiv);
+      }
+      
+      // 검색된 경로를 특정 위치에 저장
+      function saveSearchedRouteToLocation(location, routeId) {
+        const routeData = window.tempSearchedRoute;
+        if (!routeData) {
+          alert('저장할 경로 데이터가 없습니다.');
+          return;
+        }
+        
+        // 기존 saveRouteToLocation 함수와 동일한 로직 사용
+        routeData.section = location;
+        savedUserRoutes.push(routeData);
+        
+        // Firebase에 저장
+        saveUserRoutesToFirebase();
+        
+        // 저장된 경로 다시 그리기
+        drawAllSavedRoutes();
+        
+        // 다이얼로그 닫기
+        closeRouteSaveDialog();
+        
+        // 정보창 닫기
+        if (window.currentInfoWindow) {
+          window.currentInfoWindow.close();
+        }
+        
+        // 경로탐색 모드 종료
+        toggleRouteSearch();
+        
+        // 임시 데이터 정리
+        delete window.tempSearchedRoute;
+        
+        alert(`검색된 경로가 "${location}"에 저장되었습니다.`);
+        console.log('검색된 경로 저장 완료:', routeData);
       }
       
       // 사용자 경로에 위치 추가 함수
@@ -6586,7 +7813,7 @@
      </script>
     
     <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg&libraries=geometry&callback=initMap" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg&libraries=geometry,directions&callback=initMap" async defer></script>
 </body>
 </html>
 
