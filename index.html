@@ -1368,7 +1368,61 @@
             }
         }
 
+        /* 드래그앤드롭 애니메이션 개선 */
+        .user-added-item {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
 
+        .user-added-item.dragging {
+            transform: scale(1.05) rotate(3deg);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.25), 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 10000;
+            border-radius: 12px;
+            background-color: #ffffff;
+        }
+
+        .drag-placeholder {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            border: 2px dashed #3b82f6;
+            border-radius: 12px;
+            opacity: 0.8;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .drag-placeholder::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .drag-placeholder.highlight {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border-color: #2563eb;
+            transform: scale(1.02);
+        }
+
+        /* 드래그 중 다른 항목들 애니메이션 */
+        .user-added-item:not(.dragging) {
+            transition: transform 0.2s ease, margin 0.2s ease;
+        }
 
     </style>
 </head>
@@ -5997,97 +6051,219 @@
           navigator.vibrate(50);
         }
         
-        // 드래그 요소 스타일 설정
-        element.style.position = 'fixed';
-        element.style.zIndex = '9999';
-        element.style.opacity = '0.8';
-        element.style.transform = 'scale(1.05)';
-        element.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
-        element.style.transition = 'none';
-        element.style.pointerEvents = 'none';
+        // 원래 위치와 크기 저장
+        const rect = element.getBoundingClientRect();
+        const computedStyle = getComputedStyle(element);
         
-        // 플레이스홀더 생성
+        // 플레이스홀더 생성 (더 자연스러운 디자인)
         dragPlaceholder = document.createElement('div');
         dragPlaceholder.className = 'drag-placeholder';
-        dragPlaceholder.style.height = element.offsetHeight + 'px';
-        dragPlaceholder.style.margin = getComputedStyle(element).margin;
-        dragPlaceholder.style.backgroundColor = '#e5e7eb';
-        dragPlaceholder.style.border = '2px dashed #9ca3af';
-        dragPlaceholder.style.borderRadius = '8px';
-        dragPlaceholder.style.opacity = '0.7';
+        dragPlaceholder.style.height = rect.height + 'px';
+        dragPlaceholder.style.margin = computedStyle.margin;
+        dragPlaceholder.style.backgroundColor = '#f3f4f6';
+        dragPlaceholder.style.border = '2px dashed #3b82f6';
+        dragPlaceholder.style.borderRadius = '12px';
+        dragPlaceholder.style.opacity = '0.8';
+        dragPlaceholder.style.transition = 'all 0.2s ease';
+        dragPlaceholder.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; font-size: 14px;">여기에 놓기</div>';
         
         // 플레이스홀더를 원래 위치에 삽입
         element.parentNode.insertBefore(dragPlaceholder, element);
         
+        // 드래그 요소를 body로 이동 (정확한 위치 계산)
+        document.body.appendChild(element);
+        
         // 터치 위치에 따른 오프셋 계산
-        const rect = element.getBoundingClientRect();
         const touch = event.touches ? event.touches[0] : event;
         dragOffset.x = touch.clientX - rect.left;
         dragOffset.y = touch.clientY - rect.top;
         
-        // 초기 위치 설정
+        // 드래그 요소 스타일 설정 (부드러운 애니메이션)
+        element.style.position = 'fixed';
         element.style.left = (touch.clientX - dragOffset.x) + 'px';
         element.style.top = (touch.clientY - dragOffset.y) + 'px';
         element.style.width = rect.width + 'px';
+        element.style.height = rect.height + 'px';
+        element.style.zIndex = '10000';
+        element.style.opacity = '0.9';
+        element.style.transform = 'scale(1.02) rotate(2deg)';
+        element.style.boxShadow = '0 12px 30px rgba(0,0,0,0.25), 0 4px 15px rgba(0,0,0,0.1)';
+        element.style.transition = 'transform 0.1s ease-out';
+        element.style.pointerEvents = 'none';
+        element.style.borderRadius = '12px';
+        element.style.backgroundColor = '#ffffff';
+        
+        // 드래그 시작 애니메이션
+        requestAnimationFrame(() => {
+          element.style.transform = 'scale(1.05) rotate(3deg)';
+        });
       }
       
-      // 드래그 이동 처리
+      // 드래그 이동 처리 (개선된 버전)
       function handleDragMove(element, event) {
         if (!isDraggingGlobal || !dragElement) return;
         
         const touch = event.touches ? event.touches[0] : event;
         
-        // 드래그 요소 위치 업데이트
-        dragElement.style.left = (touch.clientX - dragOffset.x) + 'px';
-        dragElement.style.top = (touch.clientY - dragOffset.y) + 'px';
+        // 드래그 요소 위치 업데이트 (부드러운 이동)
+        const newX = touch.clientX - dragOffset.x;
+        const newY = touch.clientY - dragOffset.y;
         
-        // 드롭 대상 찾기
+        dragElement.style.left = newX + 'px';
+        dragElement.style.top = newY + 'px';
+        
+        // 드래그 중 미묘한 애니메이션 효과
+        dragElement.style.transform = 'scale(1.05) rotate(3deg)';
+        
+        // 드롭 대상 찾기 (더 정확한 감지)
+        dragElement.style.pointerEvents = 'none'; // 드래그 요소 무시
         const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-        const targetItem = elementBelow ? elementBelow.closest('.user-added-item') : null;
+        dragElement.style.pointerEvents = 'auto';
+        
+        const targetItem = elementBelow ? elementBelow.closest('.user-added-item[data-item-type="user"]') : null;
         
         if (targetItem && targetItem !== dragElement && targetItem !== dragPlaceholder) {
           const container = targetItem.parentNode;
           const targetRect = targetItem.getBoundingClientRect();
           const targetCenter = targetRect.top + targetRect.height / 2;
           
-          if (touch.clientY < targetCenter) {
-            // 타겟 위에 삽입
-            container.insertBefore(dragPlaceholder, targetItem);
-          } else {
-            // 타겟 아래에 삽입
-            container.insertBefore(dragPlaceholder, targetItem.nextSibling);
+          // 스크롤 영역 감지 및 자동 스크롤
+          const scrollContainer = container.closest('.scrollable-area') || container.closest('.user-items-container');
+          if (scrollContainer) {
+            const scrollRect = scrollContainer.getBoundingClientRect();
+            const scrollThreshold = 50;
+            
+            if (touch.clientY < scrollRect.top + scrollThreshold) {
+              // 위로 스크롤
+              scrollContainer.scrollTop -= 5;
+            } else if (touch.clientY > scrollRect.bottom - scrollThreshold) {
+              // 아래로 스크롤
+              scrollContainer.scrollTop += 5;
+            }
+          }
+          
+          // 플레이스홀더 위치 결정 (더 자연스러운 감지)
+          const insertBefore = touch.clientY < targetCenter;
+          const newPosition = insertBefore ? targetItem : targetItem.nextSibling;
+          
+          // 플레이스홀더가 이미 올바른 위치에 있는지 확인
+          if (dragPlaceholder.nextSibling !== newPosition) {
+            // 플레이스홀더 이동 애니메이션
+            dragPlaceholder.style.transform = 'scale(0.95)';
+            
+            requestAnimationFrame(() => {
+              container.insertBefore(dragPlaceholder, newPosition);
+              dragPlaceholder.style.transform = 'scale(1)';
+              
+              // 플레이스홀더 강조 효과
+              dragPlaceholder.style.backgroundColor = '#dbeafe';
+              dragPlaceholder.style.borderColor = '#2563eb';
+              
+              setTimeout(() => {
+                dragPlaceholder.style.backgroundColor = '#f3f4f6';
+                dragPlaceholder.style.borderColor = '#3b82f6';
+              }, 150);
+            });
           }
         }
       }
       
-      // 드래그 종료 처리
+      // 드래그 종료 처리 (개선된 버전)
       function handleDragEnd(element, event) {
         if (!isDraggingGlobal || !dragElement) return;
         
         console.log('드래그 종료');
         
-        // 드래그 요소를 플레이스홀더 위치에 삽입
+        // 드롭 애니메이션 효과
+        dragElement.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        dragElement.style.transform = 'scale(1) rotate(0deg)';
+        dragElement.style.opacity = '1';
+        
+        // 최종 위치 계산
+        let finalContainer;
         if (dragPlaceholder && dragPlaceholder.parentNode) {
-          dragPlaceholder.parentNode.insertBefore(dragElement, dragPlaceholder);
+          finalContainer = dragPlaceholder.parentNode;
+          const placeholderRect = dragPlaceholder.getBoundingClientRect();
+          
+          // 최종 위치로 애니메이션
+          dragElement.style.left = placeholderRect.left + 'px';
+          dragElement.style.top = placeholderRect.top + 'px';
+          
+          // 애니메이션 완료 후 정리
+          setTimeout(() => {
+            // 드래그 요소를 올바른 위치에 삽입
+            finalContainer.insertBefore(dragElement, dragPlaceholder);
+            
+            // 드래그 요소 스타일 완전 복원
+            dragElement.style.position = '';
+            dragElement.style.zIndex = '';
+            dragElement.style.opacity = '';
+            dragElement.style.transform = '';
+            dragElement.style.boxShadow = '';
+            dragElement.style.transition = '';
+            dragElement.style.pointerEvents = '';
+            dragElement.style.left = '';
+            dragElement.style.top = '';
+            dragElement.style.width = '';
+            dragElement.style.height = '';
+            dragElement.style.borderRadius = '';
+            dragElement.style.backgroundColor = '';
+            
+            // 플레이스홀더 제거
+            if (dragPlaceholder) {
+              dragPlaceholder.remove();
+            }
+            
+            // 성공 햅틱 피드백
+            if (navigator.vibrate) {
+              navigator.vibrate([30, 10, 30]);
+            }
+            
+            // Firebase와 동기화
+            saveItemOrderWithSync();
+            
+            // 정리
+            dragElement = null;
+            dragPlaceholder = null;
+            isDraggingGlobal = false;
+            currentDragItem = null;
+            if (currentLongPressTimer) {
+              clearTimeout(currentLongPressTimer);
+              currentLongPressTimer = null;
+            }
+            
+            console.log('드래그앤드롭 완료 및 Firebase 동기화 시작');
+          }, 300);
+          
+        } else {
+          // 플레이스홀더가 없는 경우 즉시 정리
+          resetDragState();
+        }
+      }
+      
+      // 드래그 상태 리셋 함수
+      function resetDragState() {
+        if (dragElement) {
+          // 드래그 요소 스타일 복원
+          dragElement.style.position = '';
+          dragElement.style.zIndex = '';
+          dragElement.style.opacity = '';
+          dragElement.style.transform = '';
+          dragElement.style.boxShadow = '';
+          dragElement.style.transition = '';
+          dragElement.style.pointerEvents = '';
+          dragElement.style.left = '';
+          dragElement.style.top = '';
+          dragElement.style.width = '';
+          dragElement.style.height = '';
+          dragElement.style.borderRadius = '';
+          dragElement.style.backgroundColor = '';
+        }
+        
+        if (dragPlaceholder) {
           dragPlaceholder.remove();
         }
         
-        // 드래그 요소 스타일 복원
-        dragElement.style.position = '';
-        dragElement.style.zIndex = '';
-        dragElement.style.opacity = '';
-        dragElement.style.transform = '';
-        dragElement.style.boxShadow = '';
-        dragElement.style.transition = '';
-        dragElement.style.pointerEvents = '';
-        dragElement.style.left = '';
-        dragElement.style.top = '';
-        dragElement.style.width = '';
-        
-        // 항목 순서 저장
-        saveItemOrder();
-        
-        // 정리
         dragElement = null;
         dragPlaceholder = null;
         isDraggingGlobal = false;
@@ -6098,7 +6274,62 @@
         }
       }
       
-      // 항목 순서 저장
+      // Firebase 동기화를 포함한 개선된 항목 순서 저장
+      function saveItemOrderWithSync() {
+        try {
+          console.log('드래그앤드롭 순서 변경 - Firebase 동기화 시작');
+          
+          const container = document.querySelector('#' + window.currentActiveSection + 'Content');
+          if (!container) {
+            console.warn('컨테이너를 찾을 수 없습니다:', window.currentActiveSection);
+            return;
+          }
+          
+          const userItems = container.querySelectorAll('.user-added-item[data-item-type="user"]');
+          const newOrder = [];
+          
+          userItems.forEach((item, index) => {
+            const itemId = item.getAttribute('data-item-id');
+            if (itemId) {
+              newOrder.push(itemId);
+            }
+          });
+          
+          console.log('새로운 순서:', newOrder);
+          
+          // 메모리에서 순서 업데이트
+          if (window.firebaseUserItems && window.firebaseUserItems[window.currentActiveSection]) {
+            const sectionItems = window.firebaseUserItems[window.currentActiveSection];
+            const reorderedItems = [];
+            
+            // 새로운 순서에 따라 항목 재정렬
+            newOrder.forEach(itemId => {
+              const item = sectionItems.find(item => item.id === itemId);
+              if (item) {
+                reorderedItems.push(item);
+              }
+            });
+            
+            // 순서가 바뀌지 않은 항목들 추가
+            sectionItems.forEach(item => {
+              if (!newOrder.includes(item.id)) {
+                reorderedItems.push(item);
+              }
+            });
+            
+            window.firebaseUserItems[window.currentActiveSection] = reorderedItems;
+            console.log('메모리 순서 업데이트 완료');
+          }
+          
+          // Firebase에 저장
+          saveUserItemsToFirebase(true); // 강제 동기화
+          
+        } catch (error) {
+          console.error('드래그앤드롭 순서 저장 실패:', error);
+        }
+      }
+      
+      // 기존 항목 순서 저장 (호환성 유지)
       function saveItemOrder() {
         try {
           const container = document.querySelector('#' + window.currentActiveSection + 'Content');
