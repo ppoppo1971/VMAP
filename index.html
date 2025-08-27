@@ -1227,6 +1227,39 @@
                 font-size: 0.85rem;
             }
         }
+        
+        /* 일정 추가 버튼 스타일 */
+        #addScheduleBtn {
+            background: linear-gradient(135deg, #10b981, #059669) !important;
+            color: white !important;
+            border: none !important;
+            font-weight: 700 !important;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        #addScheduleBtn:hover {
+            background: linear-gradient(135deg, #059669, #047857) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
+        }
+        
+        #addScheduleBtn:active {
+            transform: translateY(0) !important;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+        }
+        
+        /* 추가된 일정 버튼들 스타일 */
+        #additionalDays .toggle-btn {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            margin-bottom: 4px !important;
+        }
+        
+        #additionalDays .toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.35) !important;
+            border-color: rgba(255, 255, 255, 0.5) !important;
+        }
 
     </style>
 </head>
@@ -1264,9 +1297,15 @@
       <div class="menu-group">
         <button id="preparationBtn" class="toggle-btn" onclick="showPreparationInfo()">사전준비</button>
         <button id="day1Btn" class="toggle-btn" onclick="showDay1Info()">1일차</button>
+        <div id="additionalDays"></div>
       </div>
       <div class="menu-group">
         <button id="clearRouteBtn" class="toggle-btn" onclick="clearUserRoute()" style="display: none;">경로 초기화</button>
+      </div>
+      <div class="menu-group">
+        <button id="addScheduleBtn" class="toggle-btn" onclick="showAddScheduleDialog()" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none;">
+          + 일정추가
+        </button>
       </div>
     </div>
     
@@ -1625,6 +1664,9 @@
         
         // 저장된 사용자 마커들 복원
         restoreSavedUserMarkers();
+        
+        // 저장된 사용자 정의 일정들 복원
+        restoreCustomSchedules();
         
 
         
@@ -4850,11 +4892,18 @@
                     console.log('마커 변경 감지 - UI 업데이트');
                     window.savedUserMarkers = newMarkers;
                     drawAllSavedMarkers();
-                    updateRouteRemoveButtons();
+                    updateMarkerRemoveButtons();
                     updateSyncStatus('마커 동기화 완료', 'success');
                   } else {
                     console.log('마커 변경 없음 - UI 업데이트 건너뜀');
                   }
+                }
+                
+                // 사용자 정의 일정 동기화
+                if (data.customSchedules) {
+                  console.log('사용자 정의 일정 동기화 중...');
+                  restoreCustomSchedules();
+                  updateSyncStatus('일정 동기화 완료', 'success');
                 }
                 
                 lastSyncTimestamp = currentTime;
@@ -5127,6 +5176,276 @@
         }, 3000);
       }
       
+      // 일정 추가 다이얼로그 표시 함수
+      function showAddScheduleDialog() {
+        // 기존 다이얼로그가 있으면 제거
+        const existingDialog = document.getElementById('addScheduleDialog');
+        if (existingDialog) {
+          existingDialog.remove();
+        }
+        
+        // 다이얼로그 생성
+        const dialog = document.createElement('div');
+        dialog.id = 'addScheduleDialog';
+        dialog.style.cssText = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 1000;
+          width: 400px;
+          max-width: 90vw;
+          background: rgba(255, 255, 255, 0.95);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 16px;
+          box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          overflow: hidden;
+          animation: slideIn 0.3s ease-out;
+        `;
+        
+        dialog.innerHTML = `
+          <div class="info-header" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <h3 style="color: #ffffff; margin: 0;">새 일정 추가</h3>
+            <button class="close-btn" onclick="closeAddScheduleDialog()">×</button>
+          </div>
+          <div class="info-content" style="padding: 20px;">
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1f2937;">일정 제목</label>
+              <input type="text" id="scheduleTitle" placeholder="예: 2일차, 3일차, 특별일정 등" 
+                     style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1f2937;">일정 설명 (선택사항)</label>
+              <textarea id="scheduleDescription" placeholder="일정에 대한 간단한 설명을 입력하세요" 
+                        style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box; height: 80px; resize: vertical;"></textarea>
+            </div>
+            <div style="display: flex; gap: 12px;">
+              <button onclick="addNewSchedule()" style="flex: 1; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                추가
+              </button>
+              <button onclick="closeAddScheduleDialog()" style="flex: 1; background: linear-gradient(135deg, #6b7280, #4b5563); color: white; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                취소
+              </button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(dialog);
+        
+        // 제목 입력란에 포커스
+        setTimeout(() => {
+          document.getElementById('scheduleTitle').focus();
+        }, 100);
+      }
+      
+      // 일정 추가 다이얼로그 닫기 함수
+      function closeAddScheduleDialog() {
+        const dialog = document.getElementById('addScheduleDialog');
+        if (dialog) {
+          dialog.remove();
+        }
+      }
+      
+      // 새 일정 추가 함수
+      async function addNewSchedule() {
+        const titleInput = document.getElementById('scheduleTitle');
+        const descriptionInput = document.getElementById('scheduleDescription');
+        
+        const title = titleInput.value.trim();
+        const description = descriptionInput.value.trim();
+        
+        if (!title) {
+          alert('일정 제목을 입력해주세요.');
+          titleInput.focus();
+          return;
+        }
+        
+        try {
+          // 새 일정 버튼 생성
+          const newScheduleBtn = document.createElement('button');
+          newScheduleBtn.className = 'toggle-btn';
+          newScheduleBtn.setAttribute('data-schedule-id', 'schedule_' + Date.now());
+          newScheduleBtn.setAttribute('data-schedule-title', title);
+          newScheduleBtn.setAttribute('data-schedule-description', description);
+          
+          // 클릭 이벤트 (일정 정보 표시)
+          newScheduleBtn.onclick = function() { 
+            showScheduleInfo(title, description); 
+          };
+          
+          // 우클릭 이벤트 (수정/삭제 메뉴)
+          newScheduleBtn.oncontextmenu = function(e) {
+            e.preventDefault();
+            showScheduleContextMenu(e, this);
+          };
+          
+          newScheduleBtn.textContent = title;
+          
+          // additionalDays 컨테이너에 추가
+          const additionalDaysContainer = document.getElementById('additionalDays');
+          additionalDaysContainer.appendChild(newScheduleBtn);
+          
+          // Firebase에 저장
+          if (window.db && window.firestore) {
+            const scheduleData = {
+              id: 'schedule_' + Date.now(),
+              title: title,
+              description: description,
+              timestamp: new Date().toISOString(),
+              type: 'custom_schedule'
+            };
+            
+            await window.firestore.updateDoc(
+              window.firestore.doc(window.db, 'users', 'currentUser'),
+              {
+                customSchedules: window.firestore.arrayUnion(scheduleData),
+                lastUpdated: window.firestore.serverTimestamp()
+              }
+            );
+            
+            updateSyncStatus('새 일정이 추가되었습니다!', 'success');
+          }
+          
+          // 다이얼로그 닫기
+          closeAddScheduleDialog();
+          
+        } catch (error) {
+          console.error('일정 추가 실패:', error);
+          alert('일정 추가에 실패했습니다. 다시 시도해주세요.');
+        }
+      }
+      
+      // 일정 정보 표시 함수
+      function showScheduleInfo(title, description) {
+        // 기존 정보창이 있으면 제거
+        const existingInfo = document.getElementById('preparationInfo');
+        if (existingInfo) {
+          existingInfo.remove();
+        }
+        
+        // 현재 활성 섹션 설정
+        window.currentActiveSection = title;
+        
+        // 정보창 생성
+        const infoDiv = document.createElement('div');
+        infoDiv.id = 'preparationInfo';
+        infoDiv.innerHTML = `
+          <div class="info-header" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+            <h3 style="color: #ffffff;">${title}</h3>
+            <button class="close-btn" onclick="closePreparationInfo()">×</button>
+          </div>
+          <div class="info-content">
+            <div class="info-section">
+              ${description ? `<p style="margin-bottom: 16px; color: #6b7280; font-style: italic;">${description}</p>` : ''}
+              
+              <!-- 사용자 추가 항목들이 여기에 표시됩니다 -->
+              <div id="userAddedItems"></div>
+              
+              <!-- 새 항목 추가 버튼 -->
+              <div class="add-item-section">
+                <button type="button" onclick="showAddForm()" class="toggle-add-btn" id="toggleAddBtn">+ 새 항목 추가</button>
+              </div>
+              
+              <!-- 새 항목 추가 폼 (처음에는 숨김) -->
+              <div class="add-item-form" id="addItemForm" style="display: none;">
+                <div class="form-group">
+                  <input type="text" id="newItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50">
+                  <input type="url" id="newItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200">
+                </div>
+                <div class="form-buttons">
+                  <button type="button" onclick="addNewItem()" class="add-btn">추가</button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 저장된 경로/마커 제거 버튼 섹션 -->
+            <div class="info-section">
+              <div id="preparationRemoveButtons" style="display: none;">
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                  <button class="route-remove-btn" onclick="removeRoutesByLocation('${title}')" style="flex: 1;">경로제거</button>
+                  <button class="route-remove-btn" onclick="removeMarkersByLocation('${title}')" style="flex: 1;">마커제거</button>
+                </div>
+                <p style="font-size: 0.63rem; color: #6b7280; margin: 0;">
+                  ${title}에 저장된 경로와 마커를 제거합니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // 정보창을 지도 위에 표시
+        document.body.appendChild(infoDiv);
+        
+        // 클릭 가능한 텍스트 끝에 ❗ 표시 추가
+        if (typeof appendExclamationToLinks === 'function') {
+          appendExclamationToLinks(infoDiv);
+        }
+        
+        // 저장된 체크박스 상태 복원
+        setTimeout(() => {
+          restoreCheckboxStates();
+          // 스와이프 기능 초기화
+          initializeSwipeDelete();
+          if (typeof applyOverridesAndHides === 'function') {
+            applyOverridesAndHides();
+          }
+        }, 50);
+        
+        // 경로제거 버튼 상태 업데이트
+        updateRouteRemoveButtons();
+        // 마커제거 버튼 상태 업데이트
+        updateMarkerRemoveButtons();
+        
+        // 정보창 위치 조정 - 모바일 최적화
+        setTimeout(() => {
+          const menu = document.getElementById('customMapMenu');
+          const menuRect = menu.getBoundingClientRect();
+          const mapElement = document.getElementById('map');
+          const mapRect = mapElement.getBoundingClientRect();
+          
+          if (isMobile) {
+            // 모바일: 화면 중앙에 표시
+            infoDiv.style.left = '50%';
+            infoDiv.style.transform = 'translateX(-50%)';
+            infoDiv.style.top = '80px';
+          } else {
+            // 데스크톱: 사이드메뉴 오른쪽에 표시
+            infoDiv.style.left = (menuRect.right + 10) + 'px';
+            infoDiv.style.top = menuRect.top + 'px';
+            infoDiv.style.transform = 'none';
+          }
+        }, 100);
+      }
+      
+      // 저장된 사용자 정의 일정들 복원 함수
+      async function restoreCustomSchedules() {
+        try {
+          if (!window.db || !window.firestore) return;
+          
+          const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+          if (docSnap.exists() && docSnap.data().customSchedules) {
+            const customSchedules = docSnap.data().customSchedules;
+            
+            const additionalDaysContainer = document.getElementById('additionalDays');
+            if (additionalDaysContainer) {
+              additionalDaysContainer.innerHTML = '';
+              
+              customSchedules.forEach(schedule => {
+                const scheduleBtn = document.createElement('button');
+                scheduleBtn.className = 'toggle-btn';
+                scheduleBtn.onclick = function() { showScheduleInfo(schedule.title, schedule.description); };
+                scheduleBtn.textContent = schedule.title;
+                additionalDaysContainer.appendChild(scheduleBtn);
+              });
+            }
+          }
+        } catch (error) {
+          console.error('사용자 정의 일정 복원 실패:', error);
+        }
+      }
 
     </script>
 
