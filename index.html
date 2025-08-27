@@ -70,7 +70,7 @@
             text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
         }
         /* 공통 버튼 스타일 - 터치 친화적 */
-        .menu-group button, .toggle-btn {
+        .menu-group button, .toggle-btn, .map-type-btn {
             width: 100%;
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -88,14 +88,14 @@
             justify-content: flex-start;
             text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
         }
-        .menu-group button:hover, .toggle-btn:hover {
+        .menu-group button:hover, .toggle-btn:hover, .map-type-btn:hover {
             background: rgba(255, 255, 255, 0.4);
             border-color: rgba(255, 255, 255, 0.5);
             color: #000;
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
-        .menu-group button:active, .toggle-btn:active {
+        .menu-group button:active, .toggle-btn:active, .map-type-btn:active {
             background: rgba(255, 255, 255, 0.3);
             transform: scale(0.98);
         }
@@ -249,33 +249,12 @@
         }
         
         .map-type-btn {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            padding: 12px 16px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #1a1a1a;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            -webkit-tap-highlight-color: transparent;
-            min-height: 44px;
-            display: flex;
-            align-items: center;
             justify-content: center;
-            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+            padding: 12px 16px;
         }
         
-        .map-type-btn:hover {
-            background: rgba(255, 255, 255, 0.25);
-            border-color: rgba(255, 255, 255, 0.35);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
-        }
-        
-        .map-type-btn:active {
-            transform: scale(0.98);
-        }
+
         
         .map-type-btn.active {
             background: #1d4ed8;
@@ -1031,6 +1010,29 @@
             min-width: 60px;
         }
         
+        /* 일정 항목(사이드패널)용 스와이프 버튼 - 버튼 크기 두 배로 확대, 간격 여유있게 */
+        .user-added-item[data-item-type="schedule"] .swipe-edit-btn {
+            right: -350px;
+            width: auto;
+            min-width: auto;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            height: auto;
+            min-height: auto;
+            line-height: 1.3;
+        }
+        
+        .user-added-item[data-item-type="schedule"] .swipe-delete-btn {
+            right: -250px;
+            width: auto;
+            min-width: auto;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            height: auto;
+            min-height: auto;
+            line-height: 1.3;
+        }
+        
         .user-added-item .swipe-edit-btn:hover,
         .checklist-item .swipe-edit-btn:hover {
             background: #2563eb;
@@ -1039,7 +1041,12 @@
         .user-added-item .swipe-edit-btn:active,
         .checklist-item .swipe-edit-btn:active {
             background: #2563eb;
-            transform: translateY(-50%) scale(0.95);
+        }
+        
+        /* 일정 항목의 수정 버튼은 active 애니메이션 제거 */
+        .user-added-item[data-item-type="schedule"] .swipe-edit-btn:active {
+            background: #2563eb;
+            transform: translateY(-50%);
         }
         
         .user-added-item .swipe-delete-btn,
@@ -1069,11 +1076,18 @@
         .checklist-item .swipe-delete-btn:hover {
             background: #dc2626;
         }
+
+
         
         .user-added-item .swipe-delete-btn:active,
         .checklist-item .swipe-delete-btn:active {
             background: #dc2626;
-            transform: translateY(-50%) scale(0.95);
+        }
+        
+        /* 일정 항목의 삭제 버튼은 active 애니메이션 제거 */
+        .user-added-item[data-item-type="schedule"] .swipe-delete-btn:active {
+            background: #dc2626;
+            transform: translateY(-50%);
         }
         
         .user-added-item .item-content {
@@ -1090,6 +1104,11 @@
             transform: translateX(-160px);
         }
         
+        /* 일정 항목은 사이드패널에서 더 작은 거리로 스와이프 - 두 버튼이 모두 보이도록 */
+        .user-added-item[data-item-type="schedule"].swiped .item-content {
+            transform: translateX(-120px);
+        }
+        
         .user-added-item.swiped .swipe-edit-btn,
         .checklist-item.swiped .swipe-edit-btn {
             right: 88px;
@@ -1098,6 +1117,15 @@
         .user-added-item.swiped .swipe-delete-btn,
         .checklist-item.swiped .swipe-delete-btn {
             right: 8px;
+        }
+        
+        /* 일정 항목 스와이프 완료 시 위치 조정 - 수정 버튼을 왼쪽으로 더 이동 */
+        .user-added-item[data-item-type="schedule"].swiped .swipe-edit-btn {
+            right: 70px;
+        }
+        
+        .user-added-item[data-item-type="schedule"].swiped .swipe-delete-btn {
+            right: 5px;
         }
         
 
@@ -1246,6 +1274,16 @@
         }
         
         /* 추가된 일정 버튼들 스타일 */
+        #additionalDays {
+            overflow: hidden !important; /* 스와이프 버튼 숨김을 위해 필수 */
+            position: relative !important;
+        }
+        
+        /* 메뉴 그룹 자체에도 overflow 적용 */
+        .menu-group {
+            overflow: hidden !important;
+        }
+        
         #additionalDays .toggle-btn {
             background: rgba(255, 255, 255, 0.2) !important;
             border: 1px solid rgba(255, 255, 255, 0.3) !important;
@@ -1398,13 +1436,22 @@
       
 
       
-      // DOM 캐시
+      // 최적화된 DOM 캐시
       let cachedElements = {};
       function getElement(id) {
         if (!cachedElements[id]) {
           cachedElements[id] = document.getElementById(id);
         }
         return cachedElements[id];
+      }
+      
+      // 캐시 무효화 함수 (동적 요소 추가 시 사용)
+      function invalidateCache(key) {
+        if (key) {
+          delete cachedElements[key];
+        } else {
+          cachedElements = {}; // 전체 캐시 클리어
+        }
       }
       
       // 모바일 최적화 함수
@@ -1840,89 +1887,55 @@
       
       // 오른쪽 상단 버튼 상태 업데이트
       function updateTopButtonStates(activeType) {
-        const topRoadmapBtn = document.getElementById('topRoadmapBtn');
-        const topSatelliteBtn = document.getElementById('topSatelliteBtn');
-        const topHybridBtn = document.getElementById('topHybridBtn');
+        const topButtons = {
+          roadmap: getElement('topRoadmapBtn'),
+          satellite: getElement('topSatelliteBtn'),
+          hybrid: getElement('topHybridBtn')
+        };
         
         // 모든 버튼 비활성화
-        [topRoadmapBtn, topSatelliteBtn, topHybridBtn].forEach(btn => {
+        Object.values(topButtons).forEach(btn => {
           if (btn) btn.classList.remove('active');
         });
         
         // 활성 타입에 따라 버튼 상태 설정
-        switch (activeType) {
-          case 'roadmap':
-            if (topRoadmapBtn) topRoadmapBtn.classList.add('active');
-            if (topHybridBtn) {
-              topHybridBtn.textContent = '라벨';
-            }
-            break;
-          case 'satellite':
-            if (topSatelliteBtn) topSatelliteBtn.classList.add('active');
-            if (topHybridBtn) {
-              topHybridBtn.textContent = '라벨';
-            }
-            break;
-          case 'hybrid':
-            if (topSatelliteBtn) topSatelliteBtn.classList.add('active');
-            if (topHybridBtn) {
-              topHybridBtn.classList.add('active');
-              topHybridBtn.textContent = '라벨';
-            }
-            break;
+        const activationMap = {
+          roadmap: ['roadmap'],
+          satellite: ['satellite'],
+          hybrid: ['satellite', 'hybrid']
+        };
+        
+        activationMap[activeType]?.forEach(btnType => {
+          if (topButtons[btnType]) {
+            topButtons[btnType].classList.add('active');
+          }
+        });
+        
+        // 하이브리드 버튼 텍스트 설정
+        if (topButtons.hybrid) {
+          topButtons.hybrid.textContent = '라벨';
         }
       }
       
       // 사이드패널과 오른쪽 상단 버튼 동기화
       function syncSidePanelWithTop(activeType) {
-        // 일반 선택 시
-        if (activeType === 'roadmap') {
-          const roadmapMenu = document.getElementById('roadmapMenu');
-          const roadmapBtn = document.getElementById('roadmapToggleBtn');
-          if (roadmapMenu && roadmapBtn) {
-            roadmapMenu.style.display = 'block';
-            roadmapBtn.textContent = '-일반';
+        const menuConfigs = {
+          roadmap: { roadmap: { show: true, text: '-일반' }, satellite: { show: false, text: '+위성' } },
+          satellite: { roadmap: { show: false, text: '+일반' }, satellite: { show: true, text: '-위성' } },
+          hybrid: { roadmap: { show: false, text: '+일반' }, satellite: { show: true, text: '-위성' } }
+        };
+        
+        const config = menuConfigs[activeType];
+        if (!config) return;
+        
+        Object.entries(config).forEach(([menuType, settings]) => {
+          const menu = getElement(`${menuType}Menu`);
+          const btn = getElement(`${menuType}ToggleBtn`);
+          if (menu && btn) {
+            menu.style.display = settings.show ? 'block' : 'none';
+            btn.textContent = settings.text;
           }
-          
-          const satelliteMenu = document.getElementById('satelliteMenu');
-          const satelliteBtn = document.getElementById('satelliteToggleBtn');
-          if (satelliteMenu && satelliteBtn) {
-            satelliteMenu.style.display = 'none';
-            satelliteBtn.textContent = '+위성';
-          }
-        }
-        // 위성 선택 시
-        else if (activeType === 'satellite') {
-          const roadmapMenu = document.getElementById('roadmapMenu');
-          const roadmapBtn = document.getElementById('roadmapToggleBtn');
-          if (roadmapMenu && roadmapBtn) {
-            roadmapMenu.style.display = 'none';
-            roadmapBtn.textContent = '+일반';
-          }
-          
-          const satelliteMenu = document.getElementById('satelliteMenu');
-          const satelliteBtn = document.getElementById('satelliteToggleBtn');
-          if (satelliteMenu && satelliteBtn) {
-            satelliteMenu.style.display = 'block';
-            satelliteBtn.textContent = '-위성';
-          }
-        }
-        // 하이브리드 선택 시
-        else if (activeType === 'hybrid') {
-          const roadmapMenu = document.getElementById('roadmapMenu');
-          const roadmapBtn = document.getElementById('roadmapToggleBtn');
-          if (roadmapMenu && roadmapBtn) {
-            roadmapMenu.style.display = 'none';
-            roadmapBtn.textContent = '+일반';
-          }
-          
-          const satelliteMenu = document.getElementById('satelliteMenu');
-          const satelliteBtn = document.getElementById('satelliteToggleBtn');
-          if (satelliteMenu && satelliteBtn) {
-            satelliteMenu.style.display = 'block';
-            satelliteBtn.textContent = '-위성';
-          }
-        }
+        });
       }
       
       // 최적화된 메뉴 토글 함수
@@ -2035,7 +2048,7 @@
            return;
          }
          
-         const checkboxes = document.querySelectorAll('.prep-checkbox');
+         const checkboxes = cachedElements['prep-checkboxes'] || (cachedElements['prep-checkboxes'] = document.querySelectorAll('.prep-checkbox'));
          const states = {};
          checkboxes.forEach(checkbox => {
            states[checkbox.id] = checkbox.checked;
@@ -2471,7 +2484,7 @@
         }
         
         // 항목 제거
-        const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
+        const itemElement = cachedElements[`item_${itemId}`] || document.querySelector(`[data-item-id="${itemId}"]`);
         if (itemElement) {
           itemElement.remove();
         }
@@ -2662,7 +2675,7 @@
           updateSyncStatus('항목 수정 중...', 'info');
           
           // HTML 요소 업데이트
-          const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
+          const itemElement = cachedElements[`item_${itemId}`] || document.querySelector(`[data-item-id="${itemId}"]`);
           if (itemElement) {
             const titleSpan = itemElement.querySelector('span');
             if (titleSpan) {
@@ -4188,7 +4201,7 @@
          
          // 모바일에서 검색 중 표시
          if (isMobile) {
-           const searchBtn = document.querySelector('#addressInput + button') || document.getElementById('addressInput');
+                        const searchBtn = getElement('addressInput');
            const originalText = searchBtn.textContent || searchBtn.placeholder;
            searchBtn.textContent = '검색중...';
            searchBtn.disabled = true;
@@ -4209,7 +4222,7 @@
          }, function(results, status) {
            // 모바일에서 검색 완료 표시 복원
            if (isMobile) {
-             const searchBtn = document.querySelector('#addressInput + button') || document.getElementById('addressInput');
+             const searchBtn = getElement('addressInput');
              searchBtn.textContent = originalText;
              searchBtn.disabled = false;
            }
@@ -5126,30 +5139,30 @@
         }
         
         try {
-          // 새 일정 버튼 생성
-          const newScheduleBtn = document.createElement('button');
-          newScheduleBtn.className = 'toggle-btn';
-          newScheduleBtn.setAttribute('data-schedule-id', 'schedule_' + Date.now());
-          newScheduleBtn.setAttribute('data-schedule-title', title);
+          // 새 일정 버튼 생성 (HTML 문자열 방식)
+          const scheduleId = 'schedule_' + Date.now();
           
-          // 클릭 이벤트 (일정 정보 표시)
-          newScheduleBtn.onclick = function() { 
-            showScheduleInfo(title); 
-          };
-          
-          // 롱프레스 기능 추가
-          addLongPressToScheduleButton(newScheduleBtn);
-          
-          newScheduleBtn.textContent = title;
+          const scheduleHtml = `
+            <div class="user-added-item" data-item-id="${scheduleId}" data-item-type="schedule" data-schedule-id="${scheduleId}" data-schedule-title="${title}">
+              <div class="item-content">
+                <button class="toggle-btn" onclick="showScheduleInfo('${title}')" data-schedule-id="${scheduleId}" data-schedule-title="${title}">${title}</button>
+              </div>
+              <button class="swipe-edit-btn" onclick="editSchedule('${scheduleId}', '${title}')" title="수정">수정</button>
+              <button class="swipe-delete-btn" onclick="deleteSchedule('${scheduleId}', '${title}')" title="삭제">삭제</button>
+            </div>
+          `;
           
           // additionalDays 컨테이너에 추가
           const additionalDaysContainer = document.getElementById('additionalDays');
-          additionalDaysContainer.appendChild(newScheduleBtn);
+          additionalDaysContainer.innerHTML += scheduleHtml;
+          
+          // 스와이프 초기화
+          initializeSwipeDelete();
           
           // Firebase에 저장
           if (window.db && window.firestore) {
             const scheduleData = {
-              id: 'schedule_' + Date.now(),
+              id: scheduleId,
               title: title,
               timestamp: new Date().toISOString(),
               type: 'custom_schedule'
@@ -5286,26 +5299,24 @@
             
             const additionalDaysContainer = document.getElementById('additionalDays');
             if (additionalDaysContainer) {
-              additionalDaysContainer.innerHTML = '';
+              let html = '';
               
               customSchedules.forEach(schedule => {
-                const scheduleBtn = document.createElement('button');
-                scheduleBtn.className = 'toggle-btn';
-                scheduleBtn.setAttribute('data-schedule-id', schedule.id);
-                scheduleBtn.setAttribute('data-schedule-title', schedule.title);
-                scheduleBtn.setAttribute('data-schedule-description', schedule.description);
-                
-                // 클릭 이벤트 (일정 정보 표시)
-                scheduleBtn.onclick = function() { 
-                  showScheduleInfo(schedule.title, schedule.description); 
-                };
-                
-                          // 롱프레스 기능 추가
-          addLongPressToScheduleButton(scheduleBtn);
-                
-                scheduleBtn.textContent = schedule.title;
-                additionalDaysContainer.appendChild(scheduleBtn);
+                html += `
+                  <div class="user-added-item" data-item-id="${schedule.id}" data-item-type="schedule" data-schedule-id="${schedule.id}" data-schedule-title="${schedule.title}">
+                    <div class="item-content">
+                      <button class="toggle-btn" onclick="showScheduleInfo('${schedule.title}', '${schedule.description || ''}')" data-schedule-id="${schedule.id}" data-schedule-title="${schedule.title}">${schedule.title}</button>
+                    </div>
+                    <button class="swipe-edit-btn" onclick="editSchedule('${schedule.id}', '${schedule.title}')" title="수정">수정</button>
+                    <button class="swipe-delete-btn" onclick="deleteSchedule('${schedule.id}', '${schedule.title}')" title="삭제">삭제</button>
+                  </div>
+                `;
               });
+              
+              additionalDaysContainer.innerHTML = html;
+              
+              // 스와이프 초기화
+              initializeSwipeDelete();
             }
           }
         } catch (error) {
@@ -5313,60 +5324,7 @@
         }
       }
       
-      // 일정 버튼에 롱프레스 기능 추가 함수
-      function addLongPressToScheduleButton(button) {
-        let longPressTimer = null;
-        let isLongPressed = false;
-        
-        button.addEventListener('touchstart', function(e) {
-          // 롱프레스 타이머 시작 (1초)
-          longPressTimer = setTimeout(() => {
-            isLongPressed = true;
-            // 시각적 피드백
-            this.style.transform = 'scale(0.95)';
-            this.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.4)';
-            
-            // 편집 메뉴 표시
-            const fakeEvent = {
-              clientX: e.touches[0].clientX,
-              clientY: e.touches[0].clientY
-            };
-            showScheduleContextMenu(fakeEvent, this);
-          }, 1000);
-        });
-        
-        button.addEventListener('touchmove', function(e) {
-          // 터치 이동 시 롱프레스 취소
-          if (longPressTimer) {
-            clearTimeout(longPressTimer);
-            longPressTimer = null;
-          }
-          if (isLongPressed) {
-            isLongPressed = false;
-            this.style.transform = '';
-            this.style.boxShadow = '';
-          }
-        });
-        
-        button.addEventListener('touchend', function(e) {
-          // 터치 종료 시 롱프레스 취소
-          if (longPressTimer) {
-            clearTimeout(longPressTimer);
-            longPressTimer = null;
-          }
-          if (isLongPressed) {
-            isLongPressed = false;
-            this.style.transform = '';
-            this.style.boxShadow = '';
-          }
-        });
-        
-        // 데스크톱에서는 우클릭 이벤트 유지
-        button.oncontextmenu = function(e) {
-          e.preventDefault();
-          showScheduleContextMenu(e, this);
-        };
-      }
+
       
       // 일정 컨텍스트 메뉴 표시 함수
       function showScheduleContextMenu(e, scheduleBtn) {
@@ -5545,10 +5503,12 @@
                 );
                 
                 // UI 업데이트
-                const scheduleBtn = document.querySelector(`[data-schedule-id="${scheduleId}"]`);
-                if (scheduleBtn) {
+                const scheduleBtn = cachedElements[`schedule_${scheduleId}`] || document.querySelector(`[data-schedule-id="${scheduleId}"] .toggle-btn`);
+                const scheduleContainer = document.querySelector(`[data-schedule-id="${scheduleId}"]`);
+                if (scheduleBtn && scheduleContainer) {
                   scheduleBtn.textContent = newTitle;
                   scheduleBtn.setAttribute('data-schedule-title', newTitle);
+                  scheduleContainer.setAttribute('data-schedule-title', newTitle);
                 }
                 
                 updateSyncStatus('일정이 수정되었습니다!', 'success');
@@ -5594,10 +5554,10 @@
                 }
               );
               
-              // UI에서 일정 버튼 제거
-              const scheduleBtn = document.querySelector(`[data-schedule-id="${scheduleId}"]`);
-              if (scheduleBtn) {
-                scheduleBtn.remove();
+              // UI에서 일정 컨테이너 제거
+              const scheduleContainer = cachedElements[`schedule_${scheduleId}`] || document.querySelector(`[data-schedule-id="${scheduleId}"]`);
+              if (scheduleContainer) {
+                scheduleContainer.remove();
               }
               
               updateSyncStatus('일정이 삭제되었습니다!', 'success');
