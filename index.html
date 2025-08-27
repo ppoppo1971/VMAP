@@ -5977,34 +5977,125 @@
             }
           });
           
-          // 마우스 이벤트 (데스크톱 지원) - 모바일에서는 비활성화
+          // 마우스 이벤트 (데스크톱 지원) - 드래그앤드롭 포함
           if (!isMobile) {
+            let mouseStartTime = 0;
+            let mouseHasMoved = false;
+            let mouseDragTimer = null;
+            
             item.addEventListener('mousedown', function(e) {
               if (e.button !== 0) return; // 왼쪽 버튼만
               
+              // 삭제 버튼이나 체크박스 클릭 시에는 드래그 방지
+              if (e.target.classList.contains('swipe-delete-btn') ||
+                  e.target.classList.contains('prep-checkbox') ||
+                  e.target.classList.contains('swipe-edit-btn')) {
+                return;
+              }
+              
               startX = e.clientX;
+              startY = e.clientY;
+              mouseStartTime = Date.now();
               isSwiping = true;
               hasSwiped = false;
+              mouseHasMoved = false;
               this.classList.add('swiping');
+              currentDragItem = this;
+              
+              console.log('데스크탑 마우스 다운:', this.dataset.itemId);
+              
+              // 데스크탑에서는 300ms 후 드래그 모드 (더 빠름)
+              mouseDragTimer = setTimeout(() => {
+                if (isSwiping && !hasSwiped && !mouseHasMoved && currentDragItem === this) {
+                  console.log('데스크탑 드래그 모드 시작');
+                  const mockEvent = {
+                    touches: null,
+                    clientX: startX,
+                    clientY: startY
+                  };
+                  startDragMode(this, mockEvent);
+                }
+              }, 300);
               
               const handleMouseMove = (e) => {
                 if (!isSwiping) return;
                 
                 currentX = e.clientX;
+                currentY = e.clientY;
                 const diffX = startX - currentX;
+                const diffY = Math.abs(startY - currentY);
                 
-                if (diffX > 50) {
+                // 움직임 감지
+                if (Math.abs(diffX) > 5 || diffY > 5) {
+                  mouseHasMoved = true;
+                }
+                
+                // 드래그 모드일 때
+                if (isDraggingGlobal) {
+                  e.preventDefault();
+                  const mockEvent = {
+                    touches: null,
+                    clientX: e.clientX,
+                    clientY: e.clientY
+                  };
+                  handleDragMove(this, mockEvent);
+                  return;
+                }
+                
+                // 세로 움직임이 크면 드래그 타이머 취소
+                if (diffY > Math.abs(diffX) && diffY > 20) {
+                  if (mouseDragTimer) {
+                    clearTimeout(mouseDragTimer);
+                    mouseDragTimer = null;
+                  }
+                  return;
+                }
+                
+                // 스와이프 처리 (가로 움직임)
+                if (diffX > 50 && diffY < 30) {
                   const translateX = Math.min(diffX, 160);
                   this.querySelector('.item-content').style.transform = `translateX(-${translateX}px)`;
                   hasSwiped = true;
+                  
+                  // 드래그 타이머 취소 (스와이프 중)
+                  if (mouseDragTimer) {
+                    clearTimeout(mouseDragTimer);
+                    mouseDragTimer = null;
+                  }
                 }
               };
               
-              const handleMouseUp = () => {
+              const handleMouseUp = (e) => {
+                if (mouseDragTimer) {
+                  clearTimeout(mouseDragTimer);
+                  mouseDragTimer = null;
+                }
+                
+                console.log('데스크탑 마우스 업:', { isDraggingGlobal, isSwiping });
+                
                 if (!isSwiping) return;
+                
+                // 드래그 모드 종료
+                if (isDraggingGlobal) {
+                  const mockEvent = {
+                    touches: null,
+                    clientX: e.clientX,
+                    clientY: e.clientY
+                  };
+                  handleDragEnd(this, mockEvent);
+                  isDraggingGlobal = false;
+                  isSwiping = false;
+                  this.classList.remove('swiping');
+                  currentDragItem = null;
+                  
+                  document.removeEventListener('mousemove', handleMouseMove);
+                  document.removeEventListener('mouseup', handleMouseUp);
+                  return;
+                }
                 
                 isSwiping = false;
                 this.classList.remove('swiping');
+                currentDragItem = null;
                 
                 if (hasSwiped && (startX - currentX) > 50) {
                   // 스와이프 완료 - 수정/삭제 버튼 표시
@@ -6103,11 +6194,11 @@
       function handleDragMove(element, event) {
         if (!isDraggingGlobal || !dragElement) return;
         
-        const touch = event.touches ? event.touches[0] : event;
+        const pointer = event.touches ? event.touches[0] : event;
         
         // 드래그 요소 위치 업데이트 (부드러운 이동)
-        const newX = touch.clientX - dragOffset.x;
-        const newY = touch.clientY - dragOffset.y;
+        const newX = pointer.clientX - dragOffset.x;
+        const newY = pointer.clientY - dragOffset.y;
         
         dragElement.style.left = newX + 'px';
         dragElement.style.top = newY + 'px';
@@ -6133,17 +6224,17 @@
             const scrollRect = scrollContainer.getBoundingClientRect();
             const scrollThreshold = 50;
             
-            if (touch.clientY < scrollRect.top + scrollThreshold) {
+            if (pointer.clientY < scrollRect.top + scrollThreshold) {
               // 위로 스크롤
               scrollContainer.scrollTop -= 5;
-            } else if (touch.clientY > scrollRect.bottom - scrollThreshold) {
+            } else if (pointer.clientY > scrollRect.bottom - scrollThreshold) {
               // 아래로 스크롤
               scrollContainer.scrollTop += 5;
             }
           }
           
           // 플레이스홀더 위치 결정 (더 자연스러운 감지)
-          const insertBefore = touch.clientY < targetCenter;
+          const insertBefore = pointer.clientY < targetCenter;
           const newPosition = insertBefore ? targetItem : targetItem.nextSibling;
           
           // 플레이스홀더가 이미 올바른 위치에 있는지 확인
@@ -6274,10 +6365,16 @@
         }
       }
       
-      // Firebase 동기화를 포함한 개선된 항목 순서 저장
-      function saveItemOrderWithSync() {
+      // Firebase 실시간 동기화를 포함한 개선된 항목 순서 저장
+      async function saveItemOrderWithSync() {
         try {
-          console.log('드래그앤드롭 순서 변경 - Firebase 동기화 시작');
+          console.log('드래그앤드롭 순서 변경 - 실시간 Firebase 동기화 시작');
+          
+          // 동기화 중이면 무시 (무한 루프 방지)
+          if (isSyncing) {
+            console.log('동기화 중이므로 순서 저장 건너뜀');
+            return;
+          }
           
           const container = document.querySelector('#' + window.currentActiveSection + 'Content');
           if (!container) {
@@ -6297,35 +6394,63 @@
           
           console.log('새로운 순서:', newOrder);
           
+          // 현재 섹션 가져오기
+          const currentSection = window.currentActiveSection || '';
+          
           // 메모리에서 순서 업데이트
-          if (window.firebaseUserItems && window.firebaseUserItems[window.currentActiveSection]) {
-            const sectionItems = window.firebaseUserItems[window.currentActiveSection];
-            const reorderedItems = [];
+          if (window.firebaseUserItems && Array.isArray(window.firebaseUserItems)) {
+            const allItems = [...window.firebaseUserItems];
+            const sectionItems = allItems.filter(item => item.section === currentSection);
+            const otherSectionItems = allItems.filter(item => item.section !== currentSection);
             
-            // 새로운 순서에 따라 항목 재정렬
-            newOrder.forEach(itemId => {
+            const reorderedSectionItems = [];
+            
+            // 새로운 순서에 따라 현재 섹션 항목 재정렬
+            newOrder.forEach((itemId, index) => {
               const item = sectionItems.find(item => item.id === itemId);
               if (item) {
-                reorderedItems.push(item);
+                // 순서 인덱스 업데이트
+                item.order = index;
+                reorderedSectionItems.push(item);
               }
             });
             
             // 순서가 바뀌지 않은 항목들 추가
             sectionItems.forEach(item => {
               if (!newOrder.includes(item.id)) {
-                reorderedItems.push(item);
+                reorderedSectionItems.push(item);
               }
             });
             
-            window.firebaseUserItems[window.currentActiveSection] = reorderedItems;
+            // 전체 항목 업데이트 (다른 섹션 + 현재 섹션 재정렬)
+            window.firebaseUserItems = [...otherSectionItems, ...reorderedSectionItems];
             console.log('메모리 순서 업데이트 완료');
           }
           
-          // Firebase에 저장
-          saveUserItemsToFirebase(true); // 강제 동기화
+          // 동기화 상태 설정
+          isSyncing = true;
+          updateSyncStatus('항목 순서 저장 중...', 'info');
+          
+          // Firebase에 즉시 저장 (체크박스와 동일한 방식)
+          await window.firestore.setDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+            userAddedItems: window.firebaseUserItems,
+            lastUpdated: window.firestore.serverTimestamp()
+          }, { merge: true });
+          
+          console.log('Firebase에 순서 변경 저장 완료');
+          updateSyncStatus('순서 변경 저장 완료', 'success');
           
         } catch (error) {
           console.error('드래그앤드롭 순서 저장 실패:', error);
+          updateSyncStatus('순서 저장 실패', 'error');
+          
+          // 사용자에게 알림
+          setTimeout(() => {
+            updateSyncStatus('Firebase 연결 실패', 'error');
+          }, 2000);
+        } finally {
+          // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
+          isSyncing = false;
         }
       }
       
