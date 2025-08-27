@@ -3255,7 +3255,7 @@
           routeBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
           routeBtn.style.color = 'white';
           
-          alert('지도를 클릭하여 경로의 첫 번째 위치를 추가하세요.\n여러 위치를 순서대로 클릭하면 자동으로 경로가 생성됩니다.');
+          console.log('경로생성 모드가 활성화되었습니다. 지도를 클릭하여 경로의 첫 번째 위치를 추가하세요.');
         } else if (userRouteMarkers.length >= 2) {
           // 마커가 2개 이상일 때: 경로완성 모드
           const routeBtn = document.getElementById('topRouteBtn');
@@ -3935,8 +3935,12 @@
                   }
                 });
                 
-                // 마커 클릭 시 정보 표시
+                // 마커 클릭 시 정보 표시 및 줌 15로 중심 이동
                 marker.addListener('click', function() {
+                  // 마커 중심으로 줌 15로 이동
+                  map.setCenter(marker.getPosition());
+                  map.setZoom(15);
+                  
                   showMarkerInfo(markerGroup, markerData, index);
                 });
                 
@@ -4006,6 +4010,27 @@
         const distance = calculateRouteDistance(path);
         const formattedDistance = formatDistance(distance);
         
+        // 경로 전체가 보이도록 지도 이동
+        if (path && path.length >= 2) {
+          const bounds = new google.maps.LatLngBounds();
+          path.forEach(point => {
+            if (point instanceof google.maps.LatLng) {
+              bounds.extend(point);
+            } else {
+              bounds.extend(new google.maps.LatLng(point.lat, point.lng));
+            }
+          });
+          map.fitBounds(bounds);
+          
+          // 여백을 위해 약간 줌 아웃
+          setTimeout(() => {
+            const currentZoom = map.getZoom();
+            if (currentZoom > 2) {
+              map.setZoom(currentZoom - 1);
+            }
+          }, 100);
+        }
+        
         // 생성 중인 경로인지 확인 (삭제 버튼을 표시하지 않음)
         const isTemporaryRoute = route.name === '생성 중인 경로';
         
@@ -4074,7 +4099,7 @@
           
           console.log('경로 삭제 시도:', { routeId, routeName, routeIndex });
           
-          // 지도에서 경로 시각적 제거
+          // 지도에서 경로 시각적 제거 (즉시 피드백을 위해)
           if (route.pathElement) {
             route.pathElement.setMap(null);
           }
@@ -4085,6 +4110,11 @@
           // Firebase 저장용 배열 생성 (로컬 배열은 실시간 동기화로만 업데이트)
           const updatedRoutes = [...savedUserRoutes];
           updatedRoutes.splice(routeIndex, 1);
+          
+          console.log('로컬 배열 보존 - 실시간 동기화 감지를 위해:', {
+            로컬배열수: savedUserRoutes.length,
+            Firebase저장배열수: updatedRoutes.length
+          });
           
           // Firebase에 업데이트
           if (window.db && window.firestore) {
@@ -4302,40 +4332,10 @@
               markers: markerGroup.markers?.length || 0
             });
             
-            // 지도에서 마커 제거
+            // 지도에서 마커 제거 (즉시 피드백을 위해)
             markerGroup.markerElements[index].setMap(null);
-            markerGroup.markerElements.splice(index, 1);
             
-            // locations 배열에서 제거 (있는 경우)
-            if (markerGroup.locations && markerGroup.locations.length > index) {
-              markerGroup.locations.splice(index, 1);
-            }
-            
-            // markers 배열에서 제거 (주요 데이터 - Firebase 저장용)
-            if (markerGroup.markers && markerGroup.markers.length > index) {
-              markerGroup.markers.splice(index, 1);
-            }
-            
-            console.log('마커 삭제 후 데이터 구조:', {
-              markerElements: markerGroup.markerElements.length,
-              locations: markerGroup.locations?.length || 0,
-              markers: markerGroup.markers?.length || 0
-            });
-            
-            // 마커 정보 데이터도 삭제
-            const originalMarkerId = `${markerGroupName}-${index}`;
-            delete markerInfoData[originalMarkerId];
-            
-            // 인덱스가 변경된 다른 마커들의 정보 데이터 키 업데이트
-            const originalRemainingCount = markerGroup.markers?.length || markerGroup.locations?.length || 0;
-            for (let i = index; i < originalRemainingCount; i++) {
-              const oldKey = `${markerGroupName}-${i + 1}`;
-              const newKey = `${markerGroupName}-${i}`;
-              if (markerInfoData[oldKey]) {
-                markerInfoData[newKey] = markerInfoData[oldKey];
-                delete markerInfoData[oldKey];
-              }
-            }
+            console.log('지도에서만 마커 제거 - 로컬 데이터 보존하여 실시간 동기화 감지 유지');
             
             // Firebase 저장용 데이터 생성 (로컬 데이터는 실시간 동기화로만 업데이트)
             const updatedMarkers = [...savedMarkers];
@@ -4427,6 +4427,25 @@
           link: ''
         };
         
+        // 내용과 링크 처리
+        let contentDisplay = '';
+        if (savedInfo.content) {
+          if (savedInfo.link && savedInfo.link.trim()) {
+            // 링크가 있으면 내용 텍스트에 링크 연결
+            const validLink = savedInfo.link.startsWith('http') ? savedInfo.link : `https://${savedInfo.link}`;
+            contentDisplay = `<p style="margin: 5px 0;">
+              <a href="${validLink}" 
+                 target="_blank"
+                 style="color: #333; text-decoration: none; cursor: pointer; border-bottom: 1px dotted #3b82f6;"
+                 onmouseover="this.style.color='#3b82f6'; this.style.textDecoration='underline';"
+                 onmouseout="this.style.color='#333'; this.style.textDecoration='none';">${savedInfo.content}</a>
+            </p>`;
+          } else {
+            // 링크가 없으면 일반 텍스트로 표시
+            contentDisplay = `<p style="margin: 5px 0; color: #333;">${savedInfo.content}</p>`;
+          }
+        }
+        
         const info = `
           <div style="padding: 10px; min-width: 200px; position: relative;">
             <button onclick="editMarkerInfo('${markerGroupName}', ${index})" 
@@ -4436,12 +4455,7 @@
                            cursor: pointer; z-index: 1000;"
                     title="수정">수정</button>
             <h4 style="margin: 0 0 10px 0; color: #8b5cf6; padding-right: 50px;">${savedInfo.title}</h4>
-            ${savedInfo.content ? `<p style="margin: 5px 0; color: #333;">${savedInfo.content}</p>` : ''}
-            ${savedInfo.link ? `<p style="margin: 5px 0;">
-              <a href="${savedInfo.link.startsWith('http') ? savedInfo.link : '#'}" 
-                 target="${savedInfo.link.startsWith('http') ? '_blank' : '_self'}"
-                 style="color: #3b82f6; text-decoration: underline; cursor: pointer;">${savedInfo.link}</a>
-            </p>` : ''}
+            ${contentDisplay}
           </div>
         `;
         
@@ -5112,44 +5126,97 @@
         allItems.forEach(item => {
           let startX = 0;
           let currentX = 0;
+          let startY = 0;
+          let currentY = 0;
           let isSwiping = false;
           let hasSwiped = false;
           let startTime = 0;
+          let longPressTimer = null;
+          let isDragging = false;
+          let dragStartY = 0;
           
           // 터치 시작 - 모바일 최적화
           item.addEventListener('touchstart', function(e) {
             // 삭제 버튼이나 체크박스 클릭 시에는 스와이프 방지
             if (e.target.classList.contains('swipe-delete-btn') ||
-                e.target.classList.contains('prep-checkbox')) {
+                e.target.classList.contains('prep-checkbox') ||
+                e.target.classList.contains('swipe-edit-btn')) {
               return;
             }
             
             startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            dragStartY = startY;
             startTime = Date.now();
             isSwiping = true;
             hasSwiped = false;
+            isDragging = false;
             this.classList.add('swiping');
-          }, { passive: true });
+            
+            // 롱프레스 타이머 시작 (800ms 후 드래그 모드 활성화)
+            longPressTimer = setTimeout(() => {
+              if (isSwiping && !hasSwiped) {
+                startDragMode(this, e);
+              }
+            }, 800);
+          }, { passive: false });
           
           // 터치 이동 - 모바일 최적화
           item.addEventListener('touchmove', function(e) {
             if (!isSwiping) return;
             
             currentX = e.touches[0].clientX;
+            currentY = e.touches[0].clientY;
             const diffX = startX - currentX;
+            const diffY = Math.abs(startY - currentY);
             const diffTime = Date.now() - startTime;
             
+            // 드래그 모드일 때
+            if (isDragging) {
+              e.preventDefault();
+              handleDragMove(this, e);
+              return;
+            }
+            
+            // 롱프레스 타이머 취소 (움직임이 감지되면)
+            if (longPressTimer && (Math.abs(diffX) > 10 || diffY > 10)) {
+              clearTimeout(longPressTimer);
+              longPressTimer = null;
+            }
+            
+            // 세로 움직임이 가로보다 크면 스와이프 취소
+            if (diffY > Math.abs(diffX) && diffY > 20) {
+              clearTimeout(longPressTimer);
+              longPressTimer = null;
+              return;
+            }
+            
             // 빠른 스와이프 감지 (모바일에서 더 민감하게)
-            if (diffX > 30 && diffTime < 500) {
+            if (diffX > 30 && diffTime < 500 && diffY < 30) {
               const translateX = Math.min(diffX, 160);
               this.querySelector('.item-content').style.transform = `translateX(-${translateX}px)`;
               hasSwiped = true;
             }
-          }, { passive: true });
+          }, { passive: false });
           
           // 터치 종료 - 모바일 최적화
           item.addEventListener('touchend', function(e) {
+            // 롱프레스 타이머 취소
+            if (longPressTimer) {
+              clearTimeout(longPressTimer);
+              longPressTimer = null;
+            }
+            
             if (!isSwiping) return;
+            
+            // 드래그 모드 종료
+            if (isDragging) {
+              handleDragEnd(this, e);
+              isDragging = false;
+              isSwiping = false;
+              this.classList.remove('swiping');
+              return;
+            }
             
             isSwiping = false;
             this.classList.remove('swiping');
@@ -5166,7 +5233,7 @@
               this.classList.remove('swiped');
               this.querySelector('.item-content').style.transform = 'translateX(0)';
             }
-          }, { passive: true });
+          }, { passive: false });
           
           // 클릭 시 스와이프 상태 해제 - 모바일 최적화
           item.addEventListener('click', function(e) {
@@ -5226,6 +5293,166 @@
             });
           }
         });
+      }
+      
+      // 드래그 앤 드롭 관련 전역 변수
+      let dragElement = null;
+      let dragPlaceholder = null;
+      let dragOffset = { x: 0, y: 0 };
+      
+      // 드래그 모드 시작
+      function startDragMode(element, event) {
+        console.log('드래그 모드 시작');
+        isDragging = true;
+        dragElement = element;
+        
+        // 햅틱 피드백 (지원하는 기기에서)
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
+        
+        // 드래그 요소 스타일 설정
+        element.style.position = 'fixed';
+        element.style.zIndex = '9999';
+        element.style.opacity = '0.8';
+        element.style.transform = 'scale(1.05)';
+        element.style.boxShadow = '0 8px 25px rgba(0,0,0,0.3)';
+        element.style.transition = 'none';
+        element.style.pointerEvents = 'none';
+        
+        // 플레이스홀더 생성
+        dragPlaceholder = document.createElement('div');
+        dragPlaceholder.className = 'drag-placeholder';
+        dragPlaceholder.style.height = element.offsetHeight + 'px';
+        dragPlaceholder.style.margin = getComputedStyle(element).margin;
+        dragPlaceholder.style.backgroundColor = '#e5e7eb';
+        dragPlaceholder.style.border = '2px dashed #9ca3af';
+        dragPlaceholder.style.borderRadius = '8px';
+        dragPlaceholder.style.opacity = '0.7';
+        
+        // 플레이스홀더를 원래 위치에 삽입
+        element.parentNode.insertBefore(dragPlaceholder, element);
+        
+        // 터치 위치에 따른 오프셋 계산
+        const rect = element.getBoundingClientRect();
+        const touch = event.touches ? event.touches[0] : event;
+        dragOffset.x = touch.clientX - rect.left;
+        dragOffset.y = touch.clientY - rect.top;
+        
+        // 초기 위치 설정
+        element.style.left = (touch.clientX - dragOffset.x) + 'px';
+        element.style.top = (touch.clientY - dragOffset.y) + 'px';
+        element.style.width = rect.width + 'px';
+      }
+      
+      // 드래그 이동 처리
+      function handleDragMove(element, event) {
+        if (!isDragging || !dragElement) return;
+        
+        const touch = event.touches ? event.touches[0] : event;
+        
+        // 드래그 요소 위치 업데이트
+        dragElement.style.left = (touch.clientX - dragOffset.x) + 'px';
+        dragElement.style.top = (touch.clientY - dragOffset.y) + 'px';
+        
+        // 드롭 대상 찾기
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        const targetItem = elementBelow ? elementBelow.closest('.user-added-item') : null;
+        
+        if (targetItem && targetItem !== dragElement && targetItem !== dragPlaceholder) {
+          const container = targetItem.parentNode;
+          const targetRect = targetItem.getBoundingClientRect();
+          const targetCenter = targetRect.top + targetRect.height / 2;
+          
+          if (touch.clientY < targetCenter) {
+            // 타겟 위에 삽입
+            container.insertBefore(dragPlaceholder, targetItem);
+          } else {
+            // 타겟 아래에 삽입
+            container.insertBefore(dragPlaceholder, targetItem.nextSibling);
+          }
+        }
+      }
+      
+      // 드래그 종료 처리
+      function handleDragEnd(element, event) {
+        if (!isDragging || !dragElement) return;
+        
+        console.log('드래그 종료');
+        
+        // 드래그 요소를 플레이스홀더 위치에 삽입
+        if (dragPlaceholder && dragPlaceholder.parentNode) {
+          dragPlaceholder.parentNode.insertBefore(dragElement, dragPlaceholder);
+          dragPlaceholder.remove();
+        }
+        
+        // 드래그 요소 스타일 복원
+        dragElement.style.position = '';
+        dragElement.style.zIndex = '';
+        dragElement.style.opacity = '';
+        dragElement.style.transform = '';
+        dragElement.style.boxShadow = '';
+        dragElement.style.transition = '';
+        dragElement.style.pointerEvents = '';
+        dragElement.style.left = '';
+        dragElement.style.top = '';
+        dragElement.style.width = '';
+        
+        // 항목 순서 저장
+        saveItemOrder();
+        
+        // 정리
+        dragElement = null;
+        dragPlaceholder = null;
+        isDragging = false;
+      }
+      
+      // 항목 순서 저장
+      function saveItemOrder() {
+        try {
+          const container = document.querySelector('#' + window.currentActiveSection + 'Content');
+          if (!container) return;
+          
+          const items = Array.from(container.querySelectorAll('.user-added-item[data-item-type="user"]'));
+          const newOrder = items.map((item, index) => {
+            const itemId = item.dataset.itemId;
+            return { id: itemId, order: index };
+          });
+          
+          console.log('새로운 항목 순서:', newOrder);
+          
+          // Firebase에서 현재 항목들을 가져와서 순서 업데이트
+          const currentItems = window.firebaseUserItems || [];
+          const currentSection = window.currentActiveSection || '';
+          
+          // 현재 섹션의 항목들만 필터링하고 새로운 순서로 정렬
+          const sectionItems = currentItems.filter(item => item.section === currentSection);
+          const otherItems = currentItems.filter(item => item.section !== currentSection);
+          
+          // 새로운 순서로 정렬
+          const reorderedItems = newOrder.map(orderInfo => {
+            return sectionItems.find(item => item.id === orderInfo.id);
+          }).filter(item => item !== undefined);
+          
+          // 최종 배열 구성
+          const updatedItems = [...otherItems, ...reorderedItems];
+          
+          // Firebase에 저장
+          if (window.db && window.firestore) {
+            window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+              userAddedItems: updatedItems,
+              lastUpdated: window.firestore.serverTimestamp()
+            }).then(() => {
+              console.log('항목 순서가 저장되었습니다.');
+              window.firebaseUserItems = updatedItems;
+            }).catch(error => {
+              console.error('항목 순서 저장 실패:', error);
+            });
+          }
+          
+        } catch (error) {
+          console.error('항목 순서 저장 중 오류:', error);
+        }
       }
       
       // 전역 동기화 상태 관리
@@ -5301,6 +5528,7 @@
                 }
                 
                 console.log('Firebase에서 데이터 수신:', Object.keys(data));
+                console.log('실시간 동기화 처리 시작 - lastUpdated:', data.lastUpdated);
                 
                 // 체크박스 상태 동기화 (Firebase에서 직접 - 현재 섹션만)
                 if (data.preparationCheckboxes) {
@@ -5366,10 +5594,14 @@
                   const currentRoutes = savedUserRoutes || [];
                   const newRoutes = data.savedUserRoutes;
                   
-                  // 경로 개수나 ID가 다르면 업데이트
-                  if (currentRoutes.length !== newRoutes.length || 
+                  // 경로 개수나 ID가 다르면 업데이트 (강제 업데이트 옵션 추가)
+                  const routesChanged = currentRoutes.length !== newRoutes.length || 
                       JSON.stringify(currentRoutes.map(route => route.id).sort()) !== 
-                      JSON.stringify(newRoutes.map(route => route.id).sort())) {
+                      JSON.stringify(newRoutes.map(route => route.id).sort());
+                  
+                  // 실시간 동기화 강제 실행 (삭제 감지를 위해)
+                  console.log('경로 동기화 강제 실행 - 삭제 감지를 위해');
+                  if (true) {  // 항상 업데이트하여 삭제 반영
                     
                     console.log('경로 변경 감지 - UI 업데이트', {
                       이전개수: currentRoutes.length,
@@ -5383,7 +5615,12 @@
                     updateRouteRemoveButtons();
                     updateSyncStatus('경로 동기화 완료', 'success');
                   } else {
-                    console.log('경로 변경 없음 - UI 업데이트 건너뜀');
+                    console.log('경로 변경 없음 - UI 업데이트 건너뜀', {
+                      routesChanged,
+                      lastUpdated: !!data.lastUpdated,
+                      현재경로수: currentRoutes.length,
+                      새경로수: newRoutes.length
+                    });
                   }
                 }
                 
@@ -5395,10 +5632,14 @@
                   const currentMarkers = window.savedUserMarkers || [];
                   const newMarkers = data.savedUserMarkers;
                   
-                  // 마커 개수나 ID가 다르면 업데이트
-                  if (currentMarkers.length !== newMarkers.length || 
+                  // 마커 개수나 ID가 다르면 업데이트 (강제 업데이트 옵션 추가)
+                  const markersChanged = currentMarkers.length !== newMarkers.length || 
                       JSON.stringify(currentMarkers.map(marker => marker.id).sort()) !== 
-                      JSON.stringify(newMarkers.map(marker => marker.id).sort())) {
+                      JSON.stringify(newMarkers.map(marker => marker.id).sort());
+                  
+                  // 실시간 동기화 강제 실행 (삭제 감지를 위해)
+                  console.log('마커 동기화 강제 실행 - 삭제 감지를 위해');
+                  if (true) {  // 항상 업데이트하여 삭제 반영
                     
                     console.log('마커 변경 감지 - UI 업데이트', {
                       이전개수: currentMarkers.length,
@@ -5412,7 +5653,12 @@
                     updateMarkerRemoveButtons();
                     updateSyncStatus('마커 동기화 완료', 'success');
                   } else {
-                    console.log('마커 변경 없음 - UI 업데이트 건너뜀');
+                    console.log('마커 변경 없음 - UI 업데이트 건너뜀', {
+                      markersChanged,
+                      lastUpdated: !!data.lastUpdated,
+                      현재마커수: currentMarkers.length,
+                      새마커수: newMarkers.length
+                    });
                   }
                 }
                 
