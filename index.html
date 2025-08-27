@@ -3508,45 +3508,16 @@
               const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
               const isAndroid = /Android/.test(navigator.userAgent);
               
-              if (isIOS) {
-                // iOS: 구글맵 앱 직접 실행 시도
-                const appUrl = buildGoogleMapsAppUrl(origin, destination, 'driving');
-                window.location.href = appUrl; // window.open 대신 location.href 사용
-                
-                console.log('iOS에서 구글맵 앱 직접 실행 시도:', appUrl);
-                console.log(`검색된 경로: 거리 ${distance}, 소요시간 ${duration}`);
-                
-                // 구글맵이 설치되지 않은 경우 Apple Maps 폴백
-                setTimeout(() => {
-                  const userChoice = confirm('구글맵 앱이 설치되지 않았습니다.\nApple Maps를 사용하시겠습니까?');
-                  if (userChoice) {
-                    const appleMapsUrl = buildAppleMapsUrl(origin, destination, 'driving');
-                    window.location.href = appleMapsUrl;
-                    console.log('Apple Maps로 폴백:', appleMapsUrl);
-                  }
-                }, 3000);
-                
-              } else if (isAndroid) {
-                // Android: 구글맵 네비게이션 직접 실행
-                const appUrl = buildGoogleMapsAppUrl(origin, destination, 'driving');
-                window.location.href = appUrl; // 직접 네비게이션 시작
-                
-                console.log('Android에서 구글맵 네비게이션 직접 시작:', appUrl);
-                console.log(`검색된 경로: 거리 ${distance}, 소요시간 ${duration}`);
-              } else {
-                // 기타 모바일: 구글맵 앱 시도 후 웹 폴백
-                const appUrl = buildGoogleMapsAppUrl(origin, destination, 'driving');
-                window.location.href = appUrl;
-                
-                console.log('기타 모바일에서 구글맵 앱 시도:', appUrl);
-                
-                // 앱이 없는 경우 웹으로 폴백
-                setTimeout(() => {
-                  const webUrl = buildGoogleMapsUrlWithNames(origin, destination, 'driving');
-                  window.open(webUrl, '_blank');
-                  console.log('웹 구글맵으로 폴백:', webUrl);
-                }, 2000);
-              }
+              // 모바일: 구글맵 앱 직접 실행 (플랫폼 무관)
+              const appUrl = buildGoogleMapsAppUrl(origin, destination, 'driving');
+              
+              // 즉시 앱 실행
+              window.location.href = appUrl;
+              console.log(`${isIOS ? 'iOS' : isAndroid ? 'Android' : '기타 모바일'}에서 구글맵 앱 직접 실행:`, appUrl);
+              console.log(`검색된 경로: 거리 ${distance}, 소요시간 ${duration}`);
+              
+              // 앱 실행 후 상태 초기화 (안내창 없이)
+              setTimeout(resetRouteSearchState, 1000);
             } else {
               // 데스크탑: 바로 구글맵 웹페이지로 이동
               const webUrl = buildGoogleMapsUrlWithNames(searchStartMarker.getPosition(), searchEndMarker.getPosition(), 'driving');
@@ -3705,6 +3676,37 @@
         return fullUrl;
       }
       
+      // 경로탐색 상태 초기화 함수
+      function resetRouteSearchState() {
+        console.log('경로탐색 상태 초기화 중...');
+        
+        // 검색 마커들 제거
+        if (searchStartMarker) {
+          searchStartMarker.setMap(null);
+          searchStartMarker = null;
+        }
+        if (searchEndMarker) {
+          searchEndMarker.setMap(null);
+          searchEndMarker = null;
+        }
+        
+        // 경로 제거
+        if (directionsRenderer) {
+          directionsRenderer.setDirections({routes: []});
+        }
+        
+        // 경로탐색 모드 비활성화
+        isRouteSearchMode = false;
+        const searchBtn = document.getElementById('topRouteSearchBtn');
+        if (searchBtn) {
+          searchBtn.textContent = '경로탐색';
+          searchBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+          searchBtn.style.color = '#1a1a1a';
+        }
+        
+        console.log('경로탐색 초기화 완료');
+      }
+      
       // 모바일 구글맵 앱 직접 연결 URL 스킴 생성 함수
       function buildGoogleMapsAppUrl(origin, destination, travelMode = 'driving') {
         // 좌표를 문자열로 변환
@@ -3741,13 +3743,6 @@
           appUrl = `comgooglemaps://?saddr=${originStr}&daddr=${destinationStr}${modeParam}`;
           
           console.log('iOS에서 구글맵 앱 직접 스킴:', appUrl);
-          
-          // 폴백: 구글맵이 없는 경우 Apple Maps
-          setTimeout(() => {
-            // 앱이 실행되지 않은 경우를 대비한 Apple Maps 폴백
-            const appleMapsUrl = buildAppleMapsUrl(origin, destination, travelMode);
-            console.log('iOS 폴백: Apple Maps 준비됨', appleMapsUrl);
-          }, 2000);
           
         } else if (isAndroid) {
           // Android: 구글맵 앱 직접 인텐트 사용
