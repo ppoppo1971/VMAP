@@ -6208,7 +6208,7 @@
         
         // 드롭 대상 찾기 (더 정확한 감지)
         dragElement.style.pointerEvents = 'none'; // 드래그 요소 무시
-        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        const elementBelow = document.elementFromPoint(pointer.clientX, pointer.clientY);
         dragElement.style.pointerEvents = 'auto';
         
         const targetItem = elementBelow ? elementBelow.closest('.user-added-item[data-item-type="user"]') : null;
