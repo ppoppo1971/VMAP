@@ -580,11 +580,7 @@
             }
         }
         
-        /* 항공권 마커 색상 필터 - 짙은 파란색 */
-        .gm-style img[src*="%ED%95%AD%EA%B3%B5%EA%B6%8C.png"] {
-            filter: hue-rotate(150deg) saturate(150%) brightness(0.8) contrast(120%);
-        }
-        
+      
         /* 줌 레벨 표시기 스타일 */
         #zoomLevelDisplay {
             position: absolute;
@@ -640,7 +636,7 @@
         }
         
         .info-header {
-            background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
             padding: 16px 20px;
             display: flex;
@@ -914,7 +910,7 @@
         }
         
         .edit-form-header {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
             padding: 16px 20px;
             display: flex;
@@ -1117,7 +1113,7 @@
         }
         
         .toggle-add-btn {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
             border: none;
             border-radius: 12px;
@@ -1127,12 +1123,12 @@
             cursor: pointer;
             transition: all 0.3s ease;
             width: 100%;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
         
         .toggle-add-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
         }
         
         .toggle-add-btn:active {
@@ -1169,7 +1165,7 @@
         }
         
         .route-save-btn {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
             border: none;
             border-radius: 8px;
@@ -1616,11 +1612,11 @@
         updateZoomLevel();
         toggleFlightElements(map.getZoom()); // 초기 줌 레벨에 따라 항로와 마커 표시/숨김
         
+        // Firebase 초기화 완료 후 동기화 시작
+        waitForFirebaseAndStartSync();
+        
         // 저장된 사용자 경로들 복원
         restoreSavedUserRoutes().then(() => {
-          // Firebase 실시간 동기화 설정
-          setupFirebaseSync();
-          
           // 경로제거 버튼 상태 업데이트
           updateRouteRemoveButtons();
           // 마커제거 버튼 상태 업데이트
@@ -1983,10 +1979,15 @@
        function updateUserItemsCheckboxStates() {
          if (!window.firebaseUserItems) return;
          
+         const currentSection = window.currentActiveSection || '사전준비';
+         
          const updatedItems = window.firebaseUserItems.map(item => {
-           const checkbox = document.getElementById(item.id);
-           if (checkbox) {
-             item.checked = checkbox.checked;
+           // 현재 섹션의 항목만 체크박스 상태 업데이트
+           if (item.section === currentSection) {
+             const checkbox = document.getElementById(item.id);
+             if (checkbox) {
+               item.checked = checkbox.checked;
+             }
            }
            return item;
          });
@@ -2002,12 +2003,17 @@
           if (docSnap.exists()) {
             const data = docSnap.data();
             
-            // 체크박스 상태 복원
+            // 체크박스 상태 복원 (현재 섹션의 항목만)
             if (data.preparationCheckboxes) {
+              const currentSection = window.currentActiveSection || '사전준비';
               Object.keys(data.preparationCheckboxes).forEach(id => {
                 const checkbox = document.getElementById(id);
                 if (checkbox) {
-                  checkbox.checked = data.preparationCheckboxes[id];
+                  // 현재 섹션의 항목인지 확인
+                  const item = window.firebaseUserItems?.find(item => item.id === id);
+                  if (item && item.section === currentSection) {
+                    checkbox.checked = data.preparationCheckboxes[id];
+                  }
                 }
               });
             }
@@ -2070,88 +2076,20 @@
             return;
           }
           
+          // 현재 활성 섹션 설정
+          window.currentActiveSection = '사전준비';
+          /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////사전준비 관련
           // 정보창 생성
           const infoDiv = document.createElement('div');
           infoDiv.id = 'preparationInfo';
           infoDiv.innerHTML = `
-            <div class="info-header">
-             <h3>사전준비 항목</h3>
+            <div class="info-header" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+             <h3 style="color: #ffffff;">사전준비 항목</h3>
               <button class="close-btn" onclick="closePreparationInfo()">×</button>
             </div>
             <div class="info-content">
               <div class="info-section">
-                                              <div class="checklist-item" data-item-id="airline" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="airline" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span onclick="openPdfViewer()" style="cursor: pointer;">항공권 - 예약확인서 및 전자항공권</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('airline', '항공권', '예약확인서 및 전자항공권', 'https://ppoppo1971.github.io/VMAP/%EC%A0%84%EC%9E%90%ED%95%AD%EA%B3%B5%EA%B6%8C.pdf')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('airline')" title="삭제">삭제</button>
-              </div>
-              <div class="checklist-item" data-item-id="parking" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="parking" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span>공항주차 - 장기주차 예약</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('parking', '공항주차', '장기주차 예약', '')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('parking')" title="삭제">삭제</button>
-              </div>
-              <div class="checklist-item" data-item-id="insurance" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="insurance" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span>여행자보험 - 해외여행 보험 가입</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('insurance', '여행자보험', '해외여행 보험 가입', '')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('insurance')" title="삭제">삭제</button>
-              </div>
-              <div class="checklist-item" data-item-id="sim" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="sim" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span>이심 - 일본 현지 인터넷 연결</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('sim', '이심', '일본 현지 인터넷 연결', '')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('sim')" title="삭제">삭제</button>
-              </div>
-              <div class="checklist-item" data-item-id="visitjapan" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="visitjapan" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span onclick="openVisitJapanWeb()" style="cursor: pointer;">Visit Japan Web - 입국 수속 사전 등록</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('visitjapan', 'Visit Japan Web', '입국 수속 사전 등록', 'https://blog.naver.com/sostrip/223644368814')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('visitjapan')" title="삭제">삭제</button>
-              </div>
-              <div class="checklist-item" data-item-id="confirmations" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="confirmations" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span>각종 확정서 출력 - 호텔, 투어예약확인서</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('confirmations', '각종 확정서 출력', '호텔, 투어예약확인서', '')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('confirmations')" title="삭제">삭제</button>
-              </div>
-              <div class="checklist-item" data-item-id="beergarden" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="beergarden" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span>삿포로비어가든 예약 - 징기스칸 예약</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('beergarden', '징기스칸 예약', '')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('beergarden')" title="삭제">삭제</button>
-              </div>
-              <div class="checklist-item" data-item-id="songyeongbus" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="songyeongbus" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span onclick="openSongyeongBusPdf()" style="cursor: pointer;">송영버스 예약 - 삿포로-마호바로 간 이동</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('songyeongbus', '송영버스 예약', '삿포로-마호바로 간 이동', 'https://ppoppo1971.github.io/VMAP/%EC%86%A1%EC%98%81%EB%B2%84%EC%8A%A4.pdf')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('songyeongbus')" title="삭제">삭제</button>
-              </div>
-              <div class="checklist-item" data-item-id="donanbus" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="donanbus" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span onclick="openDonanBusWebsite()" style="cursor: pointer;">도난버스 예약 - 마호바로-항공 간 이동</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('donanbus', '도난버스 예약', '마호바로-항공 간 이동', 'https://japanbuslines.com/ko/bus_search/hokkaido/noboribetsu/hokkaido/all/ym_202509/day_20/')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('donanbus')" title="삭제">삭제</button>
-              </div>
+                                
                                  <!-- 사용자 추가 항목들이 여기에 표시됩니다 -->
                  <div id="userAddedItems"></div>
                                    <!-- 새 항목 추가 버튼 -->
@@ -2237,147 +2175,51 @@
           existingInfo.remove();
         }
         
+        // 현재 활성 섹션 설정
+        window.currentActiveSection = '1일차';
+        
         // 정보창 생성
         const infoDiv = document.createElement('div');
         infoDiv.id = 'preparationInfo';
         infoDiv.innerHTML = `
-          <div class="info-header">
-            <h3>1일차 - 도착 및 첫날</h3>
+          <div class="info-header" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+            <h3 style="color: #ffffff;">1일차 - 도착 및 첫날</h3>
             <button class="close-btn" onclick="closePreparationInfo()">×</button>
           </div>
           <div class="info-content">
             <div class="info-section">
-              <div class="checklist-item" data-item-id="arrival" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="arrival" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span>신치토세공항 도착 - 오후 12:30 (일본시간)</span>
+                                  
+                                   <!-- 사용자 추가 항목들이 여기에 표시됩니다 -->
+                   <div id="userAddedItems"></div>
+                                     <!-- 새 항목 추가 버튼 -->
+                    <div class="add-item-section">
+                      <button type="button" onclick="showAddForm()" class="toggle-add-btn" id="toggleAddBtn">+ 새 항목 추가</button>
+                    </div>
+                   <!-- 새 항목 추가 폼 (처음에는 숨김) -->
+                   <div class="add-item-form" id="addItemForm" style="display: none;">
+                     <div class="form-group">
+                       <input type="text" id="newItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50">
+                       <input type="url" id="newItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200">
+                     </div>
+                     <div class="form-buttons">
+                       <button type="button" onclick="addNewItem()" class="add-btn">추가</button>
+                     </div>
+                   </div>
                 </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('arrival', '신치토세공항 도착', '오후 12:30 (일본시간)', '')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('arrival')" title="삭제">삭제</button>
-              </div>
-              <div class="checklist-item" data-item-id="immigration" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="immigration" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span>입국심사 - 여권 및 Visit Japan Web QR코드 제시</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('immigration', '입국심사', '여권 및 Visit Japan Web QR코드 제시', '')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('immigration')" title="삭제">삭제</button>
-              </div>
-              <div class="checklist-item" data-item-id="baggage" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="baggage" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span>수하물 수령 - 위탁수하물 확인</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('baggage', '수하물 수령', '위탁수하물 확인', '')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('baggage')" title="삭제">삭제</button>
-              </div>
-            </div>
-            
-            <div class="info-section">
-              <div class="checklist-item" data-item-id="airportBus" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="airportBus" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span onclick="openSongyeongBusPdf()" style="cursor: pointer;">송영버스 탑승 - 삿포로 시내행 버스</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('airportBus', '송영버스 탑승', '삿포로 시내행 버스', 'https://ppoppo1971.github.io/VMAP/%EC%86%A1%EC%98%81%EB%B2%84%EC%8A%A4.pdf')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('airportBus')" title="삭제">삭제</button>
-              </div>
-              <div class="checklist-item" data-item-id="sapporoArrival" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="sapporoArrival" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span>삿포로 도착 - 약 1시간 30분 소요</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('sapporoArrival', '삿포로 도착', '약 1시간 30분 소요', '')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('sapporoArrival')" title="삭제">삭제</button>
-              </div>
-            </div>
-            
-            <div class="info-section">
-              <div class="checklist-item" data-item-id="hotelCheckin" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="hotelCheckin" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span>호텔 도착 - 체크인 및 짐 정리</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('hotelCheckin', '호텔 도착', '체크인 및 짐 정리', '')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('hotelCheckin')" title="삭제">삭제</button>
-              </div>
-              <div class="checklist-item" data-item-id="simActivation" data-item-type="existing">
-                <div class="item-content">
-                  <input type="checkbox" id="simActivation" class="prep-checkbox" onchange="saveCheckboxStates()">
-                  <span>이심 활성화 - 일본 현지 인터넷 연결</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('simActivation', '이심 활성화', '일본 현지 인터넷 연결', '')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('simActivation')" title="삭제">삭제</button>
-              </div>
-            </div>
-            
-            <div class="info-section">
-                             <div class="checklist-item" data-item-id="dinner" data-item-type="existing">
-                 <div class="item-content">
-                   <input type="checkbox" id="dinner" class="prep-checkbox" onchange="saveCheckboxStates()">
-                   <span>징기스칸 - 삿포로비어가든 예약</span>
-                 </div>
-                 <button class="swipe-edit-btn" onclick="editExistingItem('dinner', '징기스칸', '삿포로비어가든 예약', '')" title="수정">수정</button>
-                 <button class="swipe-delete-btn" onclick="deleteExistingItem('dinner')" title="삭제">삭제</button>
-               </div>
-               <div class="checklist-item" data-item-id="beer" data-item-type="existing">
-                 <div class="item-content">
-                   <input type="checkbox" id="beer" class="prep-checkbox" onchange="saveCheckboxStates()">
-                   <span>삿포로 맥주 - 현지 맥주 시음</span>
-                 </div>
-                 <button class="swipe-edit-btn" onclick="editExistingItem('beer', '삿포로 맥주', '현지 맥주 시음', '')" title="수정">수정</button>
-                 <button class="swipe-delete-btn" onclick="deleteExistingItem('beer')" title="삭제">삭제</button>
-               </div>
-            </div>
-            
-                         <div class="info-section">
-               <div class="checklist-item" data-item-id="shopping" data-item-type="existing">
-                 <div class="item-content">
-                   <input type="checkbox" id="shopping" class="prep-checkbox" onchange="saveCheckboxStates()">
-                   <span>편의점 쇼핑 - 간식 및 생필품 구매</span>
-                 </div>
-                 <button class="swipe-edit-btn" onclick="editExistingItem('shopping', '편의점 쇼핑', '간식 및 생필품 구매', '')" title="수정">수정</button>
-                 <button class="swipe-delete-btn" onclick="deleteExistingItem('shopping')" title="삭제">삭제</button>
-               </div>
-               <div class="checklist-item" data-item-id="rest" data-item-type="existing">
-                 <div class="item-content">
-                   <input type="checkbox" id="rest" class="prep-checkbox" onchange="saveCheckboxStates()">
-                   <span>호텔 휴식 - 다음날 일정 준비</span>
-                </div>
-                <button class="swipe-edit-btn" onclick="editExistingItem('rest', '호텔 휴식', '다음날 일정 준비', '')" title="수정">수정</button>
-                <button class="swipe-delete-btn" onclick="deleteExistingItem('rest')" title="삭제">삭제</button>
-              </div>
-             </div>
-             
-             <div class="info-section">
-              <div id="userAddedItems"></div>
-              <div class="add-item-section">
-                <button type="button" onclick="showAddForm()" class="toggle-add-btn" id="toggleAddBtn">+ 새 항목 추가</button>
-              </div>
-              <div class="add-item-form" id="addItemForm" style="display: none;">
-                <div class="form-group">
-                  <input type="text" id="newItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50">
-                  <input type="url" id="newItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200">
-                </div>
-                <div class="form-buttons">
-                  <button type="button" onclick="addNewItem()" class="add-btn">추가</button>
+                
+                <!-- 저장된 경로/마커 제거 버튼 섹션 -->
+                <div class="info-section">
+                  <div id="day1RemoveButtons" style="display: none;">
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                      <button class="route-remove-btn" onclick="removeRoutesByLocation('1일차')" style="flex: 1;">경로제거</button>
+                      <button class="route-remove-btn" onclick="removeMarkersByLocation('1일차')" style="flex: 1;">마커제거</button>
+                    </div>
+                    <p style="font-size: 0.63rem; color: #6b7280; margin: 0;">
+                      1일차에 저장된 경로와 마커를 제거합니다.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            <!-- 저장된 경로/마커 제거 버튼 섹션 -->
-            <div class="info-section">
-              <div id="day1RemoveButtons" style="display: none;">
-                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                  <button class="route-remove-btn" onclick="removeRoutesByLocation('1일차')" style="flex: 1;">경로제거</button>
-                  <button class="route-remove-btn" onclick="removeMarkersByLocation('1일차')" style="flex: 1;">마커제거</button>
-                </div>
-                <p style="font-size: 0.63rem; color: #6b7280; margin: 0;">
-                  1일차에 저장된 경로와 마커를 제거합니다.
-                </p>
-              </div>
-            </div>
-          </div>
         `;
         
         // 정보창을 지도 위에 표시
@@ -2424,67 +2266,9 @@
         }, 100);
       }
       
-      // 상세 정보창 표시 함수
-      function showDetailedInfo() {
-        // 기존 정보창 제거
-        closePreparationInfo();
-        
-        // 상세 정보창 생성
-        const detailedDiv = document.createElement('div');
-        detailedDiv.id = 'preparationInfo';
-        detailedDiv.innerHTML = `
-          <div class="info-header">
-            <h3>항공권 상세정보</h3>
-            <button class="close-btn" onclick="closePreparationInfo()">×</button>
-          </div>
-          <div class="info-content">
-            <div class="info-section">
-              <h4>✈️ 항공권 정보</h4>
-              <p><strong>출발:</strong> 인천국제공항 (ICN)</p>
-              <p><strong>도착:</strong> 신치토세공항 (CTS)</p>
-              <p><strong>항공사:</strong> 대한항공, 아시아나항공, 제주항공</p>
-              <p><strong>소요시간:</strong> 약 3시간 30분</p>
-              <p><strong>출발시간:</strong> 오전 9:00 (한국시간)</p>
-              <p><strong>도착시간:</strong> 오후 12:30 (일본시간)</p>
-              <p><strong>항공편:</strong> KE 705 / OZ 115 / 7C 2001</p>
-            </div>
-            <div class="info-section">
-              <h4>📋 예약확인서</h4>
-              <p><strong>예약번호:</strong> ABC123456789</p>
-              <p><strong>예약일:</strong> 2024년 12월 15일</p>
-              <p><strong>승객:</strong> 성인 2명</p>
-              <p><strong>좌석:</strong> 15A, 15B (창가석)</p>
-              <p><strong>수하물:</strong> 위탁 23kg x 2개, 휴대 10kg x 2개</p>
-            </div>
-            <div class="info-section">
-              <h4>🔗 관련 링크</h4>
-              <button class="ticket-btn" onclick="openPdfViewer()">전자항공권 보기</button>
-              <button class="ticket-btn" style="margin-top: 10px; background: linear-gradient(135deg, #f59e0b, #d97706);" onclick="openReservationConfirmation()">예약확인서 보기</button>
-            </div>
-          </div>
-        `;
-        
-        // 상세 정보창을 지도 위에 표시
-        document.body.appendChild(detailedDiv);
-        
-        // 상세 정보창 위치 조정 - 모바일 최적화
-        setTimeout(() => {
-          const mapElement = document.getElementById('map');
-          const mapRect = mapElement.getBoundingClientRect();
-          
-          if (isMobile) {
-            // 모바일: 화면 중앙에 표시
-            detailedDiv.style.left = '50%';
-            detailedDiv.style.transform = 'translateX(-50%)';
-            detailedDiv.style.top = '80px';
-          } else {
-            // 데스크톱: 지도 중앙에 표시
-            detailedDiv.style.left = (mapRect.width / 2 - 200) + 'px';
-            detailedDiv.style.top = (mapRect.height / 2 - 200) + 'px';
-            detailedDiv.style.transform = 'none';
-          }
-        }, 100);
-      }
+
+      
+
 
       // 기존 항목 숨김/오버라이드 적용 함수
       function applyOverridesAndHides() {
@@ -2566,127 +2350,9 @@
         }
       }
       
-      // Visit Japan Web 링크 열기 함수
-      function openVisitJapanWeb() {
-        // 네이버 블로그 URL
-        const visitJapanUrl = 'https://blog.naver.com/sostrip/223644368814';
-        
-        // 새 탭에서 링크 열기
-        try {
-          window.open(visitJapanUrl, '_blank');
-        } catch (error) {
-          console.error('Visit Japan Web 링크 열기 실패:', error);
-          alert('링크를 열 수 없습니다. 직접 링크를 복사하여 사용해주세요: ' + visitJapanUrl);
-        }
-      }
       
-      // 송영버스 PDF 열기 함수
-      function openSongyeongBusPdf() {
-        // 송영버스 PDF 파일 URL
-        const songyeongBusPdfUrl = 'https://ppoppo1971.github.io/VMAP/%EC%86%A1%EC%98%81%EB%B2%84%EC%8A%A4.pdf';
-        
-        // 현재 탭에서 PDF 열기
-        try {
-          window.location.href = songyeongBusPdfUrl;
-        } catch (error) {
-          console.error('송영버스 PDF 열기 실패:', error);
-          alert('PDF 파일을 열 수 없습니다. 직접 링크를 복사하여 사용해주세요: ' + songyeongBusPdfUrl);
-        }
-      }
       
-      // 도난버스 웹사이트 열기 함수
-      function openDonanBusWebsite() {
-        // 일본버스라인 웹사이트 URL
-        const donanBusUrl = 'https://japanbuslines.com/ko/bus_search/hokkaido/noboribetsu/hokkaido/all/ym_202509/day_20/';
-        
-        // 새 탭에서 웹사이트 열기
-        try {
-          window.open(donanBusUrl, '_blank');
-        } catch (error) {
-          console.error('도난버스 웹사이트 열기 실패:', error);
-          alert('웹사이트를 열 수 없습니다. 직접 링크를 복사하여 사용해주세요: ' + donanBusUrl);
-        }
-      }
-      
-      // 예약확인서 보기 함수
-      function openReservationConfirmation() {
-        // 기존 정보창 제거
-        closePreparationInfo();
-        
-        // 예약확인서 창 생성
-        const reservationDiv = document.createElement('div');
-        reservationDiv.id = 'preparationInfo';
-        reservationDiv.innerHTML = `
-          <div class="info-header">
-            <h3>예약확인서</h3>
-            <button class="close-btn" onclick="closePreparationInfo()">×</button>
-          </div>
-          <div class="info-content">
-            <div class="info-section">
-              <h4>✈️ 항공편 정보</h4>
-              <p><strong>항공사:</strong> 대한항공 (Korean Air)</p>
-              <p><strong>항공편:</strong> KE 705</p>
-              <p><strong>출발:</strong> 인천국제공항 (ICN) - 터미널 2</p>
-              <p><strong>도착:</strong> 신치토세공항 (CTS) - 국제선 터미널</p>
-              <p><strong>출발시간:</strong> 2024년 12월 20일 오전 9:00</p>
-              <p><strong>도착시간:</strong> 2024년 12월 20일 오후 12:30</p>
-              <p><strong>소요시간:</strong> 3시간 30분</p>
-            </div>
-            <div class="info-section">
-              <h4>👥 승객 정보</h4>
-              <p><strong>예약번호:</strong> ABC123456789</p>
-              <p><strong>예약일:</strong> 2024년 12월 15일</p>
-              <p><strong>승객 1:</strong> 홍길동 (성인)</p>
-              <p><strong>승객 2:</strong> 김철수 (성인)</p>
-              <p><strong>좌석:</strong> 15A, 15B (창가석)</p>
-            </div>
-            <div class="info-section">
-              <h4>🧳 수하물 정보</h4>
-              <p><strong>위탁수하물:</strong> 23kg x 2개 (총 46kg)</p>
-              <p><strong>휴대수하물:</strong> 10kg x 2개 (총 20kg)</p>
-              <p><strong>수하물 제한:</strong> 1인당 위탁 1개, 휴대 1개</p>
-            </div>
-            <div class="info-section">
-              <h4>📱 체크인 안내</h4>
-              <p><strong>온라인 체크인:</strong> 출발 24시간 전 ~ 1시간 전</p>
-              <p><strong>공항 체크인:</strong> 출발 3시간 전 ~ 1시간 전</p>
-              <p><strong>체크인 카운터:</strong> 터미널 2 3층 출국장</p>
-              <p><strong>필수서류:</strong> 여권, 예약확인서</p>
-            </div>
-            <div class="info-section">
-              <h4>🔗 관련 링크</h4>
-              <button class="ticket-btn" onclick="openPdfViewer()">전자항공권 PDF</button>
-              <button class="ticket-btn" style="margin-top: 10px; background: linear-gradient(135deg, #8b5cf6, #7c3aed);" onclick="printReservation()">예약확인서 인쇄</button>
-            </div>
-          </div>
-        `;
-        
-        // 예약확인서 창을 지도 위에 표시
-        document.body.appendChild(reservationDiv);
-        
-        // 예약확인서 창 위치 조정 - 모바일 최적화
-        setTimeout(() => {
-          const mapElement = document.getElementById('map');
-          const mapRect = mapElement.getBoundingClientRect();
-          
-          if (isMobile) {
-            // 모바일: 화면 중앙에 표시
-            reservationDiv.style.left = '50%';
-            reservationDiv.style.transform = 'translateX(-50%)';
-            reservationDiv.style.top = '80px';
-          } else {
-            // 데스크톱: 지도 중앙에 표시
-            reservationDiv.style.left = (mapRect.width / 2 - 200) + 'px';
-            reservationDiv.style.top = (mapRect.height / 2 - 250) + 'px';
-            reservationDiv.style.transform = 'none';
-          }
-        }, 100);
-      }
-      
-      // 예약확인서 인쇄 함수
-      function printReservation() {
-        window.print();
-      }
+
       
              // 새 항목 추가 함수 (localStorage 제거 버전)
        async function addNewItem() {
@@ -2708,6 +2374,9 @@
            return;
          }
          
+         // 현재 활성 섹션 확인
+         const activeSection = window.currentActiveSection || '사전준비';
+         
          // 새 항목 생성 (기존 항목과 동일한 스타일)
          const newItem = {
            id: 'user_' + Date.now(),
@@ -2715,7 +2384,8 @@
            description: '', // 빈 설명으로 설정하여 기존 항목과 동일한 스타일 유지
            link: link || null,
            checked: false,
-           timestamp: new Date().toISOString()
+           timestamp: new Date().toISOString(),
+           section: activeSection // 섹션 정보 추가
          };
          
          try {
@@ -2728,42 +2398,32 @@
              userAddedItems: window.firestore.arrayUnion(newItem)
            });
            
-           // 전역 변수 즉시 업데이트 (실시간 반영을 위해)
-           if (!window.firebaseUserItems) {
-             window.firebaseUserItems = [];
-           }
-           window.firebaseUserItems.push(newItem);
-           
-           // UI 즉시 업데이트
-           displayUserAddedItemsFromFirebase(window.firebaseUserItems);
+           // 전역 변수는 Firebase 동기화를 통해 업데이트됨
+           // UI 업데이트는 Firebase onSnapshot 리스너에서 처리
            
            // 폼 초기화
            clearForm();
            
-           // 성공 메시지
-           updateSyncStatus('새 항목이 추가되었습니다!', 'success');
+           // 성공 메시지 (UI 업데이트는 Firebase 동기화로 처리)
+           updateSyncStatus('새 항목이 추가되었습니다! Firebase 동기화 중...', 'success');
            
            // 항목 추가 후 폼 자동 숨기기
            hideAddForm();
            
-           console.log('Firebase에 새 항목 저장 완료 및 UI 즉시 업데이트');
+           console.log('Firebase에 새 항목 저장 완료 - 실시간 동기화로 UI 업데이트');
            
          } catch (error) {
            console.error('Firebase 저장 실패:', error);
            updateSyncStatus('항목 추가에 실패했습니다', 'error');
            
-           // Firebase 실패 시 UI만 업데이트 (전역 변수에 임시 저장)
-           if (!window.firebaseUserItems) {
-             window.firebaseUserItems = [];
-           }
-           window.firebaseUserItems.push(newItem);
-           displayUserAddedItemsFromFirebase(window.firebaseUserItems);
+           // Firebase 실패 시에도 UI 업데이트하지 않음
+           // Firebase 동기화만으로 처리
            
            // 폼 초기화 및 숨기기
            clearForm();
            hideAddForm();
            
-           updateSyncStatus('임시 저장됨 - 연결 복구 시 동기화', 'warning');
+           updateSyncStatus('저장 실패 - 다시 시도해주세요', 'error');
          } finally {
            // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
            isSyncing = false;
@@ -2806,6 +2466,15 @@
           
           // 현재 Firebase 항목들에서 해당 항목 제거
           const currentItems = window.firebaseUserItems || [];
+          const currentSection = window.currentActiveSection || '사전준비';
+          
+          // 현재 섹션의 항목인지 확인
+          const itemToDelete = currentItems.find(item => item.id === itemId);
+          if (!itemToDelete || itemToDelete.section !== currentSection) {
+            updateSyncStatus('해당 섹션의 항목이 아닙니다', 'error');
+            return;
+          }
+          
           const updatedUserItems = currentItems.filter(item => item.id !== itemId);
           
           // Firebase에서 항목 제거
@@ -2843,9 +2512,15 @@
            
            // Firebase 실패 시 UI만 업데이트
            const currentItems = window.firebaseUserItems || [];
-           const updatedUserItems = currentItems.filter(item => item.id !== itemId);
-           window.firebaseUserItems = updatedUserItems;
-           displayUserAddedItemsFromFirebase(updatedUserItems);
+           const currentSection = window.currentActiveSection || '사전준비';
+           
+           // 현재 섹션의 항목인지 확인
+           const itemToDelete = currentItems.find(item => item.id === itemId);
+           if (itemToDelete && itemToDelete.section === currentSection) {
+             const updatedUserItems = currentItems.filter(item => item.id !== itemId);
+             window.firebaseUserItems = updatedUserItems;
+             displayUserAddedItemsFromFirebase(updatedUserItems);
+           }
            
            // 경로제거/마커제거 버튼 상태 업데이트
            updateRouteRemoveButtons();
@@ -3020,10 +2695,17 @@
           
           // 현재 항목 찾기
           const currentItems = window.firebaseUserItems || [];
+          const currentSection = window.currentActiveSection || '사전준비';
           const itemIndex = currentItems.findIndex(item => item.id === itemId);
           
           if (itemIndex === -1) {
             updateSyncStatus('항목을 찾을 수 없습니다', 'error');
+            return;
+          }
+          
+          // 현재 섹션의 항목인지 확인
+          if (currentItems[itemIndex].section !== currentSection) {
+            updateSyncStatus('해당 섹션의 항목이 아닙니다', 'error');
             return;
           }
           
@@ -3032,7 +2714,8 @@
             ...currentItems[itemIndex],
             title: title,
             link: link || null,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            section: currentItems[itemIndex].section // 섹션 정보 유지
           };
           
           currentItems[itemIndex] = updatedItem;
@@ -4912,15 +4595,10 @@
             // 빠른 스와이프 감지 (모바일에서 더 민감하게)
             if (diffX > 30 && diffTime < 500) {
               const translateX = Math.min(diffX, 160);
-              const contentEl = this.querySelector('.item-content');
-              if (contentEl) {
-                contentEl.style.transform = `translateX(-${translateX}px)`;
-              }
+              this.querySelector('.item-content').style.transform = `translateX(-${translateX}px)`;
               hasSwiped = true;
-              // 가로 스와이프 중에는 기본 스크롤 방지 (텍스트만 이동)
-              e.preventDefault();
             }
-          }, { passive: false });
+          }, { passive: true });
           
           // 터치 종료 - 모바일 최적화
           item.addEventListener('touchend', function(e) {
@@ -5008,11 +4686,57 @@
       let lastSyncTimestamp = 0;
       let syncRetryCount = 0;
       const MAX_SYNC_RETRIES = 3;
-      const SYNC_COOLDOWN = 1000; // 1초 쿨다운
+              const SYNC_COOLDOWN = 500; // 0.5초 쿨다운 (중복 업데이트 방지)
+      
+      // Firebase 초기화 완료 대기 및 동기화 시작
+      function waitForFirebaseAndStartSync() {
+        // 동기화 상태 표시기 추가
+        addSyncStatusIndicator();
+        updateSyncStatus('Firebase 초기화 대기 중...', 'info');
+        
+        // Firebase가 이미 초기화된 경우
+        if (window.db && window.firestore) {
+          console.log('Firebase 이미 초기화됨 - 동기화 시작');
+          updateSyncStatus('Firebase 연결됨 - 동기화 시작', 'success');
+          setupFirebaseSync();
+          return;
+        }
+        
+        // Firebase 초기화 완료 이벤트 대기
+        const maxWaitTime = 10000; // 최대 10초 대기
+        let timeoutId;
+        
+        const firebaseReadyHandler = () => {
+          console.log('Firebase 초기화 완료 이벤트 수신 - 동기화 시작');
+          clearTimeout(timeoutId);
+          window.removeEventListener('firebaseReady', firebaseReadyHandler);
+          updateSyncStatus('Firebase 초기화 완료 - 동기화 시작', 'success');
+          setupFirebaseSync();
+        };
+        
+        // 타임아웃 설정
+        timeoutId = setTimeout(() => {
+          console.warn('Firebase 초기화 시간 초과 - 오프라인 모드로 전환');
+          window.removeEventListener('firebaseReady', firebaseReadyHandler);
+          updateSyncStatus('Firebase 초기화 실패 - 오프라인 모드', 'error');
+          enableOfflineMode();
+        }, maxWaitTime);
+        
+        // Firebase 초기화 완료 이벤트 리스너 등록
+        window.addEventListener('firebaseReady', firebaseReadyHandler);
+      }
       
       // Firebase 실시간 동기화 설정 (localStorage 제거 버전)
       function setupFirebaseSync() {
         try {
+          // Firebase 연결 상태 확인
+          if (!window.db || !window.firestore) {
+            console.error('Firebase가 초기화되지 않음');
+            updateSyncStatus('Firebase 초기화 실패', 'error');
+            enableOfflineMode();
+            return;
+          }
+          
           // 동기화 상태 표시기 추가
           addSyncStatusIndicator();
           
@@ -5031,13 +4755,18 @@
                 
                 console.log('Firebase에서 데이터 수신:', Object.keys(data));
                 
-                // 체크박스 상태 동기화 (Firebase에서 직접)
+                // 체크박스 상태 동기화 (Firebase에서 직접 - 현재 섹션만)
                 if (data.preparationCheckboxes) {
                   console.log('체크박스 상태 동기화 중...');
+                  const currentSection = window.currentActiveSection || '사전준비';
                   Object.keys(data.preparationCheckboxes).forEach(id => {
                     const checkbox = document.getElementById(id);
                     if (checkbox && checkbox.checked !== data.preparationCheckboxes[id]) {
-                      checkbox.checked = data.preparationCheckboxes[id];
+                      // 현재 섹션의 항목인지 확인
+                      const item = window.firebaseUserItems?.find(item => item.id === id);
+                      if (item && item.section === currentSection) {
+                        checkbox.checked = data.preparationCheckboxes[id];
+                      }
                     }
                   });
                   updateSyncStatus('체크박스 동기화 완료', 'success');
@@ -5057,10 +4786,19 @@
                       JSON.stringify(newItems.map(item => item.id).sort())) {
                     
                     console.log('사용자 항목 변경 감지 - UI 업데이트');
-                    // 전역 변수에 직접 저장
+                    console.log('기존 항목 수:', currentItems.length, '새 항목 수:', newItems.length);
+                    
+                    // 전역 변수 업데이트
                     window.firebaseUserItems = newItems;
-                    // UI 즉시 업데이트
-                    displayUserAddedItemsFromFirebase(newItems);
+                    
+                    // 현재 활성 섹션에 맞는 항목만 필터링하여 UI 업데이트
+                    const currentSection = window.currentActiveSection || '사전준비';
+                    const filteredItems = newItems.filter(item => item.section === currentSection);
+                    
+                    console.log('현재 섹션:', currentSection, '필터링된 항목 수:', filteredItems.length);
+                    
+                    // UI 즉시 업데이트 (실시간 동기화만으로 처리)
+                    displayUserAddedItemsFromFirebase(filteredItems);
                     updateSyncStatus('사용자 항목 동기화 완료', 'success');
                   } else {
                     console.log('사용자 항목 변경 없음 - UI 업데이트 건너뜀');
@@ -5189,10 +4927,19 @@
           return;
         }
         
+        // 현재 활성 섹션에 맞는 항목만 필터링
+        const currentSection = window.currentActiveSection || '사전준비';
+        const filteredItems = userItems.filter(item => item.section === currentSection);
+        
+        if (filteredItems.length === 0) {
+          container.innerHTML = '';
+          return;
+        }
+        
         let html = '';
-        userItems.forEach(item => {
+        filteredItems.forEach(item => {
           const titleElement = item.link 
-            ? `<span onclick="openUserItemLink('${item.link}')" style="cursor: pointer; color: #1d4ed8; text-decoration: underline;">${item.title}</span>`
+            ? `<span onclick="openUserItemLink('${item.link}')" style="cursor: pointer; color: #1d4ed8;">${item.title}</span>`
             : `${item.title}`;
           
           html += `
@@ -5431,6 +5178,21 @@
          onSnapshot,
          serverTimestamp
        };
+       
+       // 연결 테스트 후 초기화 완료 이벤트 발생
+       try {
+         // 간단한 연결 테스트
+         const testDoc = doc(db, 'users', 'testConnection');
+         await getDoc(testDoc);
+         console.log('Firebase 연결 테스트 성공');
+         
+         // Firebase 초기화 완료 이벤트 발생
+         window.dispatchEvent(new CustomEvent('firebaseReady'));
+       } catch (error) {
+         console.warn('Firebase 연결 테스트 실패:', error);
+         // 연결 테스트 실패해도 초기화는 완료로 간주
+         window.dispatchEvent(new CustomEvent('firebaseReady'));
+       }
      </script>
     
     <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
