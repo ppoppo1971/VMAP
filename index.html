@@ -6602,13 +6602,18 @@
                   const currentItems = window.firebaseUserItems || [];
                   const newItems = data.userAddedItems;
                   
-                  // 항목 개수나 ID가 다르면 업데이트
+                  // 항목 개수, ID, 또는 순서가 다르면 업데이트
+                  const currentItemsJson = JSON.stringify(currentItems.map(item => ({id: item.id, order: item.order})));
+                  const newItemsJson = JSON.stringify(newItems.map(item => ({id: item.id, order: item.order})));
+                  
                   if (currentItems.length !== newItems.length || 
                       JSON.stringify(currentItems.map(item => item.id).sort()) !== 
-                      JSON.stringify(newItems.map(item => item.id).sort())) {
+                      JSON.stringify(newItems.map(item => item.id).sort()) ||
+                      currentItemsJson !== newItemsJson) {
                     
                     console.log('사용자 항목 변경 감지 - UI 업데이트');
                     console.log('기존 항목 수:', currentItems.length, '새 항목 수:', newItems.length);
+                    console.log('순서 변경 감지:', currentItemsJson !== newItemsJson);
                     
                     // 전역 변수 업데이트
                     window.firebaseUserItems = newItems;
@@ -6815,14 +6820,18 @@
           return;
         }
         
-        // 현재 활성 섹션에 맞는 항목만 필터링
+        // 현재 활성 섹션에 맞는 항목만 필터링하고 순서대로 정렬
         const currentSection = window.currentActiveSection || '';
-        const filteredItems = userItems.filter(item => item.section === currentSection);
+        const filteredItems = userItems
+          .filter(item => item.section === currentSection)
+          .sort((a, b) => (a.order || 0) - (b.order || 0)); // order 속성으로 정렬
         
         if (filteredItems.length === 0) {
           container.innerHTML = '';
           return;
         }
+        
+        console.log('순서대로 정렬된 항목들:', filteredItems.map(item => `${item.title}(order:${item.order})`));
         
         let html = '';
         filteredItems.forEach(item => {
