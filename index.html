@@ -5131,9 +5131,6 @@
           let isSwiping = false;
           let hasSwiped = false;
           let startTime = 0;
-          let longPressTimer = null;
-          let isDragging = false;
-          let dragStartY = 0;
           
           // 터치 시작 - 모바일 최적화
           item.addEventListener('touchstart', function(e) {
@@ -5141,22 +5138,45 @@
             if (e.target.classList.contains('swipe-delete-btn') ||
                 e.target.classList.contains('prep-checkbox') ||
                 e.target.classList.contains('swipe-edit-btn')) {
+              console.log('터치 시작 취소: 버튼 클릭');
               return;
             }
             
+            console.log('터치 시작:', this.dataset.itemId);
+            
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
-            dragStartY = startY;
             startTime = Date.now();
             isSwiping = true;
             hasSwiped = false;
-            isDragging = false;
             this.classList.add('swiping');
             
+            // 기존 타이머 취소
+            if (currentLongPressTimer) {
+              clearTimeout(currentLongPressTimer);
+            }
+            
+            // 현재 드래그 아이템 설정
+            currentDragItem = this;
+            
             // 롱프레스 타이머 시작 (800ms 후 드래그 모드 활성화)
-            longPressTimer = setTimeout(() => {
-              if (isSwiping && !hasSwiped) {
-                startDragMode(this, e);
+            currentLongPressTimer = setTimeout(() => {
+              console.log('롱프레스 타이머 실행:', {
+                isSwiping,
+                hasSwiped,
+                currentDragItem: currentDragItem === this,
+                element: this.dataset.itemId
+              });
+              
+              if (isSwiping && !hasSwiped && currentDragItem === this) {
+                // 가상 이벤트 객체 생성 (현재 터치 위치 기준)
+                const mockEvent = {
+                  touches: [{
+                    clientX: startX,
+                    clientY: startY
+                  }]
+                };
+                startDragMode(this, mockEvent);
               }
             }, 800);
           }, { passive: false });
@@ -5172,22 +5192,24 @@
             const diffTime = Date.now() - startTime;
             
             // 드래그 모드일 때
-            if (isDragging) {
+            if (isDraggingGlobal) {
               e.preventDefault();
               handleDragMove(this, e);
               return;
             }
             
             // 롱프레스 타이머 취소 (움직임이 감지되면)
-            if (longPressTimer && (Math.abs(diffX) > 10 || diffY > 10)) {
-              clearTimeout(longPressTimer);
-              longPressTimer = null;
+            if (currentLongPressTimer && (Math.abs(diffX) > 10 || diffY > 10)) {
+              clearTimeout(currentLongPressTimer);
+              currentLongPressTimer = null;
+              currentDragItem = null;
             }
             
             // 세로 움직임이 가로보다 크면 스와이프 취소
             if (diffY > Math.abs(diffX) && diffY > 20) {
-              clearTimeout(longPressTimer);
-              longPressTimer = null;
+              clearTimeout(currentLongPressTimer);
+              currentLongPressTimer = null;
+              currentDragItem = null;
               return;
             }
             
@@ -5202,17 +5224,18 @@
           // 터치 종료 - 모바일 최적화
           item.addEventListener('touchend', function(e) {
             // 롱프레스 타이머 취소
-            if (longPressTimer) {
-              clearTimeout(longPressTimer);
-              longPressTimer = null;
+            if (currentLongPressTimer) {
+              clearTimeout(currentLongPressTimer);
+              currentLongPressTimer = null;
+              currentDragItem = null;
             }
             
             if (!isSwiping) return;
             
             // 드래그 모드 종료
-            if (isDragging) {
+            if (isDraggingGlobal) {
               handleDragEnd(this, e);
-              isDragging = false;
+              isDraggingGlobal = false;
               isSwiping = false;
               this.classList.remove('swiping');
               return;
@@ -5299,12 +5322,21 @@
       let dragElement = null;
       let dragPlaceholder = null;
       let dragOffset = { x: 0, y: 0 };
+      let isDraggingGlobal = false;
+      let currentLongPressTimer = null;
+      let currentDragItem = null;
       
       // 드래그 모드 시작
       function startDragMode(element, event) {
         console.log('드래그 모드 시작');
-        isDragging = true;
+        isDraggingGlobal = true;
         dragElement = element;
+        
+        // 스와이프 상태 초기화
+        element.classList.remove('swiped');
+        if (element.querySelector('.item-content')) {
+          element.querySelector('.item-content').style.transform = 'translateX(0)';
+        }
         
         // 햅틱 피드백 (지원하는 기기에서)
         if (navigator.vibrate) {
@@ -5347,7 +5379,7 @@
       
       // 드래그 이동 처리
       function handleDragMove(element, event) {
-        if (!isDragging || !dragElement) return;
+        if (!isDraggingGlobal || !dragElement) return;
         
         const touch = event.touches ? event.touches[0] : event;
         
@@ -5376,7 +5408,7 @@
       
       // 드래그 종료 처리
       function handleDragEnd(element, event) {
-        if (!isDragging || !dragElement) return;
+        if (!isDraggingGlobal || !dragElement) return;
         
         console.log('드래그 종료');
         
@@ -5404,7 +5436,12 @@
         // 정리
         dragElement = null;
         dragPlaceholder = null;
-        isDragging = false;
+        isDraggingGlobal = false;
+        currentDragItem = null;
+        if (currentLongPressTimer) {
+          clearTimeout(currentLongPressTimer);
+          currentLongPressTimer = null;
+        }
       }
       
       // 항목 순서 저장
