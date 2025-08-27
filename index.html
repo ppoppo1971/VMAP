@@ -1100,11 +1100,7 @@
             right: 8px;
         }
         
-        /* 스와이프 애니메이션 */
-        .user-added-item.swiping .item-content,
-        .checklist-item.swiping .item-content {
-            transition: transform 0.1s ease;
-        }
+
         
         /* 새 항목 추가 섹션 스타일 */
         .add-item-section {
@@ -1210,8 +1206,7 @@
         }
         
         /* 경로/마커 제거 버튼 컨테이너 스타일 */
-        #preparationRemoveButtons .route-remove-btn,
-        #day1RemoveButtons .route-remove-btn {
+        [id$="RemoveButtons"] .route-remove-btn {
             width: auto;
             flex: 1;
             min-width: 0;
@@ -1221,8 +1216,7 @@
         
         /* 모바일에서 버튼 크기 최적화 */
         @media (max-width: 768px) {
-            #preparationRemoveButtons .route-remove-btn,
-            #day1RemoveButtons .route-remove-btn {
+            [id$="RemoveButtons"] .route-remove-btn {
                 padding: 8px 10px;
                 font-size: 0.85rem;
             }
@@ -1230,23 +1224,25 @@
         
         /* 일정 추가 버튼 스타일 */
         #addScheduleBtn {
-            background: linear-gradient(135deg, #10b981, #059669) !important;
-            color: white !important;
-            border: none !important;
-            font-weight: 700 !important;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
-            transition: all 0.3s ease !important;
+            background: rgba(255, 255, 255, 0.15) !important;
+            color: #1a1a1a !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+            transition: all 0.2s ease !important;
         }
         
         #addScheduleBtn:hover {
-            background: linear-gradient(135deg, #059669, #047857) !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
+            background: rgba(255, 255, 255, 0.4) !important;
+            border-color: rgba(255, 255, 255, 0.5) !important;
+            color: #000 !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
         }
         
         #addScheduleBtn:active {
-            transform: translateY(0) !important;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+            background: rgba(255, 255, 255, 0.3) !important;
+            transform: scale(0.98) !important;
         }
         
         /* 추가된 일정 버튼들 스타일 */
@@ -1298,10 +1294,7 @@
             }
         }
         
-        /* 스와이프 중일 때 힌트 숨기기 */
-        #additionalDays .toggle-btn.swiping::after {
-            opacity: 0 !important;
-        }
+
         
         /* 일정 컨텍스트 메뉴 스타일 */
         #scheduleContextMenu button:hover {
@@ -1359,8 +1352,6 @@
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
       <div class="menu-group">
-        <button id="preparationBtn" class="toggle-btn" onclick="showPreparationInfo()">사전준비</button>
-        <button id="day1Btn" class="toggle-btn" onclick="showDay1Info()">1일차</button>
         <div id="additionalDays"></div>
       </div>
       <div class="menu-group">
@@ -2085,7 +2076,7 @@
        function updateUserItemsCheckboxStates() {
          if (!window.firebaseUserItems) return;
          
-         const currentSection = window.currentActiveSection || '사전준비';
+         const currentSection = window.currentActiveSection || '';
          
          const updatedItems = window.firebaseUserItems.map(item => {
            // 현재 섹션의 항목만 체크박스 상태 업데이트
@@ -2111,7 +2102,7 @@
             
             // 체크박스 상태 복원 (현재 섹션의 항목만)
             if (data.preparationCheckboxes) {
-              const currentSection = window.currentActiveSection || '사전준비';
+              const currentSection = window.currentActiveSection || '';
               Object.keys(data.preparationCheckboxes).forEach(id => {
                 const checkbox = document.getElementById(id);
                 if (checkbox) {
@@ -2173,97 +2164,8 @@
         }
       }
        
-       // 사전준비 정보창 표시 함수
-        function showPreparationInfo() {
-          // 기존 정보창이 있으면 제거
-          const existingInfo = document.getElementById('preparationInfo');
-          if (existingInfo) {
-            existingInfo.remove();
-            return;
-          }
-          
-          // 현재 활성 섹션 설정
-          window.currentActiveSection = '사전준비';
-          /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////사전준비 관련
-          // 정보창 생성
-          const infoDiv = document.createElement('div');
-          infoDiv.id = 'preparationInfo';
-          infoDiv.innerHTML = `
-            <div class="info-header" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
-             <h3 style="color: #ffffff;">사전준비 항목</h3>
-              <button class="close-btn" onclick="closePreparationInfo()">×</button>
-            </div>
-            <div class="info-content">
-              <div class="info-section">
-                                
-                                 <!-- 사용자 추가 항목들이 여기에 표시됩니다 -->
-                 <div id="userAddedItems"></div>
-                                   <!-- 새 항목 추가 버튼 -->
-                  <div class="add-item-section">
-                    <button type="button" onclick="showAddForm()" class="toggle-add-btn" id="toggleAddBtn">+ 새 항목 추가</button>
-                  </div>
-                 <!-- 새 항목 추가 폼 (처음에는 숨김) -->
-                 <div class="add-item-form" id="addItemForm" style="display: none;">
-                   <div class="form-group">
-                     <input type="text" id="newItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50">
-                     <input type="url" id="newItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200">
-                   </div>
-                   <div class="form-buttons">
-                     <button type="button" onclick="addNewItem()" class="add-btn">추가</button>
-                   </div>
-                 </div>
-              </div>
-              
-              <!-- 저장된 경로/마커 제거 버튼 섹션 -->
-              <div class="info-section">
-                <div id="preparationRemoveButtons" style="display: none;">
-                  <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                    <button class="route-remove-btn" onclick="removeRoutesByLocation('사전준비')" style="flex: 1;">경로제거</button>
-                    <button class="route-remove-btn" onclick="removeMarkersByLocation('사전준비')" style="flex: 1;">마커제거</button>
-                  </div>
-                  <p style="font-size: 0.63rem; color: #6b7280; margin: 0;">
-                    사전준비에 저장된 경로와 마커를 제거합니다.
-                  </p>
-                </div>
-              </div>
-            </div>
-          `;
-          
-          // 정보창을 지도 위에 표시
-          document.body.appendChild(infoDiv);
-          
-          // 클릭 가능한 텍스트 끝에 ❗ 표시 추가
-          if (typeof appendExclamationToLinks === 'function') {
-            appendExclamationToLinks(infoDiv);
-          }
-          
-          // 저장된 체크박스 상태 복원
-          setTimeout(() => {
-            restoreCheckboxStates();
-            // 스와이프 기능 초기화
-            initializeSwipeDelete();
-          }, 50);
-          
-                  // 정보창 위치 조정 - 모바일 최적화
-        setTimeout(() => {
-          const menu = document.getElementById('customMapMenu');
-          const menuRect = menu.getBoundingClientRect();
-          const mapElement = document.getElementById('map');
-          const mapRect = mapElement.getBoundingClientRect();
-          
-          if (isMobile) {
-            // 모바일: 화면 중앙에 표시
-            infoDiv.style.left = '50%';
-            infoDiv.style.transform = 'translateX(-50%)';
-            infoDiv.style.top = '80px';
-          } else {
-            // 데스크톱: 사이드메뉴 오른쪽에 표시
-            infoDiv.style.left = (menuRect.right + 10) + 'px';
-            infoDiv.style.top = menuRect.top + 'px';
-            infoDiv.style.transform = 'none';
-          }
-        }, 100);
-        }
+       // 사전준비 정보창 표시 함수 (제거됨 - 일정추가로 대체)
+        // function showPreparationInfo() { ... }
       
       // 사전준비 정보창 닫기 함수
       function closePreparationInfo() {
@@ -2273,104 +2175,8 @@
         }
       }
       
-      // 1일차 정보창 표시 함수
-      function showDay1Info() {
-        // 기존 정보창이 있으면 제거
-        const existingInfo = document.getElementById('preparationInfo');
-        if (existingInfo) {
-          existingInfo.remove();
-        }
-        
-        // 현재 활성 섹션 설정
-        window.currentActiveSection = '1일차';
-        
-        // 정보창 생성
-        const infoDiv = document.createElement('div');
-        infoDiv.id = 'preparationInfo';
-        infoDiv.innerHTML = `
-          <div class="info-header" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
-            <h3 style="color: #ffffff;">1일차 - 도착 및 첫날</h3>
-            <button class="close-btn" onclick="closePreparationInfo()">×</button>
-          </div>
-          <div class="info-content">
-            <div class="info-section">
-                                  
-                                   <!-- 사용자 추가 항목들이 여기에 표시됩니다 -->
-                   <div id="userAddedItems"></div>
-                                     <!-- 새 항목 추가 버튼 -->
-                    <div class="add-item-section">
-                      <button type="button" onclick="showAddForm()" class="toggle-add-btn" id="toggleAddBtn">+ 새 항목 추가</button>
-                    </div>
-                   <!-- 새 항목 추가 폼 (처음에는 숨김) -->
-                   <div class="add-item-form" id="addItemForm" style="display: none;">
-                     <div class="form-group">
-                       <input type="text" id="newItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50">
-                       <input type="url" id="newItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200">
-                     </div>
-                     <div class="form-buttons">
-                       <button type="button" onclick="addNewItem()" class="add-btn">추가</button>
-                     </div>
-                   </div>
-                </div>
-                
-                <!-- 저장된 경로/마커 제거 버튼 섹션 -->
-                <div class="info-section">
-                  <div id="day1RemoveButtons" style="display: none;">
-                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                      <button class="route-remove-btn" onclick="removeRoutesByLocation('1일차')" style="flex: 1;">경로제거</button>
-                      <button class="route-remove-btn" onclick="removeMarkersByLocation('1일차')" style="flex: 1;">마커제거</button>
-                    </div>
-                    <p style="font-size: 0.63rem; color: #6b7280; margin: 0;">
-                      1일차에 저장된 경로와 마커를 제거합니다.
-                    </p>
-                  </div>
-                </div>
-              </div>
-        `;
-        
-        // 정보창을 지도 위에 표시
-        document.body.appendChild(infoDiv);
-        
-        // 클릭 가능한 텍스트 끝에 ❗ 표시 추가
-        if (typeof appendExclamationToLinks === 'function') {
-          appendExclamationToLinks(infoDiv);
-        }
-        
-        // 저장된 체크박스 상태 복원
-        setTimeout(() => {
-          restoreCheckboxStates();
-          // 스와이프 기능 초기화
-          initializeSwipeDelete();
-          if (typeof applyOverridesAndHides === 'function') {
-            applyOverridesAndHides();
-          }
-        }, 50);
-        
-        // 경로제거 버튼 상태 업데이트
-        updateRouteRemoveButtons();
-        // 마커제거 버튼 상태 업데이트
-        updateMarkerRemoveButtons();
-        
-        // 정보창 위치 조정 - 모바일 최적화
-        setTimeout(() => {
-          const menu = document.getElementById('customMapMenu');
-          const menuRect = menu.getBoundingClientRect();
-          const mapElement = document.getElementById('map');
-          const mapRect = mapElement.getBoundingClientRect();
-          
-          if (isMobile) {
-            // 모바일: 화면 중앙에 표시
-            infoDiv.style.left = '50%';
-            infoDiv.style.transform = 'translateX(-50%)';
-            infoDiv.style.top = '80px';
-          } else {
-            // 데스크톱: 사이드메뉴 오른쪽에 표시
-            infoDiv.style.left = (menuRect.right + 10) + 'px';
-            infoDiv.style.top = menuRect.top + 'px';
-            infoDiv.style.transform = 'none';
-          }
-        }, 100);
-      }
+      // 1일차 정보창 표시 함수 (제거됨 - 일정추가로 대체)
+      // function showDay1Info() { ... }
       
 
       
@@ -2481,7 +2287,7 @@
          }
          
          // 현재 활성 섹션 확인
-         const activeSection = window.currentActiveSection || '사전준비';
+         const activeSection = window.currentActiveSection || '';
          
          // 새 항목 생성 (기존 항목과 동일한 스타일)
          const newItem = {
@@ -2572,7 +2378,7 @@
           
           // 현재 Firebase 항목들에서 해당 항목 제거
           const currentItems = window.firebaseUserItems || [];
-          const currentSection = window.currentActiveSection || '사전준비';
+          const currentSection = window.currentActiveSection || '';
           
           // 현재 섹션의 항목인지 확인
           const itemToDelete = currentItems.find(item => item.id === itemId);
@@ -2618,7 +2424,7 @@
            
            // Firebase 실패 시 UI만 업데이트
            const currentItems = window.firebaseUserItems || [];
-           const currentSection = window.currentActiveSection || '사전준비';
+           const currentSection = window.currentActiveSection || '';
            
            // 현재 섹션의 항목인지 확인
            const itemToDelete = currentItems.find(item => item.id === itemId);
@@ -2801,7 +2607,7 @@
           
           // 현재 항목 찾기
           const currentItems = window.firebaseUserItems || [];
-          const currentSection = window.currentActiveSection || '사전준비';
+          const currentSection = window.currentActiveSection || '';
           const itemIndex = currentItems.findIndex(item => item.id === itemId);
           
           if (itemIndex === -1) {
@@ -4347,20 +4153,18 @@
        
        // 경로/마커 제거 버튼들을 동적으로 표시/숨김하는 함수
        function updateRouteRemoveButtons() {
-         // 사전준비 경로/마커 제거 버튼
-         const prepBtn = document.getElementById('preparationRemoveButtons');
-         if (prepBtn) {
-           const prepRoutes = savedUserRoutes.filter(route => route.location === '사전준비');
-           const prepMarkers = (window.savedUserMarkers || []).filter(marker => marker.location === '사전준비');
-           prepBtn.style.display = (prepRoutes.length > 0 || prepMarkers.length > 0) ? 'block' : 'none';
-         }
-         
-         // 1일차 경로/마커 제거 버튼
-         const day1Btn = document.getElementById('day1RemoveButtons');
-         if (day1Btn) {
-           const day1Routes = savedUserRoutes.filter(route => route.location === '1일차');
-           const day1Markers = (window.savedUserMarkers || []).filter(marker => marker.location === '1일차');
-           day1Btn.style.display = (day1Routes.length > 0 || day1Markers.length > 0) ? 'block' : 'none';
+         // 현재 활성 섹션의 경로/마커 제거 버튼 업데이트
+         const currentSection = window.currentActiveSection || '';
+         if (currentSection) {
+           const currentRoutes = savedUserRoutes.filter(route => route.location === currentSection);
+           const currentMarkers = (window.savedUserMarkers || []).filter(marker => marker.location === currentSection);
+           
+           // 현재 섹션의 removeButtons 요소 찾기 (동적으로 생성된 일정들)
+           const removeButtonsId = currentSection.replace(/[^a-zA-Z0-9가-힣]/g, '') + 'RemoveButtons';
+           const removeButtons = document.getElementById(removeButtonsId);
+           if (removeButtons) {
+             removeButtons.style.display = (currentRoutes.length > 0 || currentMarkers.length > 0) ? 'block' : 'none';
+           }
          }
        }
        
@@ -4864,7 +4668,7 @@
                 // 체크박스 상태 동기화 (Firebase에서 직접 - 현재 섹션만)
                 if (data.preparationCheckboxes) {
                   console.log('체크박스 상태 동기화 중...');
-                  const currentSection = window.currentActiveSection || '사전준비';
+                  const currentSection = window.currentActiveSection || '';
                   Object.keys(data.preparationCheckboxes).forEach(id => {
                     const checkbox = document.getElementById(id);
                     if (checkbox && checkbox.checked !== data.preparationCheckboxes[id]) {
@@ -4898,7 +4702,7 @@
                     window.firebaseUserItems = newItems;
                     
                     // 현재 활성 섹션에 맞는 항목만 필터링하여 UI 업데이트
-                    const currentSection = window.currentActiveSection || '사전준비';
+                    const currentSection = window.currentActiveSection || '';
                     const filteredItems = newItems.filter(item => item.section === currentSection);
                     
                     console.log('현재 섹션:', currentSection, '필터링된 항목 수:', filteredItems.length);
@@ -5041,7 +4845,7 @@
         }
         
         // 현재 활성 섹션에 맞는 항목만 필터링
-        const currentSection = window.currentActiveSection || '사전준비';
+        const currentSection = window.currentActiveSection || '';
         const filteredItems = userItems.filter(item => item.section === currentSection);
         
         if (filteredItems.length === 0) {
@@ -5281,11 +5085,7 @@
               <input type="text" id="scheduleTitle" placeholder="예: 2일차, 3일차, 특별일정 등" 
                      style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
             </div>
-            <div class="form-group" style="margin-bottom: 20px;">
-              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1f2937;">일정 설명 (선택사항)</label>
-              <textarea id="scheduleDescription" placeholder="일정에 대한 간단한 설명을 입력하세요" 
-                        style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box; height: 80px; resize: vertical;"></textarea>
-            </div>
+
             <div style="display: flex; gap: 12px;">
               <button onclick="addNewSchedule()" style="flex: 1; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">
                 추가
@@ -5316,10 +5116,8 @@
       // 새 일정 추가 함수
       async function addNewSchedule() {
         const titleInput = document.getElementById('scheduleTitle');
-        const descriptionInput = document.getElementById('scheduleDescription');
         
         const title = titleInput.value.trim();
-        const description = descriptionInput.value.trim();
         
         if (!title) {
           alert('일정 제목을 입력해주세요.');
@@ -5333,15 +5131,14 @@
           newScheduleBtn.className = 'toggle-btn';
           newScheduleBtn.setAttribute('data-schedule-id', 'schedule_' + Date.now());
           newScheduleBtn.setAttribute('data-schedule-title', title);
-          newScheduleBtn.setAttribute('data-schedule-description', description);
           
           // 클릭 이벤트 (일정 정보 표시)
           newScheduleBtn.onclick = function() { 
-            showScheduleInfo(title, description); 
+            showScheduleInfo(title); 
           };
           
-          // 스와이프 기능 추가
-          addSwipeToScheduleButton(newScheduleBtn);
+          // 롱프레스 기능 추가
+          addLongPressToScheduleButton(newScheduleBtn);
           
           newScheduleBtn.textContent = title;
           
@@ -5354,7 +5151,6 @@
             const scheduleData = {
               id: 'schedule_' + Date.now(),
               title: title,
-              description: description,
               timestamp: new Date().toISOString(),
               type: 'custom_schedule'
             };
@@ -5380,7 +5176,7 @@
       }
       
       // 일정 정보 표시 함수
-      function showScheduleInfo(title, description) {
+      function showScheduleInfo(title) {
         // 기존 정보창이 있으면 제거
         const existingInfo = document.getElementById('preparationInfo');
         if (existingInfo) {
@@ -5398,11 +5194,9 @@
             <h3 style="color: #ffffff;">${title}</h3>
             <button class="close-btn" onclick="closePreparationInfo()">×</button>
           </div>
-          <div class="info-content">
-            <div class="info-section">
-              ${description ? `<p style="margin-bottom: 16px; color: #6b7280; font-style: italic;">${description}</p>` : ''}
-              
-              <!-- 사용자 추가 항목들이 여기에 표시됩니다 -->
+                      <div class="info-content">
+              <div class="info-section">
+                <!-- 사용자 추가 항목들이 여기에 표시됩니다 -->
               <div id="userAddedItems"></div>
               
               <!-- 새 항목 추가 버튼 -->
@@ -5424,7 +5218,7 @@
             
             <!-- 저장된 경로/마커 제거 버튼 섹션 -->
             <div class="info-section">
-              <div id="preparationRemoveButtons" style="display: none;">
+              <div id="${title.replace(/[^a-zA-Z0-9가-힣]/g, '')}RemoveButtons" style="display: none;">
                 <div style="display: flex; gap: 8px; margin-bottom: 8px;">
                   <button class="route-remove-btn" onclick="removeRoutesByLocation('${title}')" style="flex: 1;">경로제거</button>
                   <button class="route-remove-btn" onclick="removeMarkersByLocation('${title}')" style="flex: 1;">마커제거</button>
@@ -5506,8 +5300,8 @@
                   showScheduleInfo(schedule.title, schedule.description); 
                 };
                 
-                // 스와이프 기능 추가
-                addSwipeToScheduleButton(scheduleBtn);
+                          // 롱프레스 기능 추가
+          addLongPressToScheduleButton(scheduleBtn);
                 
                 scheduleBtn.textContent = schedule.title;
                 additionalDaysContainer.appendChild(scheduleBtn);
@@ -5519,80 +5313,52 @@
         }
       }
       
-      // 일정 버튼에 스와이프 기능 추가 함수
-      function addSwipeToScheduleButton(button) {
-        let startX = 0;
-        let startY = 0;
-        let isSwiping = false;
-        let swipeDistance = 0;
+      // 일정 버튼에 롱프레스 기능 추가 함수
+      function addLongPressToScheduleButton(button) {
+        let longPressTimer = null;
+        let isLongPressed = false;
         
         button.addEventListener('touchstart', function(e) {
-          startX = e.touches[0].clientX;
-          startY = e.touches[0].clientY;
-          isSwiping = false;
-          swipeDistance = 0;
-          
-          // 터치 시작 시 버튼 스타일 초기화
-          this.style.transform = 'none';
-          this.style.boxShadow = '';
-          this.classList.remove('swiping');
+          // 롱프레스 타이머 시작 (1초)
+          longPressTimer = setTimeout(() => {
+            isLongPressed = true;
+            // 시각적 피드백
+            this.style.transform = 'scale(0.95)';
+            this.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.4)';
+            
+            // 편집 메뉴 표시
+            const fakeEvent = {
+              clientX: e.touches[0].clientX,
+              clientY: e.touches[0].clientY
+            };
+            showScheduleContextMenu(fakeEvent, this);
+          }, 1000);
         });
         
         button.addEventListener('touchmove', function(e) {
-          if (!isSwiping) {
-            const deltaX = Math.abs(e.touches[0].clientX - startX);
-            const deltaY = Math.abs(e.touches[0].clientY - startY);
-            
-            // 수평 스와이프가 수직 스와이프보다 크고, 최소 거리 이상일 때
-            if (deltaX > 30 && deltaX > deltaY * 1.5) {
-              isSwiping = true;
-              e.preventDefault();
-              this.classList.add('swiping');
-            }
+          // 터치 이동 시 롱프레스 취소
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
           }
-          
-          if (isSwiping) {
-            swipeDistance = e.touches[0].clientX - startX;
-            const maxSwipe = 100; // 최대 스와이프 거리
-            
-            // 스와이프 거리에 따른 시각적 피드백
-            if (Math.abs(swipeDistance) <= maxSwipe) {
-              const scale = 1 + (Math.abs(swipeDistance) / maxSwipe) * 0.05;
-              const translateX = swipeDistance * 0.2;
-              this.style.transform = `scale(${scale}) translateX(${translateX}px)`;
-              
-              // 스와이프 방향에 따른 그림자 효과
-              if (swipeDistance > 0) {
-                this.style.boxShadow = `0 4px 12px rgba(16, 185, 129, 0.4)`;
-              } else {
-                this.style.boxShadow = `0 4px 12px rgba(239, 68, 68, 0.4)`;
-              }
-            }
+          if (isLongPressed) {
+            isLongPressed = false;
+            this.style.transform = '';
+            this.style.boxShadow = '';
           }
         });
         
         button.addEventListener('touchend', function(e) {
-          if (isSwiping) {
-            const deltaX = e.changedTouches[0].clientX - startX;
-            const deltaY = Math.abs(e.changedTouches[0].clientY - startY);
-            
-            // 좌우 스와이프 감지 (최소 거리 40px)
-            if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > deltaY * 1.5) {
-              e.preventDefault();
-              const fakeEvent = {
-                clientX: e.changedTouches[0].clientX,
-                clientY: e.changedTouches[0].clientY
-              };
-              showScheduleContextMenu(fakeEvent, this);
-            }
+          // 터치 종료 시 롱프레스 취소
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
           }
-          
-          // 스와이프 종료 시 버튼 스타일 복원
-          setTimeout(() => {
+          if (isLongPressed) {
+            isLongPressed = false;
             this.style.transform = '';
             this.style.boxShadow = '';
-            this.classList.remove('swiping');
-          }, 200);
+          }
         });
         
         // 데스크톱에서는 우클릭 이벤트 유지
@@ -5630,11 +5396,10 @@
         
         const scheduleId = scheduleBtn.getAttribute('data-schedule-id');
         const scheduleTitle = scheduleBtn.getAttribute('data-schedule-title');
-        const scheduleDescription = scheduleBtn.getAttribute('data-schedule-description');
         
         contextMenu.innerHTML = `
           <div style="padding: 8px 0;">
-            <button onclick="editSchedule('${scheduleId}', '${scheduleTitle}', '${scheduleDescription}')" 
+            <button onclick="editSchedule('${scheduleId}', '${scheduleTitle}')" 
                     style="width: 100%; padding: 12px 16px; background: none; border: none; text-align: left; cursor: pointer; font-size: 14px; color: #1f2937; transition: background-color 0.2s ease;">
               ✏️ 수정
             </button>
@@ -5665,7 +5430,7 @@
       }
       
       // 일정 수정 함수
-      function editSchedule(scheduleId, currentTitle, currentDescription) {
+      function editSchedule(scheduleId, currentTitle) {
         // 컨텍스트 메뉴 닫기
         const contextMenu = document.getElementById('scheduleContextMenu');
         if (contextMenu) {
@@ -5673,11 +5438,11 @@
         }
         
         // 일정 수정 다이얼로그 표시
-        showEditScheduleDialog(scheduleId, currentTitle, currentDescription);
+        showEditScheduleDialog(scheduleId, currentTitle);
       }
       
       // 일정 수정 다이얼로그 표시 함수
-      function showEditScheduleDialog(scheduleId, currentTitle, currentDescription) {
+      function showEditScheduleDialog(scheduleId, currentTitle) {
         // 기존 다이얼로그가 있으면 제거
         const existingDialog = document.getElementById('editScheduleDialog');
         if (existingDialog) {
@@ -5712,16 +5477,11 @@
             <button class="close-btn" onclick="closeEditScheduleDialog()">×</button>
           </div>
           <div class="info-content" style="padding: 20px;">
-            <div class="form-group" style="margin-bottom: 16px;">
+            <div class="form-group" style="margin-bottom: 20px;">
               <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1f2937;">일정 제목</label>
               <input type="text" id="editScheduleTitle" placeholder="일정 제목을 입력하세요" 
                      value="${currentTitle}" maxlength="50"
                      style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
-            </div>
-            <div class="form-group" style="margin-bottom: 20px;">
-              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1f2937;">일정 설명 (선택사항)</label>
-              <textarea id="editScheduleDescription" placeholder="일정에 대한 간단한 설명을 입력하세요" 
-                        maxlength="200" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box; height: 80px; resize: vertical;">${currentDescription || ''}</textarea>
             </div>
             <div style="display: flex; gap: 12px;">
               <button onclick="saveScheduleEdit('${scheduleId}')" style="flex: 1; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">
@@ -5753,10 +5513,8 @@
       // 일정 수정 저장 함수
       async function saveScheduleEdit(scheduleId) {
         const titleInput = document.getElementById('editScheduleTitle');
-        const descriptionInput = document.getElementById('editScheduleDescription');
         
         const newTitle = titleInput.value.trim();
-        const newDescription = descriptionInput.value.trim();
         
         if (!newTitle) {
           alert('일정 제목을 입력해주세요.');
@@ -5775,7 +5533,6 @@
               if (scheduleIndex !== -1) {
                 // 일정 업데이트
                 customSchedules[scheduleIndex].title = newTitle;
-                customSchedules[scheduleIndex].description = newDescription;
                 customSchedules[scheduleIndex].timestamp = new Date().toISOString();
                 
                 // Firebase에 저장
@@ -5792,7 +5549,6 @@
                 if (scheduleBtn) {
                   scheduleBtn.textContent = newTitle;
                   scheduleBtn.setAttribute('data-schedule-title', newTitle);
-                  scheduleBtn.setAttribute('data-schedule-description', newDescription);
                 }
                 
                 updateSyncStatus('일정이 수정되었습니다!', 'success');
