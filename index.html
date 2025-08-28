@@ -1041,6 +1041,7 @@
         .user-added-item .swipe-edit-btn:active,
         .checklist-item .swipe-edit-btn:active {
             background: #2563eb;
+            transform: translateY(-50%);
         }
         
         /* 일정 항목의 수정 버튼은 active 애니메이션 제거 */
@@ -1078,10 +1079,20 @@
         }
 
 
+        /* 스와이프 버튼 hover 시 위치 고정 (일정/세부 공통) */
+        .user-added-item .swipe-edit-btn:hover,
+        .user-added-item .swipe-delete-btn:hover,
+        .user-added-item[data-item-type="schedule"] .swipe-edit-btn:hover,
+        .user-added-item[data-item-type="schedule"] .swipe-delete-btn:hover {
+            transform: translateY(-50%) !important;
+        }
+
+
         
         .user-added-item .swipe-delete-btn:active,
         .checklist-item .swipe-delete-btn:active {
             background: #dc2626;
+            transform: translateY(-50%);
         }
         
         /* 일정 항목의 삭제 버튼은 active 애니메이션 제거 */
@@ -2469,6 +2480,16 @@
           return;
         }
         
+        // 스와이프 상태 해제
+        const item = document.querySelector(`[data-item-id="${itemId}"]`);
+        if (item) {
+          item.classList.remove('swiped');
+          const itemContent = item.querySelector('.item-content');
+          if (itemContent) {
+            itemContent.style.transform = 'translateX(0)';
+          }
+        }
+        
         // 동기화 중이면 무시
         if (isSyncing) {
           updateSyncStatus('동기화 중입니다. 잠시 후 다시 시도해주세요', 'warning');
@@ -2552,6 +2573,16 @@
       
              // 사용자 항목 수정 함수
       function editUserItem(itemId, currentTitle, currentDescription, currentLink) {
+        // 스와이프 상태 해제
+        const item = document.querySelector(`[data-item-id="${itemId}"]`);
+        if (item) {
+          item.classList.remove('swiped');
+          const itemContent = item.querySelector('.item-content');
+          if (itemContent) {
+            itemContent.style.transform = 'translateX(0)';
+          }
+        }
+        
         // 수정 폼 표시
         showEditForm(itemId, currentTitle, currentDescription, currentLink, 'user');
       }
@@ -2638,14 +2669,10 @@
         document.body.appendChild(editForm);
         
         // 폼 위치 조정
-        setTimeout(() => {
-          const form = document.getElementById('editItemForm');
-          if (form) {
-            form.style.left = '50%';
-            form.style.transform = 'translateX(-50%)';
-            form.style.top = '120px';
-          }
-        }, 100);
+        editForm.style.position = 'fixed';
+        editForm.style.top = '120px';
+        editForm.style.left = '50%';
+        editForm.style.transform = 'translateX(-50%)';
         
         // 제목 입력란에 포커스
         setTimeout(() => {
@@ -6871,18 +6898,21 @@
             btn.addEventListener('touchstart', function(e) {
               e.stopPropagation();
               e.preventDefault();
-              this.style.transform = 'scale(0.95)';
+              // 일정 항목은 스케일 변화 없이 translateY만 유지
+              this.style.transform = 'translateY(-50%)';
             }, { passive: false });
             
             btn.addEventListener('touchend', function(e) {
               e.stopPropagation();
               e.preventDefault();
-              this.style.transform = 'scale(1)';
+              // 일정 항목은 원래 위치 유지
+              this.style.transform = 'translateY(-50%)';
             }, { passive: false });
             
             btn.addEventListener('touchcancel', function(e) {
               e.stopPropagation();
-              this.style.transform = 'scale(1)';
+              // 일정 항목은 원래 위치 유지
+              this.style.transform = 'translateY(-50%)';
             }, { passive: true });
           });
           
@@ -6891,13 +6921,15 @@
             btn.addEventListener('touchstart', function(e) {
               e.stopPropagation();
               e.preventDefault();
-              this.style.transform = 'scale(0.95)';
+              // 일정 항목은 스케일 변화 없이 translateY만 유지
+              this.style.transform = 'translateY(-50%)';
             }, { passive: false });
             
             btn.addEventListener('touchend', function(e) {
               e.stopPropagation();
               e.preventDefault();
-              this.style.transform = 'scale(1)';
+              // 일정 항목은 원래 위치 유지
+              this.style.transform = 'translateY(-50%)';
               
               const itemId = this.closest('.user-added-item, .checklist-item').getAttribute('data-item-id');
               if (itemId) {
@@ -6915,7 +6947,8 @@
             
             btn.addEventListener('touchcancel', function(e) {
               e.stopPropagation();
-              this.style.transform = 'scale(1)';
+              // 일정 항목은 원래 위치 유지
+              this.style.transform = 'translateY(-50%)';
             }, { passive: true });
           });
         }
@@ -7037,9 +7070,9 @@
         dialog.id = 'addScheduleDialog';
         dialog.style.cssText = `
           position: fixed;
-          top: 50%;
+          top: 120px;
           left: 50%;
-          transform: translate(-50%, -50%);
+          transform: translateX(-50%);
           z-index: 1000;
           width: 400px;
           max-width: 90vw;
@@ -7051,7 +7084,6 @@
           -webkit-backdrop-filter: blur(20px);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           overflow: hidden;
-          animation: slideIn 0.3s ease-out;
         `;
         
         dialog.innerHTML = `
@@ -7362,6 +7394,16 @@
           contextMenu.remove();
         }
         
+        // 스와이프 상태 해제
+        const item = document.querySelector(`[data-schedule-id="${scheduleId}"]`);
+        if (item) {
+          item.classList.remove('swiped');
+          const itemContent = item.querySelector('.item-content');
+          if (itemContent) {
+            itemContent.style.transform = 'translateX(0)';
+          }
+        }
+        
         // 일정 수정 다이얼로그 표시
         showEditScheduleDialog(scheduleId, currentTitle);
       }
@@ -7379,9 +7421,9 @@
         dialog.id = 'editScheduleDialog';
         dialog.style.cssText = `
           position: fixed;
-          top: 50%;
+          top: 120px;
           left: 50%;
-          transform: translate(-50%, -50%);
+          transform: translateX(-50%);
           z-index: 1000;
           width: 400px;
           max-width: 90vw;
@@ -7393,7 +7435,6 @@
           -webkit-backdrop-filter: blur(20px);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           overflow: hidden;
-          animation: slideIn 0.3s ease-out;
         `;
         
         dialog.innerHTML = `
@@ -7498,6 +7539,16 @@
         const contextMenu = document.getElementById('scheduleContextMenu');
         if (contextMenu) {
           contextMenu.remove();
+        }
+        
+        // 스와이프 상태 해제
+        const item = document.querySelector(`[data-schedule-id="${scheduleId}"]`);
+        if (item) {
+          item.classList.remove('swiped');
+          const itemContent = item.querySelector('.item-content');
+          if (itemContent) {
+            itemContent.style.transform = 'translateX(0)';
+          }
         }
         
         if (!confirm(`"${scheduleTitle}" 일정을 삭제하시겠습니까?`)) {
