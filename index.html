@@ -798,7 +798,6 @@
             line-height: 1.4;
             font-size: 0.665rem;
         }
-        
         .checklist-item:last-child {
             margin-bottom: 0;
         }
@@ -2210,7 +2209,6 @@
         // 사이드패널과 동기화
         syncSidePanelWithTop(currentMapType);
       }
-      
                     // 체크박스 상태 저장 함수 (localStorage 제거 버전)
        async function saveCheckboxStates() {
          // 동기화 중이면 무시 (무한 루프 방지)
@@ -2996,7 +2994,6 @@
           document.getElementById('newItemDescription').value = '';
           document.getElementById('newItemLink').value = '';
         }
-
       // 현재 위치 가져오기 함수 - 모바일 최적화
       function getCurrentLocation() {
         const locationBtn = document.getElementById('locationBtn');
@@ -3154,11 +3151,6 @@
 
       
 
-      
-
-      
-
-      
       // 페이지 로드 시 모바일 최적화 및 동기화 상태 확인
       document.addEventListener('DOMContentLoaded', function() {
         optimizeForMobile();
@@ -3778,7 +3770,6 @@
           }
         });
       }
-      
       // Directions API 상태 확인 함수
       function checkDirectionsApiStatus() {
         console.log('=== Directions API 상태 확인 ===');
@@ -4529,7 +4520,6 @@
         // 마커제거 버튼 상태 업데이트
         updateMarkerRemoveButtons();
       }
-      
       // 마커 저장 위치 선택 다이얼로그 직접 생성 (대안 함수)
       function createMarkerSaveDialogDirectly() {
         console.log('createMarkerSaveDialogDirectly 함수 호출됨');
@@ -5295,7 +5285,6 @@
         // 정보창을 일반 보기 모드로 되돌리기
         showMarkerInfoWithData(markerGroupName, index);
       }
-      
       // 편집 모드에서 마커 삭제 함수
       async function deleteMarkerFromEdit(markerGroupName, index) {
         if (!confirm('이 마커를 삭제하시겠습니까?')) {
@@ -5553,17 +5542,6 @@
          } catch (error) {
            console.error('Firebase 로드 실패:', error);
          }
-         
-         // Firebase 실패 시 localStorage에서 복원
-         const savedRoutes = localStorage.getItem('savedUserRoutes');
-         if (savedRoutes) {
-           savedUserRoutes = JSON.parse(savedRoutes);
-           drawAllSavedRoutes();
-           // 경로제거 버튼 상태 업데이트
-           updateRouteRemoveButtons();
-           // 마커제거 버튼 상태 업데이트
-           updateMarkerRemoveButtons();
-         }
        }
        
        // 저장된 사용자 마커들 복원
@@ -5591,13 +5569,6 @@
            }
          } catch (error) {
            console.error('Firebase 마커 로드 실패:', error);
-         }
-         
-         // Firebase 실패 시 localStorage에서 복원
-         const savedMarkers = localStorage.getItem('savedUserMarkers');
-         if (savedMarkers) {
-           window.savedUserMarkers = JSON.parse(savedMarkers);
-           drawAllSavedMarkers();
          }
        }
        
@@ -6096,7 +6067,6 @@
          });
          list.innerHTML = html;
        }
-       
        // 주소 마커 생성 함수
        function createAddressMarker(result, originalQuery) {
          const location = result.geometry.location;
@@ -6783,7 +6753,6 @@
           addressSearchCandidates = [];
         }
       }
-
       // 스와이프 삭제/수정 기능 초기화 - 모바일 최적화
       function initializeSwipeDelete() {
         const allItems = document.querySelectorAll('.user-added-item, .checklist-item');
@@ -7533,7 +7502,6 @@
         // Firebase 초기화 완료 이벤트 리스너 등록
         window.addEventListener('firebaseReady', firebaseReadyHandler);
       }
-      
       // Firebase 실시간 동기화 설정 (localStorage 제거 버전)
       function setupFirebaseSync() {
         try {
@@ -7954,7 +7922,6 @@
       function enableOfflineMode() {
         console.log('오프라인 모드 활성화');
         updateSyncStatus('오프라인 모드', 'warning');
-        // 로컬 스토리지만 사용
       }
       
       // 동기화 상태 표시기 추가
@@ -8316,9 +8283,6 @@
           console.error('사용자 정의 일정 복원 실패:', error);
         }
       }
-      
-
-      
       // 일정 컨텍스트 메뉴 표시 함수
       function showScheduleContextMenu(e, scheduleBtn) {
         // 기존 컨텍스트 메뉴가 있으면 제거
@@ -8589,7 +8553,7 @@
        // Import the functions you need from the SDKs you need
        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
-       import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+       import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
        // TODO: Add SDKs for Firebase products that you want to use
        // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -8611,12 +8575,6 @@
        
        // Initialize Firestore
        const db = getFirestore(app);
-       try {
-         await enableIndexedDbPersistence(db);
-         console.log('Firestore 오프라인 퍼시스턴스 활성화됨');
-       } catch (err) {
-         console.warn('오프라인 퍼시스턴스 활성화 실패:', err);
-       }
        
        console.log('Firebase Firestore 연결 완료!');
        
