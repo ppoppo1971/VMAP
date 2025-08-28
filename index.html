@@ -3060,23 +3060,11 @@
               });
 
               // 현재 위치 마커 클릭 시 정보창 표시 및 줌 레벨 15로 조정
-              const currentLocationInfoWindow = new google.maps.InfoWindow({
-                content: '<div style="padding: 8px; font-size: 14px; line-height: 1.3;"><strong>현재 위치</strong></div>',
-                disableAutoPan: false,
-                maxWidth: isMobile ? 250 : 300
-              });
-              
               currentLocationMarker.addListener('click', function() {
-                // 기존 정보창 닫기
-                if (currentInfoWindow) {
-                  currentInfoWindow.close();
-                }
-                currentLocationInfoWindow.open(map, currentLocationMarker);
-                currentInfoWindow = currentLocationInfoWindow;
-                
-                // 마커 주위로 줌 레벨 15로 조정
-                map.setCenter(currentLocation);
-                map.setZoom(15);
+                try {
+                  map.setZoom(15);
+                  map.panTo(currentLocation);
+                } catch (_) {}
               });
 
               locationBtn.classList.remove('loading');
@@ -4799,10 +4787,8 @@
                 
                 // 마커 클릭 시 정보 표시 및 줌 15로 중심 이동
                 marker.addListener('click', function() {
-                  // 마커 중심으로 줌 15로 이동
-                  map.setCenter(marker.getPosition());
-                  map.setZoom(15);
-                  
+                  if (isMarkerMode) { addCustomMarker(marker.getPosition()); return; }
+                  if (isRouteMode) { addUserRoutePoint(marker.getPosition()); return; }
                   showMarkerInfo(markerGroup, markerData, index);
                 });
                 
@@ -4815,10 +4801,15 @@
       
       // 마커 정보 표시
       function showMarkerInfo(markerGroup, markerData, index) {
-        // 기존 정보창이 있으면 제거
-        if (window.currentInfoWindow) {
-          window.currentInfoWindow.close();
+        // 생성 모드에서는 정보창을 표시하지 않음
+        if (isMarkerMode || isRouteMode) {
+          return;
         }
+         // 기존 정보창이 있으면 제거
+         if (window.currentInfoWindow) {
+           window.currentInfoWindow.close();
+           window.currentInfoWindow = null;
+         }
         
         // 저장된 정보로 정보창 표시
         showMarkerInfoWithData(markerGroup.name, index);
@@ -4834,6 +4825,10 @@
         // 마커 위치에 정보창 표시
         const marker = markerGroup.markerElements[index];
         window.currentInfoWindow.open(map, marker);
+        try {
+          map.setZoom(15);
+          map.panTo(marker.getPosition());
+        } catch (_) {}
       }
       
       // 경로 거리 계산 함수
@@ -4868,71 +4863,75 @@
       
       // 경로 정보창 표시 함수
       function showRouteInfo(route, clickPosition) {
-        const path = route.path || route.getPath();
-        const distance = calculateRouteDistance(path);
-        const formattedDistance = formatDistance(distance);
-        
-        // 경로 전체가 보이도록 지도 이동
-        if (path && path.length >= 2) {
-          const bounds = new google.maps.LatLngBounds();
-          path.forEach(point => {
-            if (point instanceof google.maps.LatLng) {
-              bounds.extend(point);
-            } else {
-              bounds.extend(new google.maps.LatLng(point.lat, point.lng));
-            }
-          });
-          map.fitBounds(bounds);
-          
-          // 여백을 위해 약간 줌 아웃
-          setTimeout(() => {
-            const currentZoom = map.getZoom();
-            if (currentZoom > 2) {
-              map.setZoom(currentZoom - 1);
-            }
-          }, 100);
+        // 생성 모드에서는 정보창을 표시하지 않음
+        if (isMarkerMode || isRouteMode) {
+          return;
         }
-        
-        // 생성 중인 경로인지 확인 (삭제 버튼을 표시하지 않음)
-        const isTemporaryRoute = route.name === '생성 중인 경로';
-        
-        const info = `
-          <div style="padding: 10px; min-width: 150px; position: relative;">
-            ${!isTemporaryRoute ? `
-              <button onclick="deleteRouteFromInfo('${route.id}', '${route.name}')" 
-                      style="position: absolute; top: 8px; right: 8px; 
-                             background: #ef4444; color: white; border: none; 
-                             border-radius: 4px; padding: 4px 8px; font-size: 12px; 
-                             cursor: pointer; z-index: 1000;"
-                      title="삭제">삭제</button>
-            ` : ''}
-            <p style="margin: 0; font-size: 14px; font-weight: bold; color: #3b82f6; ${!isTemporaryRoute ? 'padding-right: 50px;' : ''}">${formattedDistance}</p>
-          </div>
-        `;
-        
-        // 기존 정보창이 있으면 제거
-        if (window.currentInfoWindow) {
-          window.currentInfoWindow.close();
-        }
-        
-        // 새 정보창 생성
-        window.currentInfoWindow = new google.maps.InfoWindow({
-          content: info,
-          position: clickPosition,
-          disableAutoPan: false,
-          maxWidth: 200
-        });
-        
-        // X 버튼 제거
-        google.maps.event.addListener(window.currentInfoWindow, 'domready', function() {
-          const closeBtn = document.querySelector('.gm-ui-hover-effect');
-          if (closeBtn) {
-            closeBtn.style.display = 'none';
-          }
-        });
-        
-        window.currentInfoWindow.open(map);
-      }
+         const path = route.path || route.getPath();
+         const distance = calculateRouteDistance(path);
+         const formattedDistance = formatDistance(distance);
+         
+         // 경로 전체가 보이도록 지도 이동
+         if (path && path.length >= 2) {
+           const bounds = new google.maps.LatLngBounds();
+           path.forEach(point => {
+             if (point instanceof google.maps.LatLng) {
+               bounds.extend(point);
+             } else {
+               bounds.extend(new google.maps.LatLng(point.lat, point.lng));
+             }
+           });
+           map.fitBounds(bounds);
+           
+           // 여백을 위해 약간 줌 아웃
+           setTimeout(() => {
+             const currentZoom = map.getZoom();
+             if (currentZoom > 2) {
+               map.setZoom(currentZoom - 1);
+             }
+           }, 100);
+         }
+         
+         // 생성 중인 경로인지 확인 (삭제 버튼을 표시하지 않음)
+         const isTemporaryRoute = route.name === '생성 중인 경로';
+         
+         const info = `
+           <div style="padding: 10px; min-width: 150px; position: relative;">
+             ${!isTemporaryRoute ? `
+               <button onclick="deleteRouteFromInfo('${route.id}', '${route.name}')" 
+                       style="position: absolute; top: 8px; right: 8px; 
+                              background: #ef4444; color: white; border: none; 
+                              border-radius: 4px; padding: 4px 8px; font-size: 12px; 
+                              cursor: pointer; z-index: 1000;"
+                       title="삭제">삭제</button>
+             ` : ''}
+             <p style="margin: 0; font-size: 14px; font-weight: bold; color: #3b82f6; ${!isTemporaryRoute ? 'padding-right: 50px;' : ''}">${formattedDistance}</p>
+           </div>
+         `;
+         
+         // 기존 정보창이 있으면 제거
+         if (window.currentInfoWindow) {
+           window.currentInfoWindow.close();
+         }
+         
+         // 새 정보창 생성
+         window.currentInfoWindow = new google.maps.InfoWindow({
+           content: info,
+           position: clickPosition,
+           disableAutoPan: false,
+           maxWidth: 200
+         });
+         
+         // X 버튼 제거
+         google.maps.event.addListener(window.currentInfoWindow, 'domready', function() {
+           const closeBtn = document.querySelector('.gm-ui-hover-effect');
+           if (closeBtn) {
+             closeBtn.style.display = 'none';
+           }
+         });
+         
+         window.currentInfoWindow.open(map);
+       }
       
       // Firestore 저장용으로 경로 배열을 정제 (UI 전용 필드 제거)
       function sanitizeRoutesForFirestore(routes) {
@@ -5509,6 +5508,8 @@
             
             // 경로 클릭 이벤트 추가
             route.pathElement.addListener('click', function(event) {
+              if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
+              if (isMarkerMode) { addCustomMarker(event.latLng); return; }
               showRouteInfo(route, event.latLng);
             });
             
@@ -5536,6 +5537,8 @@
             
             // 점선 경로에도 클릭 이벤트 추가
             route.dottedPathElement.addListener('click', function(event) {
+              if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
+              if (isMarkerMode) { addCustomMarker(event.latLng); return; }
               showRouteInfo(route, event.latLng);
             });
           }
