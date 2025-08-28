@@ -5774,38 +5774,46 @@
              const hasRoutes = currentRoutes.length > 0;
              const hasMarkers = currentMarkers.length > 0;
              
-             // 경로나 마커가 하나라도 있으면 버튼 컨테이너 표시
-             removeButtons.style.display = (hasRoutes || hasMarkers) ? 'block' : 'none';
-             
-             // 각 버튼의 상태에 따라 투명도 조정
-             const routeBtn = removeButtons.querySelector('button[onclick*="removeRoutesByLocation"]');
-             const markerBtn = removeButtons.querySelector('button[onclick*="removeMarkersByLocation"]');
-             
-             if (routeBtn) {
-               if (hasRoutes) {
-                 // 경로가 있으면 정상 표시
-                 routeBtn.style.opacity = '1';
-                 routeBtn.style.cursor = 'pointer';
-                 routeBtn.disabled = false;
-               } else {
-                 // 경로가 없으면 희미하게 표시
-                 routeBtn.style.opacity = '0.3';
-                 routeBtn.style.cursor = 'not-allowed';
-                 routeBtn.disabled = true;
+             // 현재 섹션의 removeButtons 요소 찾기 (동적으로 생성된 일정들)
+             const removeButtonsId = currentSection.replace(/[^a-zA-Z0-9가-힣]/g, '') + 'RemoveButtons';
+             const removeButtons = document.getElementById(removeButtonsId);
+             if (removeButtons) {
+               const hasRoutes = currentRoutes.length > 0;
+               const hasMarkers = currentMarkers.length > 0;
+               
+               // 경로나 마커가 하나라도 있으면 버튼 컨테이너 표시
+               removeButtons.style.display = (hasRoutes || hasMarkers) ? 'block' : 'none';
+               
+               // 각 버튼의 상태에 따라 투명도 조정
+               const routeBtn = removeButtons.querySelector('button[onclick*="removeRoutesByLocation"]');
+               const markerBtn = removeButtons.querySelector('button[onclick*="removeMarkersByLocation"]');
+               
+               if (routeBtn) {
+                 if (hasRoutes) {
+                   // 경로가 있으면 정상 표시
+                   routeBtn.style.opacity = '1';
+                   routeBtn.style.cursor = 'pointer';
+                   routeBtn.disabled = false;
+                 } else {
+                   // 경로가 없으면 희미하게 표시
+                   routeBtn.style.opacity = '0.3';
+                   routeBtn.style.cursor = 'not-allowed';
+                   routeBtn.disabled = true;
+                 }
                }
-             }
-             
-             if (markerBtn) {
-               if (hasMarkers) {
-                 // 마커가 있으면 정상 표시
-                 markerBtn.style.opacity = '1';
-                 markerBtn.style.cursor = 'pointer';
-                 markerBtn.disabled = false;
-               } else {
-                 // 마커가 없으면 희미하게 표시
-                 markerBtn.style.opacity = '0.3';
-                 markerBtn.style.cursor = 'not-allowed';
-                 markerBtn.disabled = true;
+               
+               if (markerBtn) {
+                 if (hasMarkers) {
+                   // 마커가 있으면 정상 표시
+                   markerBtn.style.opacity = '1';
+                   markerBtn.style.cursor = 'pointer';
+                   markerBtn.disabled = false;
+                 } else {
+                   // 마커가 없으면 희미하게 표시
+                   markerBtn.style.opacity = '0.3';
+                   markerBtn.style.cursor = 'not-allowed';
+                   markerBtn.disabled = true;
+                 }
                }
              }
            }
@@ -8485,11 +8493,14 @@
               const scheduleIndex = customSchedules.findIndex(schedule => schedule.id === scheduleId);
               
               if (scheduleIndex !== -1) {
+                // 기존 제목 저장 (연관 데이터 업데이트용)
+                const oldTitle = customSchedules[scheduleIndex].title;
+                
                 // 일정 업데이트
                 customSchedules[scheduleIndex].title = newTitle;
                 customSchedules[scheduleIndex].timestamp = new Date().toISOString();
                 
-                // Firebase에 저장
+                // Firebase에 저장 (1차: 일정 제목만 우선 저장)
                 await window.firestore.updateDoc(
                   window.firestore.doc(window.db, 'users', 'currentUser'),
                   {
@@ -8498,7 +8509,76 @@
                   }
                 );
                 
-                // UI 업데이트
+                // 연관 데이터(userAddedItems, savedUserRoutes, savedUserMarkers)의 section/location을 새 제목으로 갱신
+                try {
+                  const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+                  const currentDoc = await window.firestore.getDoc(userDocRef);
+                  if (currentDoc.exists()) {
+                    const data = currentDoc.data();
+                    const updates = {};
+                    let hasUpdates = false;
+                    
+                    // 세부항목 섹션명 업데이트
+                    if (Array.isArray(data.userAddedItems)) {
+                      const updatedUserItems = data.userAddedItems.map(function(item) {
+                        if (item && item.section === oldTitle) {
+                          return { ...item, section: newTitle };
+                        }
+                        return item;
+                      });
+                      updates.userAddedItems = updatedUserItems;
+                      window.firebaseUserItems = updatedUserItems;
+                      hasUpdates = true;
+                    }
+                    
+                    // 경로 location 업데이트
+                    if (Array.isArray(data.savedUserRoutes)) {
+                      const updatedRoutes = data.savedUserRoutes.map(function(route) {
+                        if (route && route.location === oldTitle) {
+                          return { ...route, location: newTitle };
+                        }
+                        return route;
+                      });
+                      updates.savedUserRoutes = updatedRoutes;
+                      if (typeof savedUserRoutes !== 'undefined') {
+                        savedUserRoutes = updatedRoutes;
+                      }
+                      hasUpdates = true;
+                    }
+                    
+                    // 마커 location 업데이트
+                    if (Array.isArray(data.savedUserMarkers)) {
+                      const updatedMarkers = data.savedUserMarkers.map(function(marker) {
+                        if (marker && marker.location === oldTitle) {
+                          return { ...marker, location: newTitle };
+                        }
+                        return marker;
+                      });
+                      updates.savedUserMarkers = updatedMarkers;
+                      window.savedUserMarkers = updatedMarkers;
+                      hasUpdates = true;
+                    }
+                    
+                    if (hasUpdates) {
+                      updates.lastUpdated = window.firestore.serverTimestamp();
+                      await window.firestore.updateDoc(userDocRef, updates);
+                      
+                      // UI 갱신
+                      try {
+                        displayUserAddedItemsFromFirebase(window.firebaseUserItems || []);
+                        drawAllSavedRoutes();
+                        drawAllSavedMarkers();
+                        updateRouteRemoveButtons();
+                      } catch (uiErr) {
+                        console.warn('일정 제목 변경 후 UI 갱신 경고:', uiErr);
+                      }
+                    }
+                  }
+                } catch (relErr) {
+                  console.error('연관 데이터 제목/위치 갱신 실패:', relErr);
+                }
+                
+                // UI 업데이트 (해당 컨테이너 텍스트/속성 반영)
                 const scheduleBtn = cachedElements[`schedule_${scheduleId}`] || document.querySelector(`[data-schedule-id="${scheduleId}"] .toggle-btn`);
                 const scheduleContainer = document.querySelector(`[data-schedule-id="${scheduleId}"]`);
                 if (scheduleBtn && scheduleContainer) {
