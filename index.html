@@ -1657,6 +1657,43 @@
         }
       }
       
+      // URL 해시에서 맵 뷰(lat,lng,zoom) 복원
+      function parseMapViewFromUrl() {
+        try {
+          const hash = window.location.hash || '';
+          if (!hash.startsWith('#')) return null;
+          const params = new URLSearchParams(hash.slice(1));
+          const lat = parseFloat(params.get('lat'));
+          const lng = parseFloat(params.get('lng'));
+          const z = parseInt(params.get('z'), 10);
+          if (isFinite(lat) && isFinite(lng) && isFinite(z)) {
+            return { center: { lat: lat, lng: lng }, zoom: z };
+          }
+          return null;
+        } catch (e) { return null; }
+      }
+      
+      // 현재 맵 뷰를 URL 해시에 저장 (새로고침 시 유지)
+      let _lastHashUpdateTs = 0;
+      function updateMapViewInUrl(center, zoom) {
+        try {
+          const now = Date.now();
+          if (now - _lastHashUpdateTs < 300) return; // 과도한 업데이트 방지
+          _lastHashUpdateTs = now;
+          const lat = (center.lat || center.lat()).toFixed(6);
+          const lng = (center.lng || center.lng()).toFixed(6);
+          const z = zoom;
+          const params = new URLSearchParams(window.location.hash.slice(1));
+          params.set('lat', lat);
+          params.set('lng', lng);
+          params.set('z', z);
+          const newHash = '#' + params.toString();
+          if (newHash !== window.location.hash) {
+            history.replaceState(null, '', newHash);
+          }
+        } catch (e) { /* noop */ }
+      }
+      
       // 구글맵 초기화 함수
       function initMap() {
         // 모바일 최적화 적용
@@ -1669,10 +1706,17 @@
         // 두 공항 사이의 중간점 계산
         const centerLat = (incheonAirport.lat + chitoseAirport.lat) / 2;
         const centerLng = (incheonAirport.lng + chitoseAirport.lng) / 2;
-        const center = { lat: centerLat, lng: centerLng };
+        let center = { lat: centerLat, lng: centerLng };
         
         // 모바일에서는 더 넓은 뷰를 제공
-        const zoom = isMobile ? 4 : 5;
+        let zoom = isMobile ? 4 : 5;
+        
+        // URL 해시에서 뷰 복원 (있으면 우선 적용)
+        const savedView = parseMapViewFromUrl();
+        if (savedView) {
+          center = savedView.center;
+          zoom = savedView.zoom;
+        }
         
         // 일반지도에서 라벨을 숨기는 스타일 정의
         const noLabelsStyle = [
@@ -1721,6 +1765,15 @@
           animation: google.maps.Animation.NONE,
           // 모바일에서 배터리 절약
           backgroundColor: '#f5f5f5'
+        });
+        
+        // 맵 이동/줌 변경 시 URL에 현재 뷰 저장
+        map.addListener('idle', function() {
+          try {
+            const c = map.getCenter();
+            const z = map.getZoom();
+            updateMapViewInUrl(c, z);
+          } catch (e) {}
         });
         
         geocoder = new google.maps.Geocoder(); // Geocoder 객체 생성
