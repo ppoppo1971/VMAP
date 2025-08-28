@@ -2401,7 +2401,7 @@
               if (span) {
                 const { title, link } = overrides[id];
                 if (link) {
-                  span.innerHTML = `<span onclick="openUserItemLink('${link}')" style="cursor: pointer; color: #1d4ed8; text-decoration: underline;">${title}</span>`;
+                  span.innerHTML = `<span onclick="openUserItemLink('${link}')" style="cursor: pointer;">${title}</span>`;
                 } else {
                   span.textContent = title;
                 }
@@ -7791,7 +7791,7 @@
         let html = '';
         filteredItems.forEach(item => {
           const titleElement = item.link 
-            ? `<span onclick="openUserItemLink('${item.link}')" style="cursor: pointer; color: #1d4ed8;">${item.title}</span>`
+            ? `<span onclick="openUserItemLink('${item.link}')" style="cursor: pointer;">${item.title}</span>`
             : `${item.title}`;
           
           html += `
