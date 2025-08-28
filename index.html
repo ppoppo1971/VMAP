@@ -1424,6 +1424,28 @@
             100% { left: 100%; }
         }
 
+        @keyframes slideInFromTop {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-10px);
+            }
+        }
+
         .drag-placeholder.highlight {
             background: linear-gradient(135deg, #dbeafe, #bfdbfe);
             border-color: #2563eb;
@@ -1491,7 +1513,8 @@
       let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       let currentLocationMarker = null; // 현재 위치 마커 전역 변수
       let geocoder = null; // 주소 변환용 Geocoder
-      let addressMarker = null; // 주소 검색 마커
+      let addressMarker = null; // 주소 검색 마커 (기존 호환성용)
+      let addressMarkers = []; // 주소 검색 마커들 (여러 마커 지원)
       let currentInfoWindow = null; // 현재 열린 정보창
       let addressSearchCandidates = []; // 주소 검색 후보들
       
@@ -1815,6 +1838,16 @@
             window.currentInfoWindow = null;
           }
           
+          // 스와이프 상태 해제, 사이드패널 닫기, 검색 마커 제거
+          clearAllSwipeStates();
+          closeSidePanel();
+          
+          // 정보창 닫기 (X 버튼이 제거되었으므로 지도 클릭으로 닫기)
+          if (currentInfoWindow) {
+            currentInfoWindow.close();
+            currentInfoWindow = null;
+          }
+          
           // 기존 기능들
           if (!getElement('customMapMenu').classList.contains('hide')) {
             hideMenu();
@@ -1849,6 +1882,18 @@
                 checkAddressMarkerVisibility();
                 checkCurrentLocationMarkerVisibility();
             }, 200);
+        });
+        
+        // 창 크기 조정 시 스와이프 상태 해제, 사이드패널 닫기, 검색 마커 제거
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            // 디바운싱으로 성능 최적화
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                clearAllSwipeStates();
+                closeSidePanel();
+                clearAllAddressMarkers();
+            }, 150);
         });
         
         // 초기 줌 레벨 표시
@@ -2473,6 +2518,36 @@
       }
       
 
+      // 모든 스와이프 상태를 해제하는 공통 함수
+      function clearAllSwipeStates() {
+        // 사용자 추가 항목들의 스와이프 상태 해제
+        const userItems = document.querySelectorAll('.user-added-item.swiped');
+        userItems.forEach(item => {
+          item.classList.remove('swiped');
+          const itemContent = item.querySelector('.item-content');
+          if (itemContent) {
+            itemContent.style.transform = 'translateX(0)';
+          }
+        });
+        
+        // 체크리스트 항목들의 스와이프 상태 해제
+        const checklistItems = document.querySelectorAll('.checklist-item.swiped');
+        checklistItems.forEach(item => {
+          item.classList.remove('swiped');
+          const itemContent = item.querySelector('.item-content');
+          if (itemContent) {
+            itemContent.style.transform = 'translateX(0)';
+          }
+        });
+      }
+
+      // 사이드패널을 닫는 함수
+      function closeSidePanel() {
+        const customMapMenu = document.getElementById('customMapMenu');
+        if (customMapMenu && !customMapMenu.classList.contains('hide')) {
+          hideMenu();
+        }
+      }
       
       // 사용자 추가 항목 삭제 함수 (localStorage 제거 버전)
       async function deleteUserItem(itemId) {
@@ -5560,23 +5635,29 @@
          updateRouteRemoveButtons();
        }
        
-       // 주소 검색 함수 - 모바일 최적화
+       // 포괄적인 장소 검색 함수 - 부분 검색어 지원
        function searchAddress() {
-         const address = document.getElementById('addressInput').value.trim();
-         if (!address) {
-           alert('주소를 입력하세요.');
+         const searchQuery = document.getElementById('addressInput').value.trim();
+         if (!searchQuery) {
+           alert('검색어를 입력하세요.');
            return;
          }
-         if (!geocoder || !map) {
+         if (!map) {
            alert('지도가 아직 준비되지 않았습니다.');
            return;
          }
          
          // 모바일에서 검색 중 표시
+         let searchBtn = null;
+         let originalText = '';
          if (isMobile) {
-                        const searchBtn = getElement('addressInput');
-           const originalText = searchBtn.textContent || searchBtn.placeholder;
+           searchBtn = document.querySelector('#addressInput + button') || document.getElementById('addressInput');
+           originalText = searchBtn.textContent || searchBtn.placeholder || '주소를 입력하세요';
+           if (searchBtn.tagName === 'INPUT') {
+             searchBtn.placeholder = '검색중...';
+           } else {
            searchBtn.textContent = '검색중...';
+           }
            searchBtn.disabled = true;
          }
          
@@ -5586,66 +5667,327 @@
            addressMarker = null;
          }
          
+         // 포괄적 검색 실행
+         performComprehensiveSearch(searchQuery, searchBtn, originalText);
+       }
+       
+       // 포괄적 검색 실행 함수
+       function performComprehensiveSearch(query, searchBtn, originalText) {
+         console.log('포괄적 검색 시작:', query);
+         
+         // 검색 결과를 수집할 배열
+         let allResults = [];
+         let searchesCompleted = 0;
+         const totalSearches = 2; // Geocoding + Places Text Search
+         
+         // 검색 완료 후 처리 함수
+         function handleSearchComplete() {
+           searchesCompleted++;
+           if (searchesCompleted >= totalSearches) {
+             processAllSearchResults(allResults, query, searchBtn, originalText);
+           }
+         }
+         
+         // 1. 기존 Geocoding API 검색
+         if (geocoder) {
          const boundsForQuery = map.getBounds ? map.getBounds() : null;
          geocoder.geocode({ 
-           address: address, 
+             address: query, 
            bounds: boundsForQuery,
-           // 모바일에서 검색 범위 최적화
-           region: isMobile ? 'JP' : undefined // 일본 지역 우선 검색
+             region: 'JP' // 일본 지역 우선 검색
          }, function(results, status) {
+             if (status === 'OK' && results && results.length) {
+               console.log('Geocoding 결과:', results.length, '개');
+               results.forEach(result => {
+                 allResults.push({
+                   ...result,
+                   source: 'geocoding',
+                   name: result.formatted_address,
+                   place_id: result.place_id
+                 });
+               });
+             }
+             handleSearchComplete();
+           });
+         } else {
+           handleSearchComplete();
+         }
+         
+         // 2. Places Text Search API 검색
+         if (google.maps.places && google.maps.places.PlacesService) {
+           const service = new google.maps.places.PlacesService(map);
+           const bounds = map.getBounds();
+           
+           const request = {
+             query: query,
+             bounds: bounds,
+             region: 'jp',
+             language: 'ja'
+           };
+           
+           service.textSearch(request, function(results, status) {
+             if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length) {
+               console.log('Places Text Search 결과:', results.length, '개');
+               results.forEach(result => {
+                 allResults.push({
+                   geometry: { location: result.geometry.location },
+                   formatted_address: result.formatted_address || result.name,
+                   name: result.name,
+                   place_id: result.place_id,
+                   source: 'places_text',
+                   types: result.types,
+                   rating: result.rating,
+                   vicinity: result.vicinity
+                 });
+               });
+             }
+             handleSearchComplete();
+           });
+         } else {
+           handleSearchComplete();
+         }
+       }
+       
+       // 모든 검색 결과 처리 함수
+       function processAllSearchResults(allResults, query, searchBtn, originalText) {
            // 모바일에서 검색 완료 표시 복원
-           if (isMobile) {
-             const searchBtn = getElement('addressInput');
+         if (isMobile && searchBtn) {
+           if (searchBtn.tagName === 'INPUT') {
+             searchBtn.placeholder = originalText;
+           } else {
              searchBtn.textContent = originalText;
+           }
              searchBtn.disabled = false;
            }
            
-           if (status !== 'OK' || !results || !results.length) {
-             alert('주소를 찾을 수 없습니다: ' + status);
+         console.log('전체 검색 결과:', allResults.length, '개');
+         
+         if (!allResults.length) {
+           alert('검색 결과가 없습니다. 다른 검색어를 시도해보세요.');
              return;
            }
 
-           // 현재 화면 범위 내 결과만 사용
-           const boundsNow = map.getBounds ? map.getBounds() : null;
-           const filtered = boundsNow ? results.filter(function(r) { return boundsNow.contains(r.geometry.location); }) : results;
-           if (!filtered.length) {
-             alert('현재 화면 범위 내에서 주소를 찾을 수 없습니다. 지도를 이동/확대 후 다시 시도하세요.');
+         // 중복 제거 (place_id 기준)
+         const uniqueResults = [];
+         const seenPlaceIds = new Set();
+         const seenLocations = new Set();
+         
+         allResults.forEach(result => {
+           const locationKey = `${result.geometry.location.lat().toFixed(6)},${result.geometry.location.lng().toFixed(6)}`;
+           
+           if (result.place_id && !seenPlaceIds.has(result.place_id)) {
+             seenPlaceIds.add(result.place_id);
+             uniqueResults.push(result);
+           } else if (!result.place_id && !seenLocations.has(locationKey)) {
+             seenLocations.add(locationKey);
+             uniqueResults.push(result);
+           }
+         });
+         
+         console.log('중복 제거 후:', uniqueResults.length, '개');
+         
+         // 현재 지도 범위 내 결과만 필터링
+         const bounds = map.getBounds();
+         const filteredResults = bounds ? 
+           uniqueResults.filter(result => bounds.contains(result.geometry.location)) : 
+           uniqueResults;
+         
+         if (!filteredResults.length) {
+           alert('현재 화면 범위 내에서 검색 결과를 찾을 수 없습니다. 지도를 이동/확대 후 다시 시도하세요.');
              return;
            }
-
-           // 결과가 여러 개면 사용자 선택 유도
-           if (filtered.length > 1) {
-             addressSearchCandidates = filtered;
-             showAddressSelection(filtered, address);
-             return;
+         
+         console.log('지도 범위 내 결과:', filteredResults.length, '개');
+         
+         // 관련성 점수 계산 및 정렬
+         const scoredResults = filteredResults.map(result => {
+           let score = 0;
+           const name = (result.name || result.formatted_address || '').toLowerCase();
+           const queryLower = query.toLowerCase();
+           
+           // 완전 일치
+           if (name === queryLower) score += 100;
+           // 시작 일치
+           else if (name.startsWith(queryLower)) score += 80;
+           // 포함 일치
+           else if (name.includes(queryLower)) score += 60;
+           // 부분 일치 (각 단어별)
+           else {
+             const queryWords = queryLower.split(/\s+/);
+             queryWords.forEach(word => {
+               if (name.includes(word)) score += 30;
+             });
            }
+           
+           // Places API 결과에 추가 점수
+           if (result.source === 'places_text') score += 10;
+           
+           // 평점이 있는 경우 추가 점수
+           if (result.rating) score += Math.min(result.rating, 5);
+           
+           return { ...result, relevanceScore: score };
+         });
+         
+         // 관련성 점수로 정렬
+         scoredResults.sort((a, b) => b.relevanceScore - a.relevanceScore);
 
-           const location = filtered[0].geometry.location;
+                    // 모든 결과를 마커로 표시
+         createMultipleAddressMarkers(scoredResults, query);
+       }
+       
+       // 개선된 주소 선택 다이얼로그
+       function showEnhancedAddressSelection(results, queryText) {
+         // 기존 선택창 제거
+         const existing = document.getElementById('addressSelectDialog');
+         if (existing) existing.remove();
+
+         const dialog = document.createElement('div');
+         dialog.id = 'addressSelectDialog';
+         dialog.style.cssText = `
+           position: fixed;
+           z-index: 1000;
+           width: 400px;
+           max-width: 90vw;
+           max-height: 70vh;
+           background: white;
+           border: 1px solid #e5e7eb;
+           border-radius: 16px;
+           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+           overflow: hidden;
+           top: 50%;
+           left: 50%;
+           transform: translate(-50%, -50%);
+         `;
+
+         dialog.innerHTML = `
+           <div style="background: linear-gradient(135deg, #1d4ed8, #2563eb); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+             <div style="font-weight: 700; font-size: 16px;">검색 결과 (${results.length}개)</div>
+             <button style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s;" onclick="closeAddressSelection()" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='none'">×</button>
+           </div>
+           <div style="padding: 16px; max-height: 50vh; overflow: auto;">
+             <div style="margin-bottom: 12px; color: #6b7280; font-size: 14px;">
+               '<strong>${queryText}</strong>' 검색 결과입니다. 원하는 장소를 선택하세요.
+             </div>
+             <div id="addressSelectList"></div>
+           </div>
+         `;
+
+         document.body.appendChild(dialog);
+
+         // 결과 목록 생성
+         const list = document.getElementById('addressSelectList');
+         let html = '';
+         results.forEach((result, index) => {
+           const name = result.name || '이름 없음';
+           const address = result.formatted_address || result.vicinity || '주소 정보 없음';
+           const source = result.source === 'places_text' ? '장소' : '주소';
+           const rating = result.rating ? ` ⭐ ${result.rating}` : '';
+           
+           html += `
+             <button onclick="chooseAddressResult(${index})" style="
+               width: 100%;
+               text-align: left;
+               padding: 12px;
+               margin-bottom: 8px;
+               border: 1px solid #e5e7eb;
+               border-radius: 8px;
+               background: white;
+               cursor: pointer;
+               transition: all 0.2s ease;
+               display: block;
+             " onmouseover="this.style.background='#f8fafc'; this.style.borderColor='#3b82f6';" onmouseout="this.style.background='white'; this.style.borderColor='#e5e7eb';">
+               <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${name}${rating}</div>
+               <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">${address}</div>
+               <div style="font-size: 12px; color: #9ca3af;">
+                 <span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">${source}</span>
+                 관련성: ${result.relevanceScore || 0}점
+               </div>
+             </button>
+           `;
+         });
+         list.innerHTML = html;
+       }
+       
+       // 주소 마커 생성 함수
+       function createAddressMarker(result, originalQuery) {
+         const location = result.geometry.location;
+         const name = result.name || originalQuery;
+         const address = result.formatted_address || result.vicinity || '';
            
            // 현재 줌 레벨 유지하면서 중심만 이동
            const currentZoom = map.getZoom();
            map.setCenter(location);
-           map.setZoom(currentZoom); // 현재 줌 레벨 유지
+         map.setZoom(Math.max(currentZoom, 14)); // 최소 줌 레벨 14
 
-           // 새로운 마커 생성 및 표시 - 모바일 최적화
+         // 새로운 마커 생성 및 표시
            addressMarker = new google.maps.Marker({
              position: location,
              map: map,
-             title: address,
+           title: name,
              icon: {
                url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-               scaledSize: new google.maps.Size(isMobile ? 28 : 32, isMobile ? 28 : 32)
-             },
-             animation: isMobile ? google.maps.Animation.NONE : google.maps.Animation.DROP, // 모바일에서는 애니메이션 제거로 성능 향상
-             optimized: isMobile ? false : true // 모바일에서는 최적화 비활성화로 성능 향상
-           });
+             scaledSize: new google.maps.Size(isMobile ? 32 : 36, isMobile ? 32 : 36)
+           },
+           animation: isMobile ? google.maps.Animation.NONE : google.maps.Animation.DROP,
+           optimized: false
+         });
 
-           // 마커 클릭 시 정보창 표시 - 모바일 최적화
-           const infoWindow = new google.maps.InfoWindow({
-             content: '<div style="padding: 8px; font-size: 14px; line-height: 1.3;"><strong>' + address + '</strong></div>',
-             disableAutoPan: false,
-             maxWidth: isMobile ? 250 : 300
-           });
+                  // 마커 클릭 시 정보창 표시 (한국어)
+         const infoContent = `
+           <div style="padding: 16px; max-width: 320px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+             <div style="font-weight: 700; font-size: 16px; color: #1f2937; margin-bottom: 8px; line-height: 1.4;">
+               ${name}
+               <span style="background: #ef4444; color: white; font-size: 12px; padding: 2px 6px; border-radius: 12px; margin-left: 8px;">추천</span>
+             </div>
+             ${address ? `<div style="font-size: 14px; color: #6b7280; margin-bottom: 8px; line-height: 1.3;">${address}</div>` : ''}
+             ${result.rating ? `<div style="font-size: 14px; color: #f59e0b; margin-bottom: 8px;">⭐ ${result.rating}점 (평점)</div>` : ''}
+             <div style="font-size: 12px; color: #9ca3af; margin-bottom: 12px;">
+               <span style="background: ${result.source === 'places_text' ? '#e0e7ff' : '#f3f4f6'}; color: ${result.source === 'places_text' ? '#3730a3' : '#6b7280'}; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">
+                 ${result.source === 'places_text' ? '장소 정보' : '주소 정보'}
+               </span>
+               연관도: ${result.relevanceScore || 0}점
+             </div>
+             <div style="border-top: 1px solid #e5e7eb; padding-top: 12px;">
+               <button onclick="openInGoogleMaps('${location.lat()}', '${location.lng()}', '${name.replace(/'/g, "\\'")}', '${encodeURIComponent(address || name)}')" 
+                       style="
+                         width: 100%;
+                         background: linear-gradient(135deg, #4285f4, #34a853);
+                         color: white;
+                         border: none;
+                         border-radius: 8px;
+                         padding: 12px 16px;
+                         font-size: 14px;
+                         font-weight: 600;
+                         cursor: pointer;
+                         transition: all 0.2s ease;
+                         display: flex;
+                         align-items: center;
+                         justify-content: center;
+                         gap: 8px;
+                       "
+                       onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 12px rgba(66, 133, 244, 0.3)';"
+                       onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                 <span style="font-size: 16px;">🗺️</span>
+                 구글맵에서 상세보기
+               </button>
+             </div>
+           </div>
+         `;
+         
+         const infoWindow = new google.maps.InfoWindow({
+           content: infoContent,
+           disableAutoPan: false,
+           maxWidth: isMobile ? 300 : 350
+         });
+         
+         // 정보창 열린 후 X 버튼 제거
+         google.maps.event.addListener(infoWindow, 'domready', function() {
+           const closeBtn = document.querySelector('.gm-ui-hover-effect');
+           if (closeBtn) {
+             closeBtn.style.display = 'none';
+           }
+         });
+         
            addressMarker.addListener('click', function() {
              // 기존 정보창 닫기
              if (currentInfoWindow) {
@@ -5661,17 +6003,305 @@
 
            // 주소 입력창 초기화
            document.getElementById('addressInput').value = '';
+         
+         console.log('마커 생성 완료:', name, 'at', location.toString());
+       }
+       
+       // 여러 주소 마커 생성 함수
+       function createMultipleAddressMarkers(results, originalQuery) {
+         console.log('여러 마커 생성 시작:', results.length, '개');
+         
+         // 기존 검색 마커들 모두 제거
+         clearAllAddressMarkers();
+         
+         if (!results.length) {
+           alert('검색 결과가 없습니다.');
+           return;
+         }
+         
+         // 지도 영역을 모든 마커를 포함하도록 조정할 bounds 생성
+         const bounds = new google.maps.LatLngBounds();
+         let markersCreated = 0;
+         
+         results.forEach((result, index) => {
+           const location = result.geometry.location;
+           const name = result.name || result.formatted_address || `검색 결과 ${index + 1}`;
+           const address = result.formatted_address || result.vicinity || '';
+           
+           // 마커 아이콘 색상 - 관련성에 따라 다른 색상
+           let iconUrl;
+           if (index === 0) {
+             // 가장 관련성 높은 결과는 빨간색
+             iconUrl = 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
+           } else if (index < 3) {
+             // 상위 3개는 주황색
+             iconUrl = 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png';
+           } else {
+             // 나머지는 노란색
+             iconUrl = 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+           }
+           
+           // 마커 생성
+           const marker = new google.maps.Marker({
+             position: location,
+             map: map,
+             title: name,
+             icon: {
+               url: iconUrl,
+               scaledSize: new google.maps.Size(isMobile ? 28 : 32, isMobile ? 28 : 32)
+             },
+             animation: google.maps.Animation.DROP,
+             optimized: false,
+             zIndex: 1000 - index // 관련성 높은 순으로 위에 표시
+           });
+           
+           // 마커 배열에 추가
+           addressMarkers.push(marker);
+           bounds.extend(location);
+           markersCreated++;
+           
+           // 정보창 내용 구성 (한국어)
+           const infoContent = `
+             <div style="padding: 16px; max-width: 320px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+               <div style="font-weight: 700; font-size: 16px; color: #1f2937; margin-bottom: 8px; line-height: 1.4;">
+                 ${name}
+                 ${index < 3 ? '<span style="background: #ef4444; color: white; font-size: 12px; padding: 2px 6px; border-radius: 12px; margin-left: 8px;">추천</span>' : ''}
+               </div>
+               ${address ? `<div style="font-size: 14px; color: #6b7280; margin-bottom: 8px; line-height: 1.3;">${address}</div>` : ''}
+               ${result.rating ? `<div style="font-size: 14px; color: #f59e0b; margin-bottom: 8px;">⭐ ${result.rating}점 (평점)</div>` : ''}
+               <div style="font-size: 12px; color: #9ca3af; margin-bottom: 12px;">
+                 <span style="background: ${result.source === 'places_text' ? '#e0e7ff' : '#f3f4f6'}; color: ${result.source === 'places_text' ? '#3730a3' : '#6b7280'}; padding: 2px 6px; border-radius: 4px; margin-right: 4px;">
+                   ${result.source === 'places_text' ? '장소 정보' : '주소 정보'}
+                 </span>
+                 연관도: ${result.relevanceScore || 0}점
+               </div>
+               <div style="border-top: 1px solid #e5e7eb; padding-top: 12px;">
+                 <button onclick="openInGoogleMaps('${location.lat()}', '${location.lng()}', '${name.replace(/'/g, "\\'")}', '${encodeURIComponent(address || name)}')" 
+                         style="
+                           width: 100%;
+                           background: linear-gradient(135deg, #4285f4, #34a853);
+                           color: white;
+                           border: none;
+                           border-radius: 8px;
+                           padding: 12px 16px;
+                           font-size: 14px;
+                           font-weight: 600;
+                           cursor: pointer;
+                           transition: all 0.2s ease;
+                           display: flex;
+                           align-items: center;
+                           justify-content: center;
+                           gap: 8px;
+                         "
+                         onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 12px rgba(66, 133, 244, 0.3)';"
+                         onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                   <span style="font-size: 16px;">🗺️</span>
+                   구글맵에서 상세보기
+                 </button>
+               </div>
+             </div>
+           `;
+           
+           // 정보창 생성 (X 버튼 제거)
+           const infoWindow = new google.maps.InfoWindow({
+             content: infoContent,
+             disableAutoPan: false,
+             maxWidth: isMobile ? 300 : 350
+           });
+           
+           // 정보창 열린 후 X 버튼 제거
+           google.maps.event.addListener(infoWindow, 'domready', function() {
+             const closeBtn = document.querySelector('.gm-ui-hover-effect');
+             if (closeBtn) {
+               closeBtn.style.display = 'none';
+             }
+           });
+           
+           // 마커 클릭 이벤트
+           marker.addListener('click', function() {
+             // 기존 정보창 닫기
+             if (currentInfoWindow) {
+               currentInfoWindow.close();
+             }
+             infoWindow.open(map, marker);
+             currentInfoWindow = infoWindow;
+             
+             // 마커 중심으로 부드럽게 이동
+             map.panTo(location);
+           });
          });
+         
+         // 첫 번째 마커를 addressMarker로도 설정 (기존 호환성)
+         if (addressMarkers.length > 0) {
+           addressMarker = addressMarkers[0];
+         }
+         
+         // 모든 마커가 보이도록 지도 범위 조정
+         if (markersCreated > 1) {
+           map.fitBounds(bounds);
+           // 너무 확대되지 않도록 최대 줌 레벨 제한
+           google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+             if (map.getZoom() > 16) {
+               map.setZoom(16);
+             }
+           });
+         } else if (markersCreated === 1) {
+           // 마커가 하나만 있으면 해당 위치로 이동
+           map.setCenter(results[0].geometry.location);
+           map.setZoom(15);
+         }
+         
+         // 주소 입력창 초기화
+         document.getElementById('addressInput').value = '';
+         
+         console.log('마커 생성 완료:', markersCreated, '개의 마커가 생성되었습니다');
+         
+         // 사용자에게 알림
+         const message = `"${originalQuery}" 검색 결과 ${markersCreated}개 장소가 지도에 표시되었습니다.`;
+         showSearchResultNotification(message);
+       }
+       
+       // 모든 주소 검색 마커 제거 함수
+       function clearAllAddressMarkers() {
+         // 기존 단일 마커 제거
+         if (addressMarker) {
+           addressMarker.setMap(null);
+           addressMarker = null;
+         }
+         
+         // 모든 검색 마커들 제거
+         addressMarkers.forEach(marker => {
+           marker.setMap(null);
+         });
+         addressMarkers = [];
+         
+         // 현재 열린 정보창 닫기
+         if (currentInfoWindow) {
+           currentInfoWindow.close();
+           currentInfoWindow = null;
+         }
+       }
+       
+       // 검색 결과 알림 표시 함수
+       function showSearchResultNotification(message) {
+         // 기존 알림 제거
+         const existingNotification = document.getElementById('searchResultNotification');
+         if (existingNotification) {
+           existingNotification.remove();
+         }
+         
+         // 알림 생성
+         const notification = document.createElement('div');
+         notification.id = 'searchResultNotification';
+         notification.style.cssText = `
+           position: fixed;
+           top: 20px;
+           left: 50%;
+           transform: translateX(-50%);
+           z-index: 10000;
+           background: linear-gradient(135deg, #10b981, #059669);
+           color: white;
+           padding: 16px 24px;
+           border-radius: 12px;
+           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+           font-size: 14px;
+           font-weight: 600;
+           max-width: 90vw;
+           text-align: center;
+           animation: slideInFromTop 0.3s ease-out;
+         `;
+         
+         notification.textContent = message;
+         document.body.appendChild(notification);
+         
+         // 3초 후 자동 제거
+         setTimeout(() => {
+           if (notification && notification.parentNode) {
+             notification.style.animation = 'fadeOut 0.3s ease-out';
+             setTimeout(() => {
+               if (notification && notification.parentNode) {
+                 notification.remove();
+               }
+             }, 300);
+           }
+         }, 3000);
+       }
+       
+       // 구글맵에서 장소 열기 함수
+       function openInGoogleMaps(lat, lng, placeName, encodedAddress) {
+         try {
+           // 구글맵 URL 생성
+           let googleMapsUrl;
+           
+           // 모바일 기기인지 확인
+           const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+           
+           if (isMobileDevice) {
+             // 모바일: 구글맵 앱으로 직접 연결 시도
+             googleMapsUrl = `https://maps.google.com/maps?q=${lat},${lng}(${encodedAddress})&z=16`;
+             
+             // iOS의 경우 Google Maps 앱이 설치되어 있으면 앱으로, 없으면 Safari로
+             if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+               const googleMapsAppUrl = `comgooglemaps://?center=${lat},${lng}&zoom=16&q=${lat},${lng}`;
+               
+               // 먼저 앱으로 시도
+               const appLink = document.createElement('a');
+               appLink.href = googleMapsAppUrl;
+               appLink.style.display = 'none';
+               document.body.appendChild(appLink);
+               appLink.click();
+               document.body.removeChild(appLink);
+               
+               // 0.5초 후에 앱이 열리지 않으면 웹으로 대체
+               setTimeout(() => {
+                 window.open(googleMapsUrl, '_blank');
+               }, 500);
+               
+               return;
+             }
+           } else {
+             // 데스크톱: 웹 브라우저로 구글맵 열기
+             googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}&zoom=16`;
+           }
+           
+           // 새 창에서 구글맵 열기
+           window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
+           
+           console.log('구글맵 열기:', placeName, 'at', lat, lng);
+           
+           // 사용자에게 피드백 제공
+           showSearchResultNotification(`"${decodeURIComponent(encodedAddress)}" 구글맵에서 열기`);
+           
+         } catch (error) {
+           console.error('구글맵 열기 실패:', error);
+           alert('구글맵을 열 수 없습니다. 잠시 후 다시 시도해주세요.');
+         }
        }
        
        // 주소 마커 가시성 확인 및 자동 제거 함수
        function checkAddressMarkerVisibility() {
-         if (addressMarker && map) {
+         if (map) {
            const bounds = map.getBounds();
-           const markerPosition = addressMarker.getPosition();
+           if (!bounds) return;
            
-           // 마커가 현재 지도 뷰의 경계 밖에 있는지 확인
-           if (bounds && !bounds.contains(markerPosition)) {
+           // 여러 마커들 중 뷰에서 벗어난 것들 확인
+           let removedCount = 0;
+           for (let i = addressMarkers.length - 1; i >= 0; i--) {
+             const marker = addressMarkers[i];
+             const markerPosition = marker.getPosition();
+             if (!bounds.contains(markerPosition)) {
+               marker.setMap(null);
+               addressMarkers.splice(i, 1);
+               removedCount++;
+             }
+           }
+           
+           if (removedCount > 0) {
+             console.log(`${removedCount}개의 검색 마커가 뷰에서 벗어나 제거되었습니다.`);
+           }
+           
+           // 기존 단일 마커도 확인 (호환성)
+           if (addressMarker && !bounds.contains(addressMarker.getPosition())) {
              // 열린 정보창 닫기
              if (currentInfoWindow) {
                currentInfoWindow.close();
@@ -5709,16 +6339,8 @@
        
        // 주소 마커 제거 함수 (수동 제거용)
        function clearAddressMarker() {
-         if (addressMarker) {
-           // 열린 정보창 닫기
-           if (currentInfoWindow) {
-             currentInfoWindow.close();
-             currentInfoWindow = null;
-           }
-           addressMarker.setMap(null);
-           addressMarker = null;
-           document.getElementById('addressInput').value = '';
-         }
+         // 새로운 여러 마커 제거 함수 호출
+         clearAllAddressMarkers();
        }
        
        // 현재 위치 마커 제거 함수 (수동 제거용)
@@ -5735,62 +6357,8 @@
        }
 
       function showAddressSelection(results, queryText) {
-        // 기존 선택창 제거
-        var existing = document.getElementById('addressSelectDialog');
-        if (existing) existing.remove();
-
-        var dialog = document.createElement('div');
-        dialog.id = 'addressSelectDialog';
-        dialog.style.position = 'absolute';
-        dialog.style.zIndex = '15';
-        dialog.style.width = '320px';
-        dialog.style.maxWidth = '85vw';
-        dialog.style.background = 'rgba(255, 255, 255, 0.95)';
-        dialog.style.border = '1px solid rgba(0,0,0,0.1)';
-        dialog.style.borderRadius = '12px';
-        dialog.style.boxShadow = '0 12px 24px rgba(0,0,0,0.15)';
-        dialog.style.overflow = 'hidden';
-
-        dialog.innerHTML =
-          '<div style="background:#1d4ed8;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">' +
-          '  <div style="font-weight:700;">주소 선택</div>' +
-          '  <button style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;" onclick="closeAddressSelection()">×</button>' +
-          '</div>' +
-          '<div style="padding:12px 16px;max-height:50vh;overflow:auto;">' +
-          '  <div style="margin-bottom:8px;color:#374151;font-size:0.9rem;">\'' + (queryText || '') + '\' 검색 결과가 여러 개입니다. 선택하세요.</div>' +
-          '  <div id="addressSelectList"></div>' +
-          '</div>';
-
-        document.body.appendChild(dialog);
-
-        // 위치 중앙 배치 - 모바일 최적화
-        setTimeout(function () {
-          var mapEl = document.getElementById('map');
-          var rect = mapEl.getBoundingClientRect();
-          
-          if (isMobile) {
-            // 모바일: 화면 중앙에 표시
-            dialog.style.left = '50%';
-            dialog.style.transform = 'translateX(-50%)';
-            dialog.style.top = '80px';
-          } else {
-            // 데스크톱: 지도 중앙에 표시
-            dialog.style.left = (rect.width / 2 - 160) + 'px';
-            dialog.style.top = (rect.height / 2 - 160) + 'px';
-            dialog.style.transform = 'none';
-          }
-        }, 50);
-
-        // 리스트 렌더링
-        var list = dialog.querySelector('#addressSelectList');
-        var html = '';
-        results.forEach(function(r, idx) {
-          var addr = (r.formatted_address || r.name || '결과 ' + (idx + 1));
-          html += '<button style="width:100%;text-align:left;margin:6px 0;padding:10px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:8px;background:#fff;cursor:pointer;" onclick="chooseAddressResult(' + idx + ')">' +
-                  '<div style="font-weight:600;color:#111827;">' + addr + '</div>' +
-                  '</button>';
-        });
-        list.innerHTML = html;
+        // 호환성을 위해 새로운 개선된 함수로 리디렉션
+        showEnhancedAddressSelection(results, queryText);
       }
 
       function closeAddressSelection() {
@@ -5807,47 +6375,9 @@
             return;
           }
           var result = candidates[index];
-          var location = result.geometry.location;
-
-          // 기존 마커 제거
-          if (addressMarker) {
-            addressMarker.setMap(null);
-            addressMarker = null;
-          }
-
-          map.setCenter(location);
-          map.setZoom(16);
-
-          addressMarker = new google.maps.Marker({
-            position: location,
-            map: map,
-            title: result.formatted_address || '',
-            icon: {
-              url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-              scaledSize: new google.maps.Size(32, 32)
-            },
-            animation: google.maps.Animation.DROP
-          });
-
-          var infoWindow = new google.maps.InfoWindow({
-            content: '<div style="padding: 8px; font-size: 14px; line-height: 1.3;"><strong>' + (result.formatted_address || '') + '</strong></div>',
-            disableAutoPan: false,
-            maxWidth: 300
-          });
-          addressMarker.addListener('click', function() {
-            // 기존 정보창 닫기
-            if (currentInfoWindow) {
-              currentInfoWindow.close();
-            }
-            infoWindow.open(map, addressMarker);
-            currentInfoWindow = infoWindow;
-            
-            // 마커 주위로 줌 레벨 15로 조정
-            map.setCenter(location);
-            map.setZoom(15);
-          });
-
-          document.getElementById('addressInput').value = '';
+          
+          // 새로운 마커 생성 함수 사용
+          createAddressMarker(result, result.name || result.formatted_address || '선택된 위치');
         } finally {
           closeAddressSelection();
           addressSearchCandidates = [];
@@ -6238,7 +6768,12 @@
         const elementBelow = document.elementFromPoint(pointer.clientX, pointer.clientY);
         dragElement.style.pointerEvents = 'auto';
         
-        const targetItem = elementBelow ? elementBelow.closest('.user-added-item[data-item-type="user"]') : null;
+        // 드래그 중인 항목의 타입에 따라 대상 결정
+        const dragItemType = dragElement.getAttribute('data-item-type');
+        const targetSelector = dragItemType === 'schedule' 
+          ? '.user-added-item[data-item-type="schedule"]' 
+          : '.user-added-item[data-item-type="user"]';
+        const targetItem = elementBelow ? elementBelow.closest(targetSelector) : null;
         
         if (targetItem && targetItem !== dragElement && targetItem !== dragPlaceholder) {
           const container = targetItem.parentNode;
@@ -6409,10 +6944,15 @@
             return;
           }
           
-          const userItems = container.querySelectorAll('.user-added-item[data-item-type="user"]');
+          // 드래그된 항목의 타입에 따라 구분하여 처리
+          const draggedItemType = dragElement ? dragElement.getAttribute('data-item-type') : 'user';
+          const selector = draggedItemType === 'schedule' 
+            ? '.user-added-item[data-item-type="schedule"]' 
+            : '.user-added-item[data-item-type="user"]';
+          const items = container.querySelectorAll(selector);
           const newOrder = [];
           
-          userItems.forEach((item, index) => {
+          items.forEach((item, index) => {
             const itemId = item.getAttribute('data-item-id');
             if (itemId) {
               newOrder.push(itemId);
@@ -6487,7 +7027,12 @@
           const container = document.querySelector('#' + window.currentActiveSection + 'Content');
           if (!container) return;
           
-          const items = Array.from(container.querySelectorAll('.user-added-item[data-item-type="user"]'));
+          // 드래그된 항목의 타입에 따라 구분하여 처리
+          const draggedItemType = dragElement ? dragElement.getAttribute('data-item-type') : 'user';
+          const selector = draggedItemType === 'schedule' 
+            ? '.user-added-item[data-item-type="schedule"]' 
+            : '.user-added-item[data-item-type="user"]';
+          const items = Array.from(container.querySelectorAll(selector));
           const newOrder = items.map((item, index) => {
             const itemId = item.dataset.itemId;
             return { id: itemId, order: index };
@@ -6495,6 +7040,21 @@
           
           console.log('새로운 항목 순서:', newOrder);
           
+          if (draggedItemType === 'schedule') {
+            // 일정 항목 순서 저장
+            saveScheduleOrder(newOrder);
+          } else {
+            // 사용자 추가 항목 순서 저장
+            saveUserItemOrder(newOrder);
+          }
+        } catch (error) {
+          console.error('항목 순서 저장 중 오류:', error);
+        }
+      }
+      
+      // 사용자 추가 항목 순서 저장
+      function saveUserItemOrder(newOrder) {
+        try {
           // Firebase에서 현재 항목들을 가져와서 순서 업데이트
           const currentItems = window.firebaseUserItems || [];
           const currentSection = window.currentActiveSection || '';
@@ -6526,6 +7086,41 @@
           
         } catch (error) {
           console.error('항목 순서 저장 중 오류:', error);
+        }
+      }
+      
+      // 일정 항목 순서 저장
+      async function saveScheduleOrder(newOrder) {
+        try {
+          if (!window.db || !window.firestore) return;
+          
+          // Firebase에서 현재 일정들을 가져오기
+          const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+          if (docSnap.exists() && docSnap.data().customSchedules) {
+            const customSchedules = docSnap.data().customSchedules;
+            
+            // 새로운 순서로 정렬
+            const reorderedSchedules = [];
+            newOrder.forEach(orderInfo => {
+              const schedule = customSchedules.find(s => s.id === orderInfo.id);
+              if (schedule) {
+                reorderedSchedules.push(schedule);
+              }
+            });
+            
+            // Firebase에 저장
+            await window.firestore.updateDoc(
+              window.firestore.doc(window.db, 'users', 'currentUser'),
+              {
+                customSchedules: reorderedSchedules,
+                lastUpdated: window.firestore.serverTimestamp()
+              }
+            );
+            
+            console.log('일정 순서가 저장되었습니다.');
+          }
+        } catch (error) {
+          console.error('일정 순서 저장 중 오류:', error);
         }
       }
       
@@ -7155,7 +7750,7 @@
           const additionalDaysContainer = document.getElementById('additionalDays');
           additionalDaysContainer.innerHTML += scheduleHtml;
           
-          // 스와이프 초기화
+          // 스와이프 및 드래그 초기화
           initializeSwipeDelete();
           
           // Firebase에 저장
@@ -7314,7 +7909,7 @@
               
               additionalDaysContainer.innerHTML = html;
               
-              // 스와이프 초기화
+              // 스와이프 및 드래그 초기화
               initializeSwipeDelete();
             }
           }
@@ -7656,7 +8251,6 @@
      </script>
     
     <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg&libraries=geometry,directions&callback=initMap" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg&libraries=geometry,directions,places&callback=initMap" async defer></script>
 </body>
 </html>
-
