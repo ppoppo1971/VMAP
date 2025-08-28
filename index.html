@@ -4119,11 +4119,6 @@
         // 다이얼로그 닫기
         closeRouteSaveDialog();
         
-        // 정보창 닫기
-        if (window.currentInfoWindow) {
-          window.currentInfoWindow.close();
-        }
-        
         // 경로탐색 모드 종료
         toggleRouteSearch();
         
@@ -4939,6 +4934,28 @@
         window.currentInfoWindow.open(map);
       }
       
+      // Firestore 저장용으로 경로 배열을 정제 (UI 전용 필드 제거)
+      function sanitizeRoutesForFirestore(routes) {
+        try {
+          return (routes || []).map(function(r) {
+            if (!r) return r;
+            var rest = {};
+            for (var k in r) {
+              if (k !== 'pathElement' && k !== 'dottedPathElement') rest[k] = r[k];
+            }
+            // path는 순수 lat/lng 배열만 유지
+            var cleanPath = Array.isArray(rest.path)
+              ? rest.path.map(function(p){ return { lat: Number(p.lat), lng: Number(p.lng) }; })
+              : [];
+            rest.path = cleanPath;
+            return rest;
+          });
+        } catch (e) {
+          console.error('sanitizeRoutesForFirestore 실패:', e);
+          return [];
+        }
+      }
+      
       // 정보창에서 경로 삭제 함수
       async function deleteRouteFromInfo(routeId, routeName) {
         if (!confirm(`"${routeName}" 경로를 삭제하시겠습니까?`)) {
@@ -4993,8 +5010,9 @@
             });
             
             const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+            const sanitizedRoutes = sanitizeRoutesForFirestore(updatedRoutes);
             await window.firestore.updateDoc(userDocRef, {
-              savedUserRoutes: updatedRoutes,
+              savedUserRoutes: sanitizedRoutes,
               lastUpdated: window.firestore.serverTimestamp()
             });
             
@@ -5614,9 +5632,12 @@
            // 배열에서 해당 위치 경로들 제거
            const updatedRoutes = savedUserRoutes.filter(route => route.location !== location);
            
+           // Firestore에 저장하기 전에 UI 전용 필드 제거
+           const sanitizedRoutes = sanitizeRoutesForFirestore(updatedRoutes);
+           
            // Firebase에서 해당 위치 경로들 제거
            await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
-             savedUserRoutes: updatedRoutes,
+             savedUserRoutes: sanitizedRoutes,
              lastUpdated: window.firestore.serverTimestamp()
            });
            
