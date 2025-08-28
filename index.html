@@ -7315,9 +7315,15 @@
             return;
           }
           
-          const container = document.querySelector('#' + window.currentActiveSection + 'Content');
+          // 드래그된 항목 타입에 따라 컨테이너 선택
+          let container;
+          if (draggedItemType === 'schedule') {
+            container = document.getElementById('additionalDays');
+          } else {
+            container = document.getElementById('userAddedItems');
+          }
           if (!container) {
-            console.error('컨테이너를 찾을 수 없습니다.');
+            console.error('컨테이너를 찾을 수 없습니다.', { draggedItemType, currentActiveSection: window.currentActiveSection });
             return;
           }
           
