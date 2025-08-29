@@ -4928,8 +4928,13 @@
          
          // 경로에 저장된 추가 정보 표시 (내용/링크)
          const routeExtra = (routeInfoData && route.id) ? (routeInfoData[route.id] || { content: '', link: '' }) : { content: '', link: '' };
-         const contentText = routeExtra.content ? `<div style=\"margin-top:6px; color:#111827; font-size:12px; line-height:1.4;\">${routeExtra.content}</div>` : '';
-         const linkText = routeExtra.link ? `<div style=\"margin-top:4px;\"><a href=\"${routeExtra.link}\" target=\"_blank\" style=\"color:#2563eb; font-size:12px; text-decoration:underline;\">링크 열기</a></div>` : '';
+         const hasLink = !!(routeExtra.link);
+         const contentLabel = (routeExtra.content && routeExtra.content.trim()) || (hasLink ? routeExtra.link : '');
+         const contentText = contentLabel
+           ? (hasLink
+               ? `<div style=\"margin-top:6px; font-size:12px; line-height:1.4;\"><a href=\"${routeExtra.link}\" target=\"_self\" style=\"color:#2563eb; text-decoration:underline;\">${contentLabel}</a></div>`
+               : `<div style=\"margin-top:6px; color:#111827; font-size:12px; line-height:1.4;\">${contentLabel}</div>`)
+           : '';
          const info = `
            <div style="padding: 10px; min-width: 180px; position: relative;">
              ${!isTemporaryRoute ? `
@@ -4942,7 +4947,6 @@
              ` : ''}
              <p style="margin: 0; font-size: 14px; font-weight: bold; color: #3b82f6; ${!isTemporaryRoute ? 'padding-right: 50px;' : ''}">${formattedDistance}</p>
              ${contentText}
-             ${linkText}
            </div>
          `;
          
@@ -5154,7 +5158,6 @@
           alert('경로 정보 저장에 실패했습니다.');
         }
       }
-      
       // 마커 정보 수정 함수
       function editMarkerInfo(markerGroupName, index) {
         const markerId = `${markerGroupName}-${index}`;
@@ -8427,7 +8430,6 @@
           }
         }, 100);
       }
-      
       // 저장된 사용자 정의 일정들 복원 함수
       async function restoreCustomSchedules() {
         try {
