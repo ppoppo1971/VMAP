@@ -460,7 +460,7 @@
             appearance: none;
             width: 20px;
             height: 20px;
-            border: 2px solid #1d4ed8;
+            border: none;
             border-radius: 4px;
             background: white;
             cursor: pointer;
@@ -556,12 +556,12 @@
             z-index: 15;
             width: 400px;
             max-width: 90vw;
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 16px;
-            box-shadow: 0 12px 32px rgba(0,0,0,0.15);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow: hidden;
             animation: slideIn 0.3s ease-out;
@@ -752,7 +752,6 @@
         
         .prep-checkbox:checked {
             background-color: #1d4ed8;
-            border-color: #1d4ed8;
         }
         
         .checklist-item label {
@@ -814,23 +813,26 @@
         
                  .add-btn {
              width: 100%;
-             padding: 5px 16px;
+             padding: 14px 32px;
              border: none;
-             border-radius: 8px;
-             font-size: 0.63rem;
-             font-weight: 600;
+             border-radius: 12px;
+             font-size: 15px;
+             font-weight: 500;
              cursor: pointer;
              transition: all 0.2s ease;
-             background: linear-gradient(135deg, #10b981, #059669);
-             color: white;
+             background: rgba(255, 255, 255, 0.12);
+             color: #000;
+             backdrop-filter: blur(10px);
+             min-width: 120px;
          }
          
          .add-btn:hover {
+             background: rgba(255, 255, 255, 0.18);
              transform: translateY(-1px);
-             box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
          }
          
                  .add-btn:active {
+            background: rgba(255, 255, 255, 0.12);
             transform: translateY(0);
         }
         
@@ -956,8 +958,8 @@
             right: -160px;
             top: 50%;
             transform: translateY(-50%);
-            background: #3b82f6;
-            color: white;
+            background: transparent;
+            color: #000;
             border: none;
             border-radius: 8px;
             padding: 8px 16px;
@@ -998,18 +1000,18 @@
         
         .user-added-item .swipe-edit-btn:hover,
         .checklist-item .swipe-edit-btn:hover {
-            background: #2563eb;
+            background: rgba(255, 255, 255, 0.1);
         }
         
         .user-added-item .swipe-edit-btn:active,
         .checklist-item .swipe-edit-btn:active {
-            background: #2563eb;
+            background: rgba(255, 255, 255, 0.2);
             transform: translateY(-50%);
         }
         
         /* 일정 항목의 수정 버튼은 active 애니메이션 제거 */
         .user-added-item[data-item-type="schedule"] .swipe-edit-btn:active {
-            background: #2563eb;
+            background: rgba(255, 255, 255, 0.2);
             transform: translateY(-50%);
         }
         
@@ -1019,8 +1021,8 @@
             right: -80px;
             top: 50%;
             transform: translateY(-50%);
-            background: #ef4444;
-            color: white;
+            background: transparent;
+            color: #000;
             border: none;
             border-radius: 8px;
             padding: 8px 16px;
@@ -1038,7 +1040,7 @@
         
         .user-added-item .swipe-delete-btn:hover,
         .checklist-item .swipe-delete-btn:hover {
-            background: #dc2626;
+            background: rgba(255, 255, 255, 0.1);
         }
 
 
@@ -1054,13 +1056,13 @@
         
         .user-added-item .swipe-delete-btn:active,
         .checklist-item .swipe-delete-btn:active {
-            background: #dc2626;
+            background: rgba(255, 255, 255, 0.2);
             transform: translateY(-50%);
         }
         
         /* 일정 항목의 삭제 버튼은 active 애니메이션 제거 */
         .user-added-item[data-item-type="schedule"] .swipe-delete-btn:active {
-            background: #dc2626;
+            background: rgba(255, 255, 255, 0.2);
             transform: translateY(-50%);
         }
         
@@ -1111,30 +1113,31 @@
         }
         
         .toggle-add-btn {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: white;
+            background: rgba(255, 255, 255, 0.12);
+            color: #000;
             border: none;
             border-radius: 12px;
-            padding: 6px 20px;
-            font-size: 0.665rem;
-            font-weight: 600;
+            padding: 14px 32px;
+            font-size: 15px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            min-width: 120px;
         }
         
         .toggle-add-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+            background: rgba(255, 255, 255, 0.18);
+            transform: translateY(-1px);
         }
         
         .toggle-add-btn:active {
+            background: rgba(255, 255, 255, 0.12);
             transform: translateY(0);
         }
         
         .toggle-add-btn.expanded {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
+            background: rgba(255, 255, 255, 0.18);
             margin-bottom: 8px;
         }
         
@@ -8320,9 +8323,37 @@
       function showAddScheduleDialog() {
         // 기존 다이얼로그가 있으면 제거
         const existingDialog = document.getElementById('addScheduleDialog');
+        const existingOverlay = document.getElementById('dialogOverlay');
         if (existingDialog) {
           existingDialog.remove();
         }
+        if (existingOverlay) {
+          existingOverlay.remove();
+        }
+        
+        // 배경 오버레이 생성
+        const overlay = document.createElement('div');
+        overlay.id = 'dialogOverlay';
+        overlay.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 999;
+          background: transparent;
+        `;
+        overlay.onclick = function() {
+          closeAddScheduleDialog();
+        };
+        overlay.ontouchstart = function(e) {
+          e.preventDefault();
+          closeAddScheduleDialog();
+        };
+        overlay.ontouchend = function(e) {
+          e.preventDefault();
+          closeAddScheduleDialog();
+        };
         
         // 다이얼로그 생성
         const dialog = document.createElement('div');
@@ -8335,7 +8366,7 @@
           z-index: 1000;
           width: 380px;
           max-width: 90vw;
-          background: rgba(255, 255, 255, 0.85);
+          background: rgba(255, 255, 255, 0.2);
           border: 1px solid rgba(255, 255, 255, 0.12);
           border-radius: 20px;
           box-shadow: 0 8px 32px rgba(0,0,0,0.12);
@@ -8345,6 +8376,17 @@
           overflow: hidden;
           transition: all 0.3s ease;
         `;
+        
+        // 다이얼로그 내부 클릭/터치 시 이벤트 버블링 방지
+        dialog.onclick = function(e) {
+          e.stopPropagation();
+        };
+        dialog.ontouchstart = function(e) {
+          e.stopPropagation();
+        };
+        dialog.ontouchend = function(e) {
+          e.stopPropagation();
+        };
         
         dialog.innerHTML = `
           <style>
@@ -8372,6 +8414,7 @@
           </div>
         `;
         
+        document.body.appendChild(overlay);
         document.body.appendChild(dialog);
         
         // 제목 입력란에 포커스
@@ -8383,8 +8426,12 @@
       // 일정 추가 다이얼로그 닫기 함수
       function closeAddScheduleDialog() {
         const dialog = document.getElementById('addScheduleDialog');
+        const overlay = document.getElementById('dialogOverlay');
         if (dialog) {
           dialog.remove();
+        }
+        if (overlay) {
+          overlay.remove();
         }
       }
       
@@ -8465,9 +8512,8 @@
         const infoDiv = document.createElement('div');
         infoDiv.id = 'preparationInfo';
         infoDiv.innerHTML = `
-          <div class="info-header" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
-            <h3 style="color: #ffffff;">${title}</h3>
-            <button class="close-btn" onclick="closePreparationInfo()">×</button>
+          <div style="padding: 28px 24px 8px 24px; text-align: center;">
+            <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">${title}</h3>
           </div>
                       <div class="info-content">
               <div class="info-section">
@@ -8686,33 +8732,33 @@
           z-index: 1000;
           width: 400px;
           max-width: 90vw;
-          background: rgba(255, 255, 255, 0.95);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 16px;
-          box-shadow: 0 12px 32px rgba(0,0,0,0.15);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+          background: rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 20px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           overflow: hidden;
         `;
         
         dialog.innerHTML = `
-          <div class="info-header" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
-            <h3 style="color: #ffffff; margin: 0;">일정 수정</h3>
-            <button class="close-btn" onclick="closeEditScheduleDialog()">×</button>
-          </div>
-          <div class="info-content" style="padding: 20px;">
-            <div class="form-group" style="margin-bottom: 20px;">
-              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1f2937;">일정 제목</label>
+          <div style="padding: 28px 24px 24px 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">일정 수정</h3>
+            </div>
+            <div style="margin-bottom: 24px;">
               <input type="text" id="editScheduleTitle" placeholder="일정 제목을 입력하세요" 
                      value="${currentTitle}" maxlength="50"
-                     style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                     style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);" 
+                     onfocus="this.style.background='rgba(255, 255, 255, 0.18)'"
+                     onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
             </div>
             <div style="display: flex; gap: 12px;">
-              <button onclick="saveScheduleEdit('${scheduleId}')" style="flex: 1; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">
+              <button onclick="saveScheduleEdit('${scheduleId}')" style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
                 저장
               </button>
-              <button onclick="closeEditScheduleDialog()" style="flex: 1; background: linear-gradient(135deg, #6b7280, #4b5563); color: white; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">
+              <button onclick="closeEditScheduleDialog()" style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
                 취소
               </button>
             </div>
