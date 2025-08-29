@@ -4778,26 +4778,46 @@
               markerGroup.markerElements = [];
               
               markerGroup.markers.forEach((markerData, index) => {
-                const marker = new google.maps.Marker({
+                const markerId = `${markerGroup.name}-${index}`;
+                const emoji = (markerInfoData && markerInfoData[markerId] && markerInfoData[markerId].emoji) ? markerInfoData[markerId].emoji : '';
+                const useEmoji = !!emoji;
+                const markerOptions = {
                   position: new google.maps.LatLng(markerData.lat, markerData.lng),
                   map: map,
                   title: markerData.title || `${markerGroup.name} ${index + 1}`,
-                  zIndex: 1000, // 경로와 라벨 위에 표시
-                  icon: {
+                  zIndex: 1000
+                };
+                if (useEmoji) {
+                  markerOptions.icon = {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    fillColor: 'transparent',
+                    fillOpacity: 0,
+                    strokeColor: 'transparent',
+                    strokeWeight: 0,
+                    scale: 12
+                  };
+                  markerOptions.label = {
+                    text: emoji,
+                    fontSize: '20px',
+                    fontWeight: 'bold'
+                  };
+                } else {
+                  markerOptions.icon = {
                     path: google.maps.SymbolPath.CIRCLE,
                     fillColor: '#8b5cf6',
                     fillOpacity: 1,
                     strokeColor: '#ffffff',
                     strokeWeight: 2,
-                    scale: 12 // 8 * 1.5 = 12
-                  },
-                  label: {
+                    scale: 12
+                  };
+                  markerOptions.label = {
                     text: (index + 1).toString(),
-                    fontSize: '18px', // 12px * 1.5 = 18px
+                    fontSize: '18px',
                     fontWeight: 'bold',
                     color: '#ffffff'
-                  }
-                });
+                  };
+                }
+                const marker = new google.maps.Marker(markerOptions);
                 
                 // 마커 클릭 시 정보 표시 및 줌 15로 중심 이동
                 marker.addListener('click', function() {
@@ -5168,6 +5188,7 @@
           content: '',
           link: ''
         };
+        const currentEmoji = currentInfo.emoji || '';
         
         // 화면 크기에 따른 다이얼로그 크기 조정
         const viewportWidth = window.innerWidth;
@@ -5237,6 +5258,35 @@
                      "
                      onfocus="this.style.borderColor='#3b82f6'"
                      onblur="this.style.borderColor='#e5e7eb'">
+            </div>
+            <div style="margin-bottom: 16px;">
+              <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151; font-size: ${isMobileView ? '13px' : '14px'};">아이콘(이모지):</label>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <label style="display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px; cursor:pointer;">
+                  <input type="radio" name="edit-emoji-${markerId}" value="" ${!currentEmoji ? 'checked' : ''}>
+                  <span style="font-size: 14px; color:#374151;">번호</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px; cursor:pointer;">
+                  <input type="radio" name="edit-emoji-${markerId}" value="🛏️" ${currentEmoji === '🛏️' ? 'checked' : ''}>
+                  <span style="font-size: 18px;">🛏️</span>
+                  <span style="font-size: 13px; color:#6b7280;">숙박</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px; cursor:pointer;">
+                  <input type="radio" name="edit-emoji-${markerId}" value="🍽️" ${currentEmoji === '🍽️' ? 'checked' : ''}>
+                  <span style="font-size: 18px;">🍽️</span>
+                  <span style="font-size: 13px; color:#6b7280;">식사</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px; cursor:pointer;">
+                  <input type="radio" name="edit-emoji-${markerId}" value="🥤" ${currentEmoji === '🥤' ? 'checked' : ''}>
+                  <span style="font-size: 18px;">🥤</span>
+                  <span style="font-size: 13px; color:#6b7280;">음료</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px; cursor:pointer;">
+                  <input type="radio" name="edit-emoji-${markerId}" value="📷" ${currentEmoji === '📷' ? 'checked' : ''}>
+                  <span style="font-size: 18px;">📷</span>
+                  <span style="font-size: 13px; color:#6b7280;">카메라</span>
+                </label>
+              </div>
             </div>
             <div style="
               display: flex; 
@@ -5343,6 +5393,7 @@
         const titleInput = document.getElementById(`edit-title-${markerId}`);
         const contentInput = document.getElementById(`edit-content-${markerId}`);
         const linkInput = document.getElementById(`edit-link-${markerId}`);
+        const emojiInput = document.querySelector(`input[name="edit-emoji-${markerId}"]:checked`);
         
         if (!titleInput || !contentInput || !linkInput) {
           alert('입력 필드를 찾을 수 없습니다.');
@@ -5352,7 +5403,8 @@
         const newInfo = {
           title: titleInput.value.trim() || markerGroupName,
           content: contentInput.value.trim(),
-          link: linkInput.value.trim()
+          link: linkInput.value.trim(),
+          emoji: emojiInput ? emojiInput.value : ''
         };
         
         // 로컬 저장소에 저장
@@ -5389,6 +5441,45 @@
           
           // 정보창을 일반 보기 모드로 되돌리기
           showMarkerInfoWithData(markerGroupName, index);
+
+          // 저장 직후 지도상의 마커 라벨/아이콘 즉시 갱신
+          try {
+            const savedMarkers = window.savedUserMarkers || [];
+            const group = savedMarkers.find(g => g && g.name === markerGroupName);
+            if (group && group.markerElements && group.markerElements[index]) {
+              const markerEl = group.markerElements[index];
+              if (newInfo.emoji) {
+                markerEl.setIcon({
+                  path: google.maps.SymbolPath.CIRCLE,
+                  fillColor: 'transparent',
+                  fillOpacity: 0,
+                  strokeColor: 'transparent',
+                  strokeWeight: 0,
+                  scale: 12
+                });
+                markerEl.setLabel({
+                  text: newInfo.emoji,
+                  fontSize: '20px',
+                  fontWeight: 'bold'
+                });
+              } else {
+                markerEl.setIcon({
+                  path: google.maps.SymbolPath.CIRCLE,
+                  fillColor: '#8b5cf6',
+                  fillOpacity: 1,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2,
+                  scale: 12
+                });
+                markerEl.setLabel({
+                  text: (index + 1).toString(),
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  color: '#ffffff'
+                });
+              }
+            }
+          } catch (_) {}
           
         } catch (error) {
           console.error('마커 정보 저장 실패:', error);
@@ -5692,16 +5783,15 @@
            const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
            if (docSnap.exists()) {
              const data = docSnap.data();
+             // 마커 정보 데이터(이모지 포함)를 먼저 복원한 뒤 마커를 그린다
+             if (data.markerInfoData) {
+               markerInfoData = data.markerInfoData;
+               console.log('마커 정보 데이터가 복원되었습니다.');
+             }
              if (data.savedUserMarkers && data.savedUserMarkers.length > 0) {
                window.savedUserMarkers = data.savedUserMarkers;
                drawAllSavedMarkers();
                console.log('Firebase에서 마커 복원 완료');
-             }
-             
-             // 마커 정보 데이터 복원
-             if (data.markerInfoData) {
-               markerInfoData = data.markerInfoData;
-               console.log('마커 정보 데이터가 복원되었습니다.');
              }
              
              if (data.savedUserMarkers && data.savedUserMarkers.length > 0) {
@@ -7845,14 +7935,9 @@
                     console.log('마커 정보 변경 감지 - 데이터 업데이트');
                     markerInfoData = newMarkerInfo;
                     
-                    // 현재 열린 정보창이 있다면 갱신
-                    if (window.currentInfoWindow) {
-                      const infoContent = window.currentInfoWindow.getContent();
-                      if (infoContent && infoContent.includes('editMarkerInfo')) {
-                        // 정보창의 내용이 마커 정보창인 경우에만 갱신
-                        console.log('열린 마커 정보창 감지 - 내용 갱신하지 않음 (편집 중일 수 있음)');
-                      }
-                    }
+                    // 마커 표시 즉시 재렌더링 (이모지 반영)
+                    clearAllRenderedMarkers();
+                    drawAllSavedMarkers();
                     
                     updateSyncStatus('마커 정보 동기화 완료', 'success');
                   } else {
