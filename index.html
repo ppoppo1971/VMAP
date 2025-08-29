@@ -1718,8 +1718,20 @@
           zoom = savedView.zoom;
         }
         
-        // 일반지도에서 라벨을 숨기는 스타일 정의
-        const noLabelsStyle = [
+        // 지도 스타일 - 전역으로 승격 (라벨 on/off에 공통 사용)
+        window.mapStyle = [
+          {
+            featureType: 'all',
+            elementType: 'labels',
+            stylers: [{ visibility: 'on' }] // 라벨 표시
+          },
+          {
+            featureType: 'road',
+            elementType: 'geometry',
+            stylers: [{ visibility: 'simplified' }] // 도로 단순화
+          }
+        ];
+        window.hideLabelsStyle = [
           {
             featureType: 'all',
             elementType: 'labels',
@@ -1756,8 +1768,8 @@
           tilt: 0,
           // 모바일에서 한 손가락 드래그 허용
           gestureHandling: 'greedy',
-          // 일반지도에서 라벨 숨기기
-          styles: noLabelsStyle,
+          // 기본: 라벨 숨김
+          styles: window.hideLabelsStyle,
           // 모바일 성능 최적화
           disableDefaultUI: true,
           clickableIcons: false,
@@ -1783,6 +1795,7 @@
           position: incheonAirport,
           map: map,
           title: '인천국제공항',
+          zIndex: 1000, // 경로와 라벨 위에 표시
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
             fillColor: 'transparent',
@@ -1802,6 +1815,7 @@
           position: chitoseAirport,
           map: map,
           title: '신치토세공항',
+          zIndex: 1000, // 경로와 라벨 위에 표시
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
             fillColor: 'transparent',
@@ -1822,8 +1836,9 @@
           path: [incheonAirport, chitoseAirport],
           geodesic: true,
           strokeColor: '#60a5fa',
-          strokeOpacity: 0.8,
-          strokeWeight: isMobile ? 4 : 3
+          strokeOpacity: 0.6,
+          strokeWeight: isMobile ? 4 : 3,
+          zIndex: 10 // 라벨 아래에 표시
         });
         
         flightPath.setMap(map);
@@ -1833,8 +1848,9 @@
           path: [incheonAirport, chitoseAirport],
           geodesic: true,
           strokeColor: '#ffffff',
-          strokeOpacity: 0.9,
+          strokeOpacity: 0.5,
           strokeWeight: 1,
+          zIndex: 15, // 메인 항로보다는 위에, 라벨보다는 아래
           icons: [{
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
@@ -1868,6 +1884,7 @@
           position: flightCenter,
           map: map,
           title: '항공권 정보 - 클릭하여 전자항공권 확인',
+          zIndex: 1000, // 경로와 라벨 위에 표시
           icon: planeIcon,
           opacity: 1.0,
           // 마커가 항로 위에 정확히 위치하도록 설정
@@ -2006,7 +2023,7 @@
             return {
               strokeColor: '#60a5fa',
               strokeWeight: 3,
-              strokeOpacity: 0.8,
+              strokeOpacity: 0.5,
               fillColor: 'transparent',
               fillOpacity: 0
             };
@@ -2029,7 +2046,7 @@
               fillOpacity: 0.3,
               strokeColor: '#1d4ed8',
               strokeWeight: 2,
-              strokeOpacity: 0.8
+              strokeOpacity: 0.6
             };
           }
         });
@@ -2044,52 +2061,14 @@
         // 지도 타입에 따라 라벨 표시 여부 제어
         if (map && map.setOptions) {
           if (type === 'roadmap') {
-            // 일반지도: 라벨 숨기기
-            map.setOptions({
-              styles: [
-                {
-                  featureType: 'all',
-                  elementType: 'labels',
-                  stylers: [{ visibility: 'off' }]
-                },
-                {
-                  featureType: 'all',
-                  elementType: 'labels.text',
-                  stylers: [{ visibility: 'off' }]
-                },
-                {
-                  featureType: 'all',
-                  elementType: 'labels.icon',
-                  stylers: [{ visibility: 'off' }]
-                }
-              ]
-            });
+            // 일반지도: 기본 라벨 OFF
+            map.setOptions({ styles: window.hideLabelsStyle });
           } else if (type === 'satellite') {
-            // 위성지도: 라벨 숨기기
-            map.setOptions({
-              styles: [
-                {
-                  featureType: 'all',
-                  elementType: 'labels',
-                  stylers: [{ visibility: 'off' }]
-                },
-                {
-                  featureType: 'all',
-                  elementType: 'labels.text',
-                  stylers: [{ visibility: 'off' }]
-                },
-                {
-                  featureType: 'all',
-                  elementType: 'labels.icon',
-                  stylers: [{ visibility: 'off' }]
-                }
-              ]
-            });
+            // 위성지도: 기본 라벨
+            map.setOptions({ styles: [] });
           } else if (type === 'hybrid') {
-            // 하이브리드: 라벨 표시
-            map.setOptions({
-              styles: [] // 기본 스타일 사용 (라벨 표시)
-            });
+            // 하이브리드: 기본 라벨 ON (위성+라벨)
+            map.setOptions({ styles: [] });
           }
         }
         
@@ -2221,45 +2200,16 @@
         const hybridBtn = document.getElementById('topHybridBtn');
         const currentMapType = map.getMapTypeId();
         
-        if (!hybridBtn.classList.contains('active')) { // 라벨 버튼이 비활성화된 경우
-          if (currentMapType === 'roadmap') {
-            // 일반지도에서 라벨 표시
-            map.setOptions({
-              styles: [] // 기본 스타일 사용 (라벨 표시)
-            });
-          } else if (currentMapType === 'satellite') {
-            // 위성지도에서 하이브리드로 변경
-            setMapType('hybrid');
-          }
-          hybridBtn.classList.add('active');
-        } else { // 라벨 버튼이 활성화된 경우
-          if (currentMapType === 'roadmap') {
-            // 일반지도에서 라벨 숨기기
-            map.setOptions({
-              styles: [
-                {
-                  featureType: 'all',
-                  elementType: 'labels',
-                  stylers: [{ visibility: 'off' }]
-                },
-                {
-                  featureType: 'all',
-                  elementType: 'labels.text',
-                  stylers: [{ visibility: 'off' }]
-                },
-                {
-                  featureType: 'all',
-                  elementType: 'labels.icon',
-                  stylers: [{ visibility: 'off' }]
-                }
-              ]
-            });
-          } else if (currentMapType === 'hybrid') {
-            // 하이브리드에서 위성으로 변경
-            setMapType('satellite');
-          }
-          hybridBtn.classList.remove('active');
+        // 기본 OFF 기준으로 토글: active = 라벨 ON
+        const willActivate = !hybridBtn.classList.contains('active');
+        if (currentMapType === 'roadmap') {
+          map.setOptions({ styles: willActivate ? window.mapStyle : window.hideLabelsStyle });
+        } else if (currentMapType === 'satellite') {
+          setMapType(willActivate ? 'hybrid' : 'satellite');
+        } else if (currentMapType === 'hybrid') {
+          if (!willActivate) setMapType('satellite');
         }
+        hybridBtn.classList.toggle('active', willActivate);
         
         // 사이드패널과 동기화
         syncSidePanelWithTop(currentMapType);
@@ -3440,6 +3390,7 @@
           position: latLng,
           map: map,
           title: `사용자 마커 ${customMarkers.length + 1}`,
+          zIndex: 1000, // 경로와 라벨 위에 표시
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
             fillColor: '#8b5cf6',
@@ -3597,7 +3548,7 @@
               directionsRenderer = new google.maps.DirectionsRenderer({
                 draggable: true,
                 strokeColor: '#ff6b35',
-                strokeOpacity: 0.8,
+                strokeOpacity: 0.1,
                 strokeWeight: 6
               });
               directionsRenderer.setMap(map);
@@ -3649,6 +3600,7 @@
             position: latLng,
             map: map,
             title: '출발지',
+            zIndex: 1000, // 경로와 라벨 위에 표시
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
               fillColor: '#22c55e',
@@ -3672,6 +3624,7 @@
             position: latLng,
             map: map,
             title: '도착지',
+            zIndex: 1000, // 경로와 라벨 위에 표시
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
               fillColor: '#ef4444',
@@ -3703,6 +3656,7 @@
             position: latLng,
             map: map,
             title: '출발지',
+            zIndex: 1000, // 경로와 라벨 위에 표시
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
               fillColor: '#22c55e',
@@ -4179,6 +4133,7 @@
           position: latLng,
           map: map,
           title: `위치 ${userRouteMarkers.length + 1}`,
+          zIndex: 1000, // 경로와 라벨 위에 표시
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
             fillColor: '#ef4444',
@@ -4272,8 +4227,9 @@
             path: path,
             geodesic: true,
             strokeColor: '#3b82f6',
-            strokeOpacity: 0.8,
-            strokeWeight: 4
+            strokeOpacity: 0.1,
+            strokeWeight: 4,
+            zIndex: 10 // 라벨 아래에 표시
           });
           userRoutePath.setMap(map);
           
@@ -4291,8 +4247,9 @@
             path: path,
             geodesic: true,
             strokeColor: '#ffffff',
-            strokeOpacity: 0.9,
+            strokeOpacity: 0.1,
             strokeWeight: 2,
+            zIndex: 15, // 메인 경로보다는 위에, 라벨보다는 아래
             icons: [{
               icon: {
                 path: google.maps.SymbolPath.CIRCLE,
@@ -4822,6 +4779,7 @@
                   position: new google.maps.LatLng(markerData.lat, markerData.lng),
                   map: map,
                   title: markerData.title || `${markerGroup.name} ${index + 1}`,
+                  zIndex: 1000, // 경로와 라벨 위에 표시
                   icon: {
                     path: google.maps.SymbolPath.CIRCLE,
                     fillColor: '#8b5cf6',
@@ -4849,6 +4807,23 @@
               });
             }
           });
+        }
+      }
+
+      // 현재 지도에 그려진 모든 사용자 마커를 제거 (실시간 동기화용)
+      function clearAllRenderedMarkers() {
+        try {
+          (window.savedUserMarkers || []).forEach(function(markerGroup) {
+            if (markerGroup && markerGroup.markerElements) {
+              markerGroup.markerElements.forEach(function(marker) {
+                if (marker) {
+                  marker.setMap(null);
+                }
+              });
+            }
+          });
+        } catch (e) {
+          console.warn('마커 요소 제거 중 경고:', e);
         }
       }
       
@@ -5554,8 +5529,9 @@
               path: path,
               geodesic: true,
               strokeColor: '#3b82f6',
-              strokeOpacity: 0.8,
-              strokeWeight: 4
+              strokeOpacity: 0.1,
+              strokeWeight: 4,
+              zIndex: 10 // 라벨 아래에 표시
             });
             route.pathElement.setMap(map);
             
@@ -5571,8 +5547,9 @@
               path: path,
               geodesic: true,
               strokeColor: '#ffffff',
-              strokeOpacity: 0.9,
+              strokeOpacity: 0.1,
               strokeWeight: 2,
+              zIndex: 15, // 메인 경로보다는 위에, 라벨보다는 아래
               icons: [{
                 icon: {
                   path: google.maps.SymbolPath.CIRCLE,
@@ -5596,6 +5573,22 @@
             });
           }
         });
+      }
+
+      // 현재 지도에 그려진 모든 경로 요소를 제거 (실시간 동기화용)
+      function clearAllRenderedRoutes() {
+        try {
+          (savedUserRoutes || []).forEach(function(route) {
+            if (route && route.pathElement) {
+              route.pathElement.setMap(null);
+            }
+            if (route && route.dottedPathElement) {
+              route.dottedPathElement.setMap(null);
+            }
+          });
+        } catch (e) {
+          console.warn('경로 요소 제거 중 경고:', e);
+        }
       }
       
              // 저장된 사용자 경로들 복원
@@ -6171,6 +6164,7 @@
              position: location,
              map: map,
            title: name,
+             zIndex: 1000, // 경로와 라벨 위에 표시
              icon: {
                url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
              scaledSize: new google.maps.Size(isMobile ? 32 : 36, isMobile ? 32 : 36)
@@ -6368,6 +6362,7 @@
              position: location,
              map: map,
              title: name,
+             zIndex: 1000, // 경로와 라벨 위에 표시
              icon: {
                url: iconUrl,
                scaledSize: new google.maps.Size(isMobile ? 28 : 32, isMobile ? 28 : 32)
@@ -7711,6 +7706,8 @@
                       새IDs: newRoutes.map(route => route.id)
                     });
                     
+                    // 기존 렌더 요소를 먼저 제거하고 새 데이터로 갱신
+                    clearAllRenderedRoutes();
                     savedUserRoutes = newRoutes;
                     drawAllSavedRoutes();
                     updateRouteRemoveButtons();
@@ -7749,6 +7746,8 @@
                       새IDs: newMarkers.map(marker => marker.id)
                     });
                     
+                    // 기존 렌더 요소를 먼저 제거하고 새 데이터로 갱신
+                    clearAllRenderedMarkers();
                     window.savedUserMarkers = newMarkers;
                     drawAllSavedMarkers();
                     updateMarkerRemoveButtons();
