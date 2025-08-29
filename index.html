@@ -414,10 +414,6 @@
         /* 터치 최적화를 위한 추가 스타일 */
         * {
             -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -khtml-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
@@ -430,9 +426,6 @@
         /* 모바일에서 더블탭 줌 방지 및 한 손가락 드래그 최적화 */
         #map {
             touch-action: manipulation;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
             user-select: none;
             -webkit-overflow-scrolling: touch;
         }
@@ -446,8 +439,6 @@
         
         /* 모바일에서 입력 필드 최적화 */
         input[type="text"], input[type="url"] {
-            -webkit-appearance: none;
-            -moz-appearance: none;
             appearance: none;
             border-radius: 6px;
             font-size: 16px; /* iOS에서 줌 방지 */
@@ -455,8 +446,6 @@
         
         /* 모바일에서 체크박스 최적화 */
         input[type="checkbox"] {
-            -webkit-appearance: none;
-            -moz-appearance: none;
             appearance: none;
             width: 20px;
             height: 20px;
@@ -1295,6 +1284,28 @@
             transform: scale(0.98) !important;
         }
         
+        /* 가계부 버튼 스타일 */
+        #budgetBtn {
+            background: rgba(134, 239, 172, 0.6) !important;
+            color: #1a1a1a !important;
+            border: none !important;
+            font-weight: 600 !important;
+            box-shadow: none !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        #budgetBtn:hover {
+            background: rgba(134, 239, 172, 0.8) !important;
+            color: #000 !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(134, 239, 172, 0.4) !important;
+        }
+        
+        #budgetBtn:active {
+            background: rgba(134, 239, 172, 0.9) !important;
+            transform: scale(0.98) !important;
+        }
+        
         /* 추가된 일정 버튼들 스타일 */
         #additionalDays {
             overflow: hidden !important; /* 스와이프 버튼 숨김을 위해 필수 */
@@ -1499,6 +1510,16 @@
         <button id="addScheduleBtn" class="toggle-btn" onclick="showAddScheduleDialog()" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none;">
           + 일정추가
         </button>
+      </div>
+      <div class="menu-group" style="position: relative; overflow: hidden;">
+        <div id="budgetBtnContainer" style="display: flex; transition: transform 0.3s ease;">
+          <button id="budgetBtn" class="toggle-btn" onclick="showBudgetDialog()" style="background: rgba(134, 239, 172, 0.6); color: #1a1a1a; border: none; font-weight: 600; min-width: 100%;">
+            가계부
+          </button>
+          <button id="budgetViewBtn" class="toggle-btn" onclick="openBudgetTable()" style="background: rgba(59, 130, 246, 0.6); color: #1a1a1a; border: none; font-weight: 600; min-width: 100%;">
+            표로보기
+          </button>
+        </div>
       </div>
     </div>
     
@@ -3120,6 +3141,9 @@
         // 동기화 상태 초기화
         initializeSyncSystem();
         
+        // 가계부 스와이프 기능 초기화
+        initBudgetSwipe();
+        
         // 모바일에서 추가 최적화
         if (isMobile) {
           // 모바일에서 메타 태그 동적 설정
@@ -3128,31 +3152,35 @@
             viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
           }
           
-          // 모바일에서 터치 이벤트 최적화
-          document.addEventListener('touchstart', function() {}, { passive: true });
-          document.addEventListener('touchmove', function() {}, { passive: true });
+          // 모바일에서 터치 이벤트 최적화 (이미 optimizeForMobile에서 처리됨)
           
           // 모바일에서 스크롤 성능 최적화
           document.body.style.webkitOverflowScrolling = 'touch';
           
+          // 모바일에서 터치 지연 제거
+          document.body.style.touchAction = 'manipulation';
+          
           // 모바일에서 배터리 절약을 위한 애니메이션 최적화
-          if ('requestAnimationFrame' in window) {
-            const originalRAF = window.requestAnimationFrame;
-            window.requestAnimationFrame = function(callback) {
-              return originalRAF(function(timestamp) {
-                callback(timestamp);
+          if ('IntersectionObserver' in window) {
+            // 뷰포트 밖의 애니메이션은 일시정지 (모바일 배터리 절약)
+            const observer = new IntersectionObserver((entries) => {
+              entries.forEach(entry => {
+                if (!entry.isIntersecting && entry.target.style.transform) {
+                  entry.target.style.willChange = 'auto';
+                } else {
+                  entry.target.style.willChange = 'transform';
+                }
               });
-            };
+            });
+            
+            // 변환 요소들 관찰
+            document.querySelectorAll('[style*="transform"]').forEach(el => {
+              observer.observe(el);
+            });
           }
         }
         
-        // 성능 모니터링 (개발 모드에서만)
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          console.log('모바일 최적화 적용 완료');
-          console.log('디바이스 정보:', navigator.userAgent);
-          console.log('화면 해상도:', window.screen.width + 'x' + window.screen.height);
-          console.log('뷰포트 크기:', window.innerWidth + 'x' + window.innerHeight);
-        }
+        // 모바일 최적화 적용 완료
       });
       
       // 동기화 시스템 초기화
@@ -3676,7 +3704,7 @@
             // 기기별 처리 - 패널 없이 바로 연결
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
             const isAndroid = /Android/.test(navigator.userAgent);
-            const isMobile = isIOS || isAndroid || /BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            // 전역 isMobile 변수 사용
             
             if (isMobile) {
               // 모바일: 직접 앱 스킴으로 바로 구글맵 앱 실행
@@ -4778,7 +4806,15 @@
                 marker.addListener('click', function() {
                   if (isMarkerMode) { addCustomMarker(marker.getPosition()); return; }
                   if (isRouteMode) { addUserRoutePoint(marker.getPosition()); return; }
+                  
+                  // 사용자 마커 클릭 플래그 설정 (정보창이 닫히지 않도록)
+                  window.searchMarkerClicked = true;
                   showMarkerInfo(markerGroup, markerData, index);
+                  
+                  // 플래그 해제 (다음 클릭을 위해)
+                  setTimeout(() => {
+                    window.searchMarkerClicked = false;
+                  }, 100);
                 });
                 
                 markerGroup.markerElements.push(marker);
@@ -4858,7 +4894,11 @@
         const marker = markerGroup.markerElements[index];
         window.currentInfoWindow.open(map, marker);
         try {
-          map.setZoom(15);
+          const currentZoom = map.getZoom();
+          // 현재 줌레벨이 15 미만일 때만 줌레벨 15로 확대
+          if (currentZoom < 15) {
+            map.setZoom(15);
+          }
           map.panTo(marker.getPosition());
         } catch (_) {}
       }
@@ -6675,9 +6715,13 @@
                  infoWindow.open(map, marker);
                  currentInfoWindow = infoWindow;
                  
-                                 // 마커 중심으로 부드럽게 이동하고 줌레벨 15로 확대
+                                 // 마커 중심으로 부드럽게 이동하고 필요시 줌레벨 15로 확대
+                const currentZoom = map.getZoom();
                 map.panTo(location);
-                map.setZoom(15);
+                // 현재 줌레벨이 15 미만일 때만 줌레벨 15로 확대
+                if (currentZoom < 15) {
+                  map.setZoom(15);
+                }
                 
                 // 플래그 해제 (다음 클릭을 위해)
                 setTimeout(() => {
@@ -6689,9 +6733,13 @@
                infoWindow.open(map, marker);
                currentInfoWindow = infoWindow;
                
-                               // 마커 중심으로 부드럽게 이동하고 줌레벨 15로 확대
+                               // 마커 중심으로 부드럽게 이동하고 필요시 줌레벨 15로 확대
+                const currentZoom = map.getZoom();
                 map.panTo(location);
-                map.setZoom(15);
+                // 현재 줌레벨이 15 미만일 때만 줌레벨 15로 확대
+                if (currentZoom < 15) {
+                  map.setZoom(15);
+                }
                 
                 // 플래그 해제 (다음 클릭을 위해)
                 setTimeout(() => {
@@ -6806,11 +6854,11 @@
        function openInGoogleMaps(lat, lng, placeName, encodedAddress) {
          try {
            // 모바일 기기인지 확인
-           const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+           // 전역 isMobile 변수 사용 (isMobileDevice → isMobile)
            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
            const isAndroid = /Android/i.test(navigator.userAgent);
            
-           if (isMobileDevice) {
+           if (isMobile) {
              // 모바일: 구글맵 앱으로 직접 연결
              let appUrl;
              
@@ -8416,6 +8464,493 @@
         } catch (error) {
           console.error('일정 추가 실패:', error);
           alert('일정 추가에 실패했습니다. 다시 시도해주세요.');
+        }
+      }
+      
+      // 가계부 다이얼로그 표시 함수
+      function showBudgetDialog() {
+        // 기존 다이얼로그가 있으면 제거
+        const existingDialog = document.getElementById('budgetDialog');
+        const existingOverlay = document.getElementById('budgetOverlay');
+        if (existingDialog) {
+          existingDialog.remove();
+        }
+        if (existingOverlay) {
+          existingOverlay.remove();
+        }
+        
+        // 배경 오버레이 생성
+        const overlay = document.createElement('div');
+        overlay.id = 'budgetOverlay';
+        overlay.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 999;
+          background: transparent;
+        `;
+        
+        // 오버레이 클릭 시 다이얼로그 닫기
+        overlay.onclick = function(e) {
+          if (e.target === overlay) {
+            closeBudgetDialog();
+          }
+        };
+        
+        overlay.ontouchstart = function(e) {
+          if (e.target === overlay) {
+            e.preventDefault();
+            closeBudgetDialog();
+          }
+        };
+        
+        overlay.ontouchend = function(e) {
+          if (e.target === overlay) {
+            e.preventDefault();
+          }
+        };
+        
+        // 다이얼로그 생성
+        const dialog = document.createElement('div');
+        dialog.id = 'budgetDialog';
+        dialog.style.cssText = `
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 1000;
+          background: rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(20px);
+          border-radius: 20px;
+          padding: 28px 24px 24px 24px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          min-width: 320px;
+          max-width: 90vw;
+        `;
+        
+        dialog.innerHTML = `
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">날짜</label>
+            <input type="date" id="budgetDate" value="${new Date().toISOString().split('T')[0]}" style="
+              width: 100%; 
+              padding: 16px 18px; 
+              border: none; 
+              border-radius: 12px; 
+              font-size: 15px; 
+              background: rgba(255, 255, 255, 0.12); 
+              color: #000; 
+              box-sizing: border-box; 
+              outline: none; 
+              transition: all 0.2s ease; 
+              backdrop-filter: blur(10px);
+            " onfocus="this.style.background='rgba(255, 255, 255, 0.18)'" onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">항목</label>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center;">
+              <button type="button" onclick="selectBudgetCategory('🍽️', '식비')" id="btn-식비" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🍽️</button>
+              <button type="button" onclick="selectBudgetCategory('🚌', '교통비')" id="btn-교통비" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🚌</button>
+              <button type="button" onclick="selectBudgetCategory('🏨', '숙박비')" id="btn-숙박비" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🏨</button>
+              <button type="button" onclick="selectBudgetCategory('🛒', '쇼핑')" id="btn-쇼핑" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🛒</button>
+              <button type="button" onclick="selectBudgetCategory('💡', '기타')" id="btn-기타" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">💡</button>
+            </div>
+            <input type="hidden" id="budgetCategory" value="">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">결제 방법</label>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" onclick="selectPaymentMethod('카드')" id="btn-카드" style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 14px;">카드</button>
+              <button type="button" onclick="selectPaymentMethod('현금')" id="btn-현금" style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 14px;">현금</button>
+            </div>
+            <input type="hidden" id="budgetPayment" value="">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">통화</label>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" onclick="selectCurrency('원화')" id="btn-원화" style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 14px;">🇰🇷 원화</button>
+              <button type="button" onclick="selectCurrency('엔화')" id="btn-엔화" style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 14px;">🇯🇵 엔화</button>
+            </div>
+            <input type="hidden" id="budgetCurrency" value="">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">내용</label>
+            <input type="text" id="budgetContent" placeholder="상세 내용 입력" style="
+              width: 100%; 
+              padding: 16px 18px; 
+              border: none; 
+              border-radius: 12px; 
+              font-size: 15px; 
+              background: rgba(255, 255, 255, 0.12); 
+              color: #000; 
+              box-sizing: border-box; 
+              outline: none; 
+              transition: all 0.2s ease; 
+              backdrop-filter: blur(10px);
+            " onfocus="this.style.background='rgba(255, 255, 255, 0.18)'" onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
+          </div>
+          <div style="margin-bottom: 24px;">
+            <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">금액</label>
+            <input type="number" id="budgetAmount" placeholder="금액 입력" style="
+              width: 100%; 
+              padding: 16px 18px; 
+              border: none; 
+              border-radius: 12px; 
+              font-size: 15px; 
+              background: rgba(255, 255, 255, 0.12); 
+              color: #000; 
+              box-sizing: border-box; 
+              outline: none; 
+              transition: all 0.2s ease; 
+              backdrop-filter: blur(10px);
+            " onfocus="this.style.background='rgba(255, 255, 255, 0.18)'" onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <button onclick="addBudgetItem()" style="
+              flex: 1; 
+              background: rgba(255, 255, 255, 0.12); 
+              color: #000; 
+              border: none; 
+              border-radius: 12px; 
+              padding: 14px 32px; 
+              font-size: 15px; 
+              font-weight: 500; 
+              cursor: pointer; 
+              transition: all 0.2s ease; 
+              backdrop-filter: blur(10px); 
+              min-width: 120px;
+            " onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'; this.style.transform='translateY(0)'">
+              추가
+            </button>
+            <button onclick="closeBudgetDialog()" style="
+              flex: 1; 
+              background: rgba(255, 255, 255, 0.12); 
+              color: #000; 
+              border: none; 
+              border-radius: 12px; 
+              padding: 14px 32px; 
+              font-size: 15px; 
+              font-weight: 500; 
+              cursor: pointer; 
+              transition: all 0.2s ease; 
+              backdrop-filter: blur(10px); 
+              min-width: 120px;
+            " onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'; this.style.transform='translateY(0)'">
+              취소
+            </button>
+          </div>
+        `;
+        
+        // 다이얼로그 클릭 시 이벤트 전파 중단
+        dialog.onclick = function(e) {
+          e.stopPropagation();
+        };
+        
+        dialog.ontouchstart = function(e) {
+          e.stopPropagation();
+        };
+        
+        dialog.ontouchend = function(e) {
+          e.stopPropagation();
+        };
+        
+        // DOM에 추가
+        document.body.appendChild(overlay);
+        document.body.appendChild(dialog);
+        
+        // 날짜 입력 필드에 포커스
+        setTimeout(() => {
+          document.getElementById('budgetDate').focus();
+        }, 100);
+      }
+      
+      // 가계부 표로보기 열기 함수 (Firebase 연동)
+      function openBudgetTable() {
+        // Firebase에서 직접 로드하도록 가계부.html 열기
+        window.open('가계부.html', '_blank');
+      }
+      
+      // 가계부 버튼 스와이프 기능 초기화
+      function initBudgetSwipe() {
+        const container = document.getElementById('budgetBtnContainer');
+        if (!container) return;
+        
+        let startX = 0;
+        let currentX = 0;
+        let isDragging = false;
+        let isSwipeRight = false;
+        
+        // 터치 시작
+        container.addEventListener('touchstart', (e) => {
+          startX = e.touches[0].clientX;
+          isDragging = true;
+          container.style.transition = 'none';
+        }, { passive: true });
+        
+        // 터치 이동
+        container.addEventListener('touchmove', (e) => {
+          if (!isDragging) return;
+          
+          currentX = e.touches[0].clientX;
+          const deltaX = currentX - startX;
+          
+          // 오른쪽 스와이프만 허용 (표로보기 표시)
+          if (deltaX > 0 && deltaX <= 100) {
+            container.style.transform = `translateX(-${deltaX}px)`;
+          }
+        }, { passive: true });
+        
+        // 터치 종료
+        container.addEventListener('touchend', (e) => {
+          if (!isDragging) return;
+          
+          const deltaX = currentX - startX;
+          container.style.transition = 'transform 0.3s ease';
+          
+          // 50px 이상 스와이프하면 표로보기 표시
+          if (deltaX >= 50) {
+            container.style.transform = 'translateX(-100%)';
+            isSwipeRight = true;
+          } else {
+            container.style.transform = 'translateX(0)';
+            isSwipeRight = false;
+          }
+          
+          isDragging = false;
+          startX = 0;
+          currentX = 0;
+        }, { passive: true });
+        
+        // 마우스 이벤트 (데스크탑 지원)
+        container.addEventListener('mousedown', (e) => {
+          startX = e.clientX;
+          isDragging = true;
+          container.style.transition = 'none';
+          e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          
+          currentX = e.clientX;
+          const deltaX = currentX - startX;
+          
+          if (deltaX > 0 && deltaX <= 100) {
+            container.style.transform = `translateX(-${deltaX}px)`;
+          }
+        });
+        
+        document.addEventListener('mouseup', (e) => {
+          if (!isDragging) return;
+          
+          const deltaX = currentX - startX;
+          container.style.transition = 'transform 0.3s ease';
+          
+          if (deltaX >= 50) {
+            container.style.transform = 'translateX(-100%)';
+            isSwipeRight = true;
+          } else {
+            container.style.transform = 'translateX(0)';
+            isSwipeRight = false;
+          }
+          
+          isDragging = false;
+          startX = 0;
+          currentX = 0;
+        });
+        
+        // 버튼 클릭으로도 토글 가능
+        document.getElementById('budgetBtn').addEventListener('click', () => {
+          if (isSwipeRight) {
+            container.style.transform = 'translateX(0)';
+            isSwipeRight = false;
+          }
+        });
+        
+        document.getElementById('budgetViewBtn').addEventListener('click', () => {
+          if (!isSwipeRight) {
+            container.style.transform = 'translateX(-100%)';
+            isSwipeRight = true;
+          }
+        });
+      }
+      
+      // 가계부 카테고리 선택 함수
+      function selectBudgetCategory(emoji, category) {
+        // 모든 항목 버튼 초기화
+        const categoryButtons = ['식비', '교통비', '숙박비', '쇼핑', '기타'];
+        categoryButtons.forEach(cat => {
+          const btn = document.getElementById(`btn-${cat}`);
+          if (btn) {
+            btn.style.background = 'rgba(255, 255, 255, 0.12)';
+          }
+        });
+        
+        // 선택된 버튼 강조
+        const selectedBtn = document.getElementById(`btn-${category}`);
+        if (selectedBtn) {
+          selectedBtn.style.background = 'rgba(255, 255, 255, 0.25)';
+        }
+        
+        // hidden input에 값 설정
+        document.getElementById('budgetCategory').value = category;
+      }
+      
+      // 결제 방법 선택 함수
+      function selectPaymentMethod(method) {
+        // 모든 결제 방법 버튼 초기화
+        const paymentButtons = ['카드', '현금'];
+        paymentButtons.forEach(payment => {
+          const btn = document.getElementById(`btn-${payment}`);
+          if (btn) {
+            btn.style.background = 'rgba(255, 255, 255, 0.12)';
+          }
+        });
+        
+        // 선택된 버튼 강조
+        const selectedBtn = document.getElementById(`btn-${method}`);
+        if (selectedBtn) {
+          selectedBtn.style.background = 'rgba(255, 255, 255, 0.25)';
+        }
+        
+        // hidden input에 값 설정
+        document.getElementById('budgetPayment').value = method;
+      }
+      
+      // 통화 선택 함수
+      function selectCurrency(currency) {
+        // 모든 통화 버튼 초기화
+        const currencyButtons = ['원화', '엔화'];
+        currencyButtons.forEach(curr => {
+          const btn = document.getElementById(`btn-${curr}`);
+          if (btn) {
+            btn.style.background = 'rgba(255, 255, 255, 0.12)';
+          }
+        });
+        
+        // 선택된 버튼 강조
+        const selectedBtn = document.getElementById(`btn-${currency}`);
+        if (selectedBtn) {
+          selectedBtn.style.background = 'rgba(255, 255, 255, 0.25)';
+        }
+        
+        // hidden input에 값 설정
+        document.getElementById('budgetCurrency').value = currency;
+      }
+      
+      // 가계부 다이얼로그 닫기 함수
+      function closeBudgetDialog() {
+        const dialog = document.getElementById('budgetDialog');
+        const overlay = document.getElementById('budgetOverlay');
+        
+        if (dialog) {
+          dialog.remove();
+        }
+        if (overlay) {
+          overlay.remove();
+        }
+      }
+      
+      // 가계부 항목 추가 함수 (localStorage 임시 저장만)
+      function addBudgetItem() {
+        const date = document.getElementById('budgetDate').value;
+        const category = document.getElementById('budgetCategory').value;
+        const payment = document.getElementById('budgetPayment').value;
+        const currency = document.getElementById('budgetCurrency').value;
+        const content = document.getElementById('budgetContent').value.trim();
+        const amount = document.getElementById('budgetAmount').value.trim();
+        
+        if (!date) {
+          alert('날짜를 선택해주세요.');
+          return;
+        }
+        
+        if (!category) {
+          alert('항목을 선택해주세요.');
+          return;
+        }
+        
+        if (!payment) {
+          alert('결제 방법을 선택해주세요.');
+          return;
+        }
+        
+        if (!currency) {
+          alert('통화를 선택해주세요.');
+          return;
+        }
+        
+        if (!content) {
+          alert('내용을 입력해주세요.');
+          return;
+        }
+        
+        if (!amount) {
+          alert('금액을 입력해주세요.');
+          return;
+        }
+        
+        if (isNaN(amount) || Number(amount) <= 0) {
+          alert('올바른 금액을 입력해주세요.');
+          return;
+        }
+        
+        try {
+          // 가계부 데이터 구조
+          const budgetData = {
+            id: Date.now().toString(),
+            date: date,
+            category: category,
+            payment: payment,
+            currency: currency,
+            content: content,
+            amount: Number(amount),
+            timestamp: Date.now()
+          };
+          
+          // 가계부 데이터는 가계부.html에서만 Firebase 관리
+          // index47m.html에서는 localStorage 임시 저장만 (중복 방지)
+          let budgetList = JSON.parse(localStorage.getItem('budgetList') || '[]');
+          budgetList.push(budgetData);
+          localStorage.setItem('budgetList', JSON.stringify(budgetList));
+          
+          console.log('가계부 데이터 임시 저장 완료 (Firebase는 가계부.html에서 전담 관리)');
+          
+          const currencySymbol = currency === '원화' ? '원' : '¥';
+          alert(`가계부에 추가되었습니다!\n${content}\n${category}: ${Number(amount).toLocaleString()}${currencySymbol} (${payment})`);
+          
+          // 입력 필드 초기화
+          document.getElementById('budgetDate').value = new Date().toISOString().split('T')[0];
+          document.getElementById('budgetContent').value = '';
+          document.getElementById('budgetAmount').value = '';
+          
+          // 선택된 버튼 초기화
+          ['식비', '교통비', '숙박비', '쇼핑', '기타'].forEach(cat => {
+            const btn = document.getElementById(`btn-${cat}`);
+            if (btn) btn.style.background = 'rgba(255, 255, 255, 0.12)';
+          });
+          ['카드', '현금'].forEach(method => {
+            const btn = document.getElementById(`btn-${method}`);
+            if (btn) btn.style.background = 'rgba(255, 255, 255, 0.12)';
+          });
+          ['원화', '엔화'].forEach(curr => {
+            const btn = document.getElementById(`btn-${curr}`);
+            if (btn) btn.style.background = 'rgba(255, 255, 255, 0.12)';
+          });
+          
+          // hidden input 초기화
+          document.getElementById('budgetCategory').value = '';
+          document.getElementById('budgetPayment').value = '';
+          document.getElementById('budgetCurrency').value = '';
+          
+          // 다이얼로그 닫기
+          closeBudgetDialog();
+          
+        } catch (error) {
+          console.error('가계부 추가 실패:', error);
+          alert('가계부 추가에 실패했습니다. 다시 시도해주세요.');
         }
       }
       
