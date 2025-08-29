@@ -1566,6 +1566,9 @@
       // 마커 정보 저장소 (제목, 내용, 링크)
       let markerInfoData = {}; // 형식: { "markerGroupName-index": { title: "", content: "", link: "" } }
       
+      // 경로 정보 저장소 (내용, 링크)
+      let routeInfoData = {}; // 형식: { routeId: { content: "", link: "" } }
+      
 
       
       // 최적화된 DOM 캐시
@@ -4923,17 +4926,23 @@
          // 생성 중인 경로인지 확인 (삭제 버튼을 표시하지 않음)
          const isTemporaryRoute = route.name === '생성 중인 경로';
          
+         // 경로에 저장된 추가 정보 표시 (내용/링크)
+         const routeExtra = (routeInfoData && route.id) ? (routeInfoData[route.id] || { content: '', link: '' }) : { content: '', link: '' };
+         const contentText = routeExtra.content ? `<div style=\"margin-top:6px; color:#111827; font-size:12px; line-height:1.4;\">${routeExtra.content}</div>` : '';
+         const linkText = routeExtra.link ? `<div style=\"margin-top:4px;\"><a href=\"${routeExtra.link}\" target=\"_blank\" style=\"color:#2563eb; font-size:12px; text-decoration:underline;\">링크 열기</a></div>` : '';
          const info = `
-           <div style="padding: 10px; min-width: 150px; position: relative;">
+           <div style="padding: 10px; min-width: 180px; position: relative;">
              ${!isTemporaryRoute ? `
-               <button onclick="deleteRouteFromInfo('${route.id}', '${route.name}')" 
+               <button onclick="editRouteInfo('${route.id}', '${route.name}')" 
                        style="position: absolute; top: 8px; right: 8px; 
-                              background: #ef4444; color: white; border: none; 
+                              background: #10b981; color: white; border: none; 
                               border-radius: 4px; padding: 4px 8px; font-size: 12px; 
                               cursor: pointer; z-index: 1000;"
-                       title="삭제">삭제</button>
+                       title="수정">수정</button>
              ` : ''}
              <p style="margin: 0; font-size: 14px; font-weight: bold; color: #3b82f6; ${!isTemporaryRoute ? 'padding-right: 50px;' : ''}">${formattedDistance}</p>
+             ${contentText}
+             ${linkText}
            </div>
          `;
          
@@ -5082,6 +5091,67 @@
         } catch (error) {
           console.error('Firebase 연결 테스트 실패:', error);
           return false;
+        }
+      }
+      
+      // 경로 정보 수정 다이얼로그
+      function editRouteInfo(routeId, routeName) {
+        // 현재 저장된 정보 가져오기
+        const current = (routeInfoData && routeInfoData[routeId]) ? routeInfoData[routeId] : { content: '', link: '' };
+        const isMobileView = window.innerWidth <= 768;
+        const dialogWidth = isMobileView ? Math.min(280, window.innerWidth - 40) : 320;
+        const maxWidth = isMobileView ? '90vw' : '400px';
+        
+        const html = `
+          <div style="padding: ${isMobileView ? '8px' : '12px'}; width: ${dialogWidth}px; max-width: ${maxWidth}; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <div style="margin-bottom: 10px; color:#374151; font-size:${isMobileView ? '12px':'13px'};">거리 값은 고정입니다. 내용과 링크만 수정할 수 있습니다.</div>
+            <div style="margin-bottom: 10px;">
+              <label style="display:block; margin-bottom:4px; font-weight:600; color:#374151; font-size:${isMobileView ? '13px':'14px'};">내용</label>
+              <textarea id="route-edit-content" rows="${isMobileView ? '3':'4'}" style="width:100%; padding:${isMobileView ? '8px':'10px'}; border:2px solid #e5e7eb; border-radius:6px; font-size:${isMobileView ? '14px':'15px'}; box-sizing:border-box; resize:vertical;">${(current.content||'').replace(/"/g,'&quot;')}</textarea>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="display:block; margin-bottom:4px; font-weight:600; color:#374151; font-size:${isMobileView ? '13px':'14px'};">링크</label>
+              <input id="route-edit-link" type="text" placeholder="https://..." value="${(current.link||'').replace(/"/g,'&quot;')}" style="width:100%; padding:${isMobileView ? '8px':'10px'}; border:2px solid #e5e7eb; border-radius:6px; font-size:${isMobileView ? '14px':'15px'}; box-sizing:border-box;" />
+            </div>
+            <div style="display:flex; gap:8px; ${isMobileView ? 'flex-direction:column;':''} justify-content:center;">
+              <button onclick="saveRouteInfo('${routeId}', '${routeName}')" style="background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border:none; padding:${isMobileView ? '12px 16px':'10px 20px'}; border-radius:6px; cursor:pointer;">저장</button>
+              <button onclick="deleteRouteFromInfo('${routeId}', '${routeName}')" style="background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; border:none; padding:${isMobileView ? '12px 16px':'10px 20px'}; border-radius:6px; cursor:pointer;">삭제</button>
+            </div>
+          </div>
+        `;
+        
+        if (window.currentInfoWindow) {
+          window.currentInfoWindow.setContent(html);
+        }
+      }
+      
+      // 경로 정보 저장
+      async function saveRouteInfo(routeId, routeName) {
+        try {
+          const contentInput = document.getElementById('route-edit-content');
+          const linkInput = document.getElementById('route-edit-link');
+          const newContent = (contentInput && contentInput.value) || '';
+          const newLink = (linkInput && linkInput.value) || '';
+          
+          // 로컬 반영
+          routeInfoData = routeInfoData || {};
+          routeInfoData[routeId] = { content: newContent, link: newLink };
+          
+          // Firebase 반영
+          if (window.db && window.firestore) {
+            const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+            await window.firestore.updateDoc(userDocRef, {
+              routeInfoData: routeInfoData,
+              lastUpdated: window.firestore.serverTimestamp()
+            });
+          }
+          
+          // 저장 후 현재 정보창에 내용 표시로 갱신
+          const route = savedUserRoutes.find(r => r.id === routeId) || { id: routeId, name: routeName, path: [] };
+          showRouteInfo(route, null);
+        } catch (e) {
+          console.error('경로 정보 저장 실패:', e);
+          alert('경로 정보 저장에 실패했습니다.');
         }
       }
       
@@ -5262,7 +5332,6 @@
           }, 150);
         }
       }
-      
       // 마커 정보 저장 함수
       async function saveMarkerInfo(markerGroupName, index) {
         const markerId = `${markerGroupName}-${index}`;
@@ -5590,7 +5659,6 @@
           console.warn('경로 요소 제거 중 경고:', e);
         }
       }
-      
              // 저장된 사용자 경로들 복원
        async function restoreSavedUserRoutes() {
          try {
@@ -6322,7 +6390,6 @@
          
          console.log('마커 생성 완료:', name, 'at', location.toString());
        }
-       
        // 여러 주소 마커 생성 함수
        function createMultipleAddressMarkers(results, originalQuery) {
          console.log('여러 마커 생성 시작:', results.length, '개');
@@ -7787,6 +7854,26 @@
                     updateSyncStatus('마커 정보 동기화 완료', 'success');
                   } else {
                     console.log('마커 정보 변경 없음 - 업데이트 건너뜀');
+                  }
+                }
+
+                // 경로 정보 데이터 동기화 (내용/링크)
+                if (data.routeInfoData) {
+                  console.log('경로 정보 데이터 동기화 중...');
+                  const currentRouteInfo = routeInfoData || {};
+                  const newRouteInfo = data.routeInfoData;
+                  if (JSON.stringify(currentRouteInfo) !== JSON.stringify(newRouteInfo)) {
+                    routeInfoData = newRouteInfo;
+                    // 현재 열린 정보창이 경로 정보창이면 갱신
+                    // (간단히 재오픈 없이 setContent를 위해 다시 showRouteInfo 호출)
+                    // 열린 상태에서 위치 정보가 없을 수 있으므로 clickPosition은 null 전달
+                    try {
+                      if (window.currentInfoWindow && window.currentInfoWindow.getContent) {
+                        // 경로 중 하나를 찾아 업데이트 시도 (정확한 대상은 다음 클릭에서 최신 표시)
+                        // 특별히 즉시 갱신하지 않아도 다음 클릭에 반영되므로 로그만 남김
+                        console.log('경로 정보 동기화 반영 완료');
+                      }
+                    } catch (_) {}
                   }
                 }
                 
