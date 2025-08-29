@@ -1147,12 +1147,12 @@
             z-index: 15;
             width: 400px;
             max-width: 90vw;
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 16px;
-            box-shadow: 0 12px 32px rgba(0,0,0,0.15);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow: hidden;
             animation: slideIn 0.3s ease-out;
@@ -1166,24 +1166,27 @@
         }
         
         .route-save-btn {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: white;
+            background: rgba(255, 255, 255, 0.12);
+            color: #000;
             border: none;
-            border-radius: 8px;
-            padding: 12px 16px;
-            font-size: 0.95rem;
-            font-weight: 600;
+            border-radius: 12px;
+            padding: 14px 32px;
+            font-size: 15px;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
             width: 100%;
+            min-width: 120px;
         }
         
         .route-save-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
         
         .route-save-btn:active {
+            background: rgba(255, 255, 255, 0.12);
             transform: translateY(0);
         }
         
@@ -1236,8 +1239,12 @@
         /* InfoWindow 스타일 개선 */
         .gm-style .gm-style-iw-c {
             max-width: none !important;
-            border-radius: 8px !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+            border-radius: 20px !important;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+            background: rgba(255, 255, 255, 0.2) !important;
+            backdrop-filter: blur(24px) !important;
+            -webkit-backdrop-filter: blur(24px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
         }
         
         .gm-style .gm-style-iw-d {
@@ -3008,10 +3015,10 @@
               const lng = position.coords.longitude;
               const currentLocation = { lat: lat, lng: lng };
               
-              // 현재 줌 레벨 유지하면서 중심만 이동
+              // 현재 위치 중심으로 확대
               const currentZoom = map.getZoom();
               map.setCenter(currentLocation);
-              map.setZoom(currentZoom); // 현재 줌 레벨 유지
+              map.setZoom(Math.max(currentZoom, 15)); // 최소 줌 레벨 15로 확대
 
               // 새로운 현재 위치 마커 추가 - 모바일 최적화
               currentLocationMarker = new google.maps.Marker({
@@ -4029,19 +4036,15 @@
         const dialogDiv = document.createElement('div');
         dialogDiv.id = 'routeSaveDialog';
         dialogDiv.innerHTML = `
-          <div class="info-header">
-            <h3>경로 저장 위치 선택</h3>
-            <button class="close-btn" onclick="closeRouteSaveDialog()">×</button>
-          </div>
-          <div class="info-content">
-            <div class="info-section">
-              <h4>검색된 경로를 어디에 저장하시겠습니까?</h4>
-              <p style="color: #666; font-size: 0.9rem; margin-bottom: 16px;">
+          <div style="padding: 28px 24px 24px 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">경로 저장 위치 선택</h3>
+              <p style="color: #000; font-size: 0.9rem; margin-top: 8px; margin-bottom: 0; opacity: 0.7;">
                 거리: ${routeData.distance} | 소요시간: ${routeData.duration}
               </p>
-              <div class="route-save-options">
-                ${scheduleButtons}
-              </div>
+            </div>
+            <div class="route-save-options">
+              ${scheduleButtons}
             </div>
           </div>
         `;
@@ -4336,16 +4339,12 @@
         const dialogDiv = document.createElement('div');
         dialogDiv.id = 'routeSaveDialog';
         dialogDiv.innerHTML = `
-          <div class="info-header">
-            <h3>경로 저장 위치 선택</h3>
-            <button class="close-btn" onclick="closeRouteSaveDialog()">×</button>
-          </div>
-          <div class="info-content">
-            <div class="info-section">
-              <h4>어디에 경로를 저장하시겠습니까?</h4>
-              <div class="route-save-options">
-                ${scheduleButtons}
-              </div>
+          <div style="padding: 28px 24px 24px 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">경로 저장 위치 선택</h3>
+            </div>
+            <div class="route-save-options">
+              ${scheduleButtons}
             </div>
           </div>
         `;
@@ -4517,17 +4516,15 @@
           scheduleButtons = '<p style="text-align: center; color: #666; margin: 20px 0;">먼저 일정을 추가해주세요.</p>';
         } else {
           scheduleItems.forEach(item => {
-            scheduleButtons += `<button onclick="saveMarkersToLocation('${item.title}')" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 8px; padding: 12px 16px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">${item.title}</button>`;
+            scheduleButtons += `<button onclick="saveMarkersToLocation('${item.title}')" style="background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 32px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px); width: 100%; margin-bottom: 8px; min-width: 120px;" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">${item.title}</button>`;
           });
         }
         
         dialogDiv.innerHTML = `
-          <div style="padding: 20px; border-bottom: 1px solid rgba(0,0,0,0.1);">
-            <h3 style="margin: 0; color: #1a1a1a;">마커 저장 위치 선택</h3>
-            <button onclick="closeMarkerSaveDialog()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #666;">×</button>
-          </div>
-          <div style="padding: 20px;">
-            <h4 style="margin: 0 0 20px 0; color: #1a1a1a;">어디에 마커를 저장하시겠습니까?</h4>
+          <div style="padding: 28px 24px 24px 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">마커 저장 위치 선택</h3>
+            </div>
             <div style="display: flex; flex-direction: column; gap: 12px;">
               ${scheduleButtons}
             </div>
@@ -4565,16 +4562,12 @@
         const dialogDiv = document.createElement('div');
         dialogDiv.id = 'markerSaveDialog';
         dialogDiv.innerHTML = `
-          <div class="info-header">
-            <h3>마커 저장 위치 선택</h3>
-            <button class="close-btn" onclick="closeMarkerSaveDialog()">×</button>
-          </div>
-          <div class="info-content">
-            <div class="info-section">
-              <h4>어디에 마커를 저장하시겠습니까?</h4>
-              <div class="route-save-options">
-                ${scheduleButtons}
-              </div>
+          <div style="padding: 28px 24px 24px 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">마커 저장 위치 선택</h3>
+            </div>
+            <div class="route-save-options">
+              ${scheduleButtons}
             </div>
           </div>
         `;
@@ -4948,7 +4941,7 @@
              ${!isTemporaryRoute ? `
                <button onclick="editRouteInfo('${route.id}', '${route.name}')" 
                        style="position: absolute; top: 8px; right: 8px; 
-                              background: #10b981; color: white; border: none; 
+                              background: transparent; color: #3b82f6; border: none; 
                               border-radius: 4px; padding: 4px 8px; font-size: 12px; 
                               cursor: pointer; z-index: 1000;"
                        title="수정">수정</button>
@@ -5115,19 +5108,19 @@
         const maxWidth = isMobileView ? '90vw' : '400px';
         
         const html = `
-          <div style="padding: ${isMobileView ? '8px' : '12px'}; width: ${dialogWidth}px; max-width: ${maxWidth}; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-            <div style="margin-bottom: 10px; color:#374151; font-size:${isMobileView ? '12px':'13px'};">거리 값은 고정입니다. 내용과 링크만 수정할 수 있습니다.</div>
-            <div style="margin-bottom: 10px;">
-              <label style="display:block; margin-bottom:4px; font-weight:600; color:#374151; font-size:${isMobileView ? '13px':'14px'};">내용</label>
-              <textarea id="route-edit-content" rows="${isMobileView ? '3':'4'}" style="width:100%; padding:${isMobileView ? '8px':'10px'}; border:2px solid #e5e7eb; border-radius:6px; font-size:${isMobileView ? '14px':'15px'}; box-sizing:border-box; resize:vertical;">${(current.content||'').replace(/"/g,'&quot;')}</textarea>
+          <div style="padding: 28px 24px 24px 24px; width: ${dialogWidth}px; max-width: ${maxWidth}; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">경로 수정</h3>
             </div>
-            <div style="margin-bottom: 12px;">
-              <label style="display:block; margin-bottom:4px; font-weight:600; color:#374151; font-size:${isMobileView ? '13px':'14px'};">링크</label>
-              <input id="route-edit-link" type="text" placeholder="https://..." value="${(current.link||'').replace(/"/g,'&quot;')}" style="width:100%; padding:${isMobileView ? '8px':'10px'}; border:2px solid #e5e7eb; border-radius:6px; font-size:${isMobileView ? '14px':'15px'}; box-sizing:border-box;" />
+            <div style="margin-bottom: 16px;">
+              <textarea id="route-edit-content" rows="${isMobileView ? '3':'4'}" placeholder="내용을 입력하세요" style="width:100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px); resize:vertical;" onfocus="this.style.background='rgba(255, 255, 255, 0.18)'" onblur="this.style.background='rgba(255, 255, 255, 0.12)'">${(current.content||'').replace(/"/g,'&quot;')}</textarea>
             </div>
-            <div style="display:flex; gap:8px; ${isMobileView ? 'flex-direction:column;':''} justify-content:center;">
-              <button onclick="saveRouteInfo('${routeId}', '${routeName}')" style="background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border:none; padding:${isMobileView ? '12px 16px':'10px 20px'}; border-radius:6px; cursor:pointer;">저장</button>
-              <button onclick="deleteRouteFromInfo('${routeId}', '${routeName}')" style="background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; border:none; padding:${isMobileView ? '12px 16px':'10px 20px'}; border-radius:6px; cursor:pointer;">삭제</button>
+            <div style="margin-bottom: 24px;">
+              <input id="route-edit-link" type="text" placeholder="링크를 입력하세요 (https://...)" value="${(current.link||'').replace(/"/g,'&quot;')}" style="width:100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);" onfocus="this.style.background='rgba(255, 255, 255, 0.18)'" onblur="this.style.background='rgba(255, 255, 255, 0.12)'" />
+            </div>
+            <div style="display:flex; gap:12px; ${isMobileView ? 'flex-direction:column;':''}">
+              <button onclick="saveRouteInfo('${routeId}', '${routeName}')" style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">저장</button>
+              <button onclick="deleteRouteFromInfo('${routeId}', '${routeName}')" style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">삭제</button>
             </div>
           </div>
         `;
@@ -5195,132 +5188,56 @@
         
         const editInfo = `
           <div style="
-            padding: ${isMobileView ? '8px' : '12px'}; 
+            padding: 28px 24px 24px 24px; 
             width: ${dialogWidth}px; 
             max-width: ${maxWidth};
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           ">
-            <div style="margin-bottom: 12px;">
-              <label style="display: block; margin-bottom: 4px; font-weight: 600; color: #374151; font-size: ${isMobileView ? '13px' : '14px'};">제목:</label>
-              <input type="text" id="edit-title-${markerId}" value="${currentInfo.title}" 
-                     style="
-                       width: 100%; 
-                       padding: ${isMobileView ? '8px' : '10px'}; 
-                       border: 2px solid #e5e7eb; 
-                       border-radius: 6px; 
-                       font-size: ${isMobileView ? '14px' : '15px'};
-                       box-sizing: border-box;
-                       transition: border-color 0.2s ease;
-                       outline: none;
-                     "
-                     onfocus="this.style.borderColor='#3b82f6'"
-                     onblur="this.style.borderColor='#e5e7eb'">
-            </div>
-            <div style="margin-bottom: 12px;">
-              <label style="display: block; margin-bottom: 4px; font-weight: 600; color: #374151; font-size: ${isMobileView ? '13px' : '14px'};">내용:</label>
-              <textarea id="edit-content-${markerId}" rows="${isMobileView ? '2' : '3'}"
-                        style="
-                          width: 100%; 
-                          padding: ${isMobileView ? '8px' : '10px'}; 
-                          border: 2px solid #e5e7eb; 
-                          border-radius: 6px; 
-                          font-size: ${isMobileView ? '14px' : '15px'}; 
-                          resize: vertical;
-                          box-sizing: border-box;
-                          transition: border-color 0.2s ease;
-                          outline: none;
-                          min-height: ${isMobileView ? '60px' : '80px'};
-                          max-height: ${isMobileView ? '120px' : '150px'};
-                        "
-                        onfocus="this.style.borderColor='#3b82f6'"
-                        onblur="this.style.borderColor='#e5e7eb'">${currentInfo.content}</textarea>
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">마커 수정</h3>
             </div>
             <div style="margin-bottom: 16px;">
-              <label style="display: block; margin-bottom: 4px; font-weight: 600; color: #374151; font-size: ${isMobileView ? '13px' : '14px'};">링크:</label>
-              <input type="text" id="edit-link-${markerId}" value="${currentInfo.link}" 
-                     placeholder="https://..."
-                     style="
-                       width: 100%; 
-                       padding: ${isMobileView ? '8px' : '10px'}; 
-                       border: 2px solid #e5e7eb; 
-                       border-radius: 6px; 
-                       font-size: ${isMobileView ? '14px' : '15px'};
-                       box-sizing: border-box;
-                       transition: border-color 0.2s ease;
-                       outline: none;
-                     "
-                     onfocus="this.style.borderColor='#3b82f6'"
-                     onblur="this.style.borderColor='#e5e7eb'">
+              <input type="text" id="edit-title-${markerId}" value="${currentInfo.title}" placeholder="제목을 입력하세요"
+                     style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);"
+                     onfocus="this.style.background='rgba(255, 255, 255, 0.18)'"
+                     onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
             </div>
             <div style="margin-bottom: 16px;">
-              <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151; font-size: ${isMobileView ? '13px' : '14px'};">아이콘(이모지):</label>
-              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                <label style="display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px; cursor:pointer;">
-                  <input type="radio" name="edit-emoji-${markerId}" value="" ${!currentEmoji ? 'checked' : ''}>
-                  <span style="font-size: 14px; color:#374151;">번호</span>
-                </label>
-                <label style="display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px; cursor:pointer;">
-                  <input type="radio" name="edit-emoji-${markerId}" value="🛏️" ${currentEmoji === '🛏️' ? 'checked' : ''}>
-                  <span style="font-size: 18px;">🛏️</span>
-                  <span style="font-size: 13px; color:#6b7280;">숙박</span>
-                </label>
-                <label style="display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px; cursor:pointer;">
-                  <input type="radio" name="edit-emoji-${markerId}" value="🍽️" ${currentEmoji === '🍽️' ? 'checked' : ''}>
-                  <span style="font-size: 18px;">🍽️</span>
-                  <span style="font-size: 13px; color:#6b7280;">식사</span>
-                </label>
-                <label style="display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px; cursor:pointer;">
-                  <input type="radio" name="edit-emoji-${markerId}" value="🥤" ${currentEmoji === '🥤' ? 'checked' : ''}>
-                  <span style="font-size: 18px;">🥤</span>
-                  <span style="font-size: 13px; color:#6b7280;">음료</span>
-                </label>
-                <label style="display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid #e5e7eb; border-radius:6px; cursor:pointer;">
-                  <input type="radio" name="edit-emoji-${markerId}" value="📷" ${currentEmoji === '📷' ? 'checked' : ''}>
-                  <span style="font-size: 18px;">📷</span>
-                  <span style="font-size: 13px; color:#6b7280;">카메라</span>
-                </label>
+              <textarea id="edit-content-${markerId}" rows="${isMobileView ? '2' : '3'}" placeholder="내용을 입력하세요"
+                        style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px); resize: vertical; min-height: ${isMobileView ? '60px' : '80px'};max-height: ${isMobileView ? '120px' : '150px'};"
+                        onfocus="this.style.background='rgba(255, 255, 255, 0.18)'"
+                        onblur="this.style.background='rgba(255, 255, 255, 0.12)'">${currentInfo.content}</textarea>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <input type="text" id="edit-link-${markerId}" value="${currentInfo.link}" placeholder="링크를 입력하세요 (https://...)"
+                     style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);"
+                     onfocus="this.style.background='rgba(255, 255, 255, 0.18)'"
+                     onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
+            </div>
+            <div style="margin-bottom: 24px;">
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center;">
+                <button type="button" onclick="selectEmoji('${markerId}', '')" style="padding:8px 12px; background: ${!currentEmoji ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">번호</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '🛏️')" style="padding:8px 12px; background: ${currentEmoji === '🛏️' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🛏️</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '🍽️')" style="padding:8px 12px; background: ${currentEmoji === '🍽️' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🍽️</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '🥤')" style="padding:8px 12px; background: ${currentEmoji === '🥤' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🥤</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '📷')" style="padding:8px 12px; background: ${currentEmoji === '📷' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">📷</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '🛒')" style="padding:8px 12px; background: ${currentEmoji === '🛒' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🛒</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '🌳')" style="padding:8px 12px; background: ${currentEmoji === '🌳' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🌳</button>
               </div>
             </div>
-            <div style="
-              display: flex; 
-              gap: 8px; 
-              justify-content: center;
-              flex-direction: ${isMobileView ? 'column' : 'row'};
-            ">
+            <div style="display: flex; gap: 12px; ${isMobileView ? 'flex-direction: column;' : ''}">
               <button onclick="saveMarkerInfo('${markerGroupName}', ${index})" 
-                      style="
-                        background: linear-gradient(135deg, #22c55e, #16a34a); 
-                        color: white; 
-                        border: none; 
-                        padding: ${isMobileView ? '12px 16px' : '10px 20px'}; 
-                        border-radius: 6px; 
-                        cursor: pointer; 
-                        font-size: ${isMobileView ? '15px' : '14px'};
-                        font-weight: 600;
-                        transition: all 0.2s ease;
-                        ${isMobileView ? 'width: 100%;' : 'flex: 1;'}
-                      "
-                      onmouseover="this.style.transform='scale(1.02)'"
-                      onmouseout="this.style.transform='scale(1)'">
-                💾 저장
+                      style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);"
+                      onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'"
+                      onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
+                저장
               </button>
               <button onclick="deleteMarkerFromEdit('${markerGroupName}', ${index})" 
-                      style="
-                        background: linear-gradient(135deg, #ef4444, #dc2626); 
-                        color: white; 
-                        border: none; 
-                        padding: ${isMobileView ? '12px 16px' : '10px 20px'}; 
-                        border-radius: 6px; 
-                        cursor: pointer; 
-                        font-size: ${isMobileView ? '15px' : '14px'};
-                        font-weight: 600;
-                        transition: all 0.2s ease;
-                        ${isMobileView ? 'width: 100%;' : 'flex: 1;'}
-                      "
-                      onmouseover="this.style.transform='scale(1.02)'"
-                      onmouseout="this.style.transform='scale(1)'">
-                🗑️ 삭제
+                      style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);"
+                      onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'"
+                      onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
+                삭제
               </button>
             </div>
           </div>
@@ -5380,6 +5297,56 @@
         }
       }
       // 마커 정보 저장 함수
+      // 이모지 선택 함수
+      function selectEmoji(markerId, emoji) {
+        // 선택된 이모지를 전역 변수에 저장
+        window.selectedEmoji = window.selectedEmoji || {};
+        window.selectedEmoji[markerId] = emoji;
+        
+        // UI 업데이트 - 모든 이모지 버튼의 배경을 리셋하고 선택된 것만 하이라이트
+        const buttons = document.querySelectorAll(`button[onclick*="selectEmoji('${markerId}'"]`);
+        buttons.forEach(button => {
+          if (button.onclick.toString().includes(`'${emoji}'`)) {
+            button.style.background = 'rgba(255, 255, 255, 0.25)';
+          } else {
+            button.style.background = 'rgba(255, 255, 255, 0.12)';
+          }
+        });
+        
+        // 마커 아이콘을 즉시 업데이트
+        updateMarkerIcon(markerId, emoji);
+      }
+      
+      // 마커 아이콘 업데이트 함수
+      function updateMarkerIcon(markerId, emoji) {
+        const savedMarkers = window.savedUserMarkers || [];
+        
+        // markerId로 해당 마커 찾기
+        for (let group of savedMarkers) {
+          if (group && group.markerElements) {
+            for (let i = 0; i < group.markerElements.length; i++) {
+              const currentMarkerId = group.id ? `${group.id}-${i}` : `${group.name}-${i}`;
+              if (currentMarkerId === markerId) {
+                const marker = group.markerElements[i];
+                if (marker) {
+                  // 새 아이콘 설정
+                  const iconUrl = emoji ? 
+                    `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32"><text x="12" y="20" font-family="Arial, sans-serif" font-size="20" text-anchor="middle">${emoji}</text></svg>`)}` :
+                    `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32"><circle cx="12" cy="12" r="8" fill="#8b5cf6"/><text x="12" y="17" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">${i + 1}</text></svg>`)}`;
+                  
+                  marker.setIcon({
+                    url: iconUrl,
+                    scaledSize: new google.maps.Size(32, 32),
+                    anchor: new google.maps.Point(16, 16)
+                  });
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
+
       async function saveMarkerInfo(markerGroupName, index) {
         // group id 우선 키 사용 (하위 호환으로 name-index 유지)
         const savedMarkers = window.savedUserMarkers || [];
@@ -5390,18 +5357,22 @@
         const titleInput = document.getElementById(`edit-title-${markerId}`);
         const contentInput = document.getElementById(`edit-content-${markerId}`);
         const linkInput = document.getElementById(`edit-link-${markerId}`);
-        const emojiInput = document.querySelector(`input[name="edit-emoji-${markerId}"]:checked`);
         
         if (!titleInput || !contentInput || !linkInput) {
           alert('입력 필드를 찾을 수 없습니다.');
           return;
         }
         
+        // 선택된 이모지 가져오기
+        const selectedEmoji = window.selectedEmoji && window.selectedEmoji[markerId] !== undefined ? 
+                             window.selectedEmoji[markerId] : 
+                             (markerInfoData[markerId] && markerInfoData[markerId].emoji) || '';
+        
         const newInfo = {
           title: titleInput.value.trim() || markerGroupName,
           content: contentInput.value.trim(),
           link: linkInput.value.trim(),
-          emoji: emojiInput ? emojiInput.value : ''
+          emoji: selectedEmoji
         };
         
         // 로컬 저장소에 저장
@@ -5650,7 +5621,7 @@
           <div style="padding: 10px; min-width: 200px; position: relative;">
             <button onclick="editMarkerInfo('${markerGroupName}', ${index})" 
                     style="position: absolute; top: 8px; right: 8px; 
-                           background: #8b5cf6; color: white; border: none; 
+                           background: transparent; color: #8b5cf6; border: none; 
                            border-radius: 4px; padding: 4px 8px; font-size: 12px; 
                            cursor: pointer; z-index: 1000;"
                     title="수정">수정</button>
@@ -8544,9 +8515,6 @@
                   <button class="route-remove-btn" onclick="removeRoutesByLocation('${title}')" style="flex: 1;">경로제거</button>
                   <button class="route-remove-btn" onclick="removeMarkersByLocation('${title}')" style="flex: 1;">마커제거</button>
                 </div>
-                <p style="font-size: 0.63rem; color: #6b7280; margin: 0;">
-                  ${title}에 저장된 경로와 마커를 제거합니다.
-                </p>
               </div>
             </div>
           </div>
