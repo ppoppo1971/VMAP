@@ -183,7 +183,7 @@
         /* GPS 위치 버튼 스타일 */
         #locationBtn {
             position: absolute;
-            bottom: 70px;
+            bottom: 10px;
             right: 10px;
             z-index: 10;
             background: transparent;
@@ -318,17 +318,11 @@
                 width: 50px;
                 height: 50px;
                 font-size: 1.3rem;
-                bottom: 85px;
+                bottom: 15px;
                 right: 15px;
             }
             
-            #zoomLevelDisplay {
-                bottom: 15px;
-                left: 15px;
-                padding: 6px 10px;
-                font-size: 0.85rem;
-                min-width: 55px;
-            }
+
             
             /* 모바일에서 터치 최적화 */
             .menu-group button, .toggle-btn, .map-type-btn {
@@ -393,17 +387,11 @@
                 width: 37px;
                 height: 37px;
                 font-size: 1rem;
-                bottom: 60px;
-                right: 22px;
+                bottom: 10px;
+                right: 10px;
             }
             
-            #zoomLevelDisplay {
-                bottom: 10px;
-                left: 12px;
-                padding: 5px 8px;
-                font-size: 0.8rem;
-                min-width: 50px;
-            }
+
             
             /* 작은 화면에서 정보창 최적화 */
             #preparationInfo, #routeSaveDialog, #markerSaveDialog {
@@ -560,31 +548,7 @@
         }
         
       
-        /* 줌 레벨 표시기 스타일 */
-        #zoomLevelDisplay {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            z-index: 10;
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-            min-width: 60px;
-            text-align: center;
-        }
-        
-        #zoomLevelDisplay:hover {
-            background: rgba(0, 0, 0, 0.8);
-            transform: scale(1.05);
-        }
+
         
         /* 사전준비 정보창 스타일 */
         #preparationInfo {
@@ -1507,8 +1471,7 @@
     <!-- GPS 위치 버튼 -->
     <button id="locationBtn" onclick="getCurrentLocation()" title="현재 위치로 이동">📍</button>
     
-    <!-- 줌 레벨 표시기 -->
-    <div id="zoomLevelDisplay" title="현재 확대/축소 레벨">줌 5</div>
+
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
@@ -1966,7 +1929,7 @@
             // 디바운싱으로 성능 최적화
             clearTimeout(zoomTimeout);
             zoomTimeout = setTimeout(function() {
-                updateZoomLevel();
+
                 toggleFlightElements(map.getZoom()); // 줌 레벨에 따라 항로와 마커 표시/숨김
             }, 100);
         });
@@ -1995,7 +1958,7 @@
         });
         
         // 초기 줌 레벨 표시
-        updateZoomLevel();
+
         toggleFlightElements(map.getZoom()); // 초기 줌 레벨에 따라 항로와 마커 표시/숨김
         
         // Firebase 초기화 완료 후 동기화 시작
@@ -3127,16 +3090,7 @@
         }
       }
       
-      // 줌 레벨 업데이트 함수
-      function updateZoomLevel() {
-        if (map) {
-          const zoomLevel = Math.round(map.getZoom());
-          const zoomDisplay = document.getElementById('zoomLevelDisplay');
-          if (zoomDisplay) {
-            zoomDisplay.textContent = `줌 ${zoomLevel}`;
-          }
-        }
-      }
+
       
 
       
@@ -4752,6 +4706,7 @@
         closeMarkerSaveDialog();
         
         // 저장된 마커들 다시 그리기
+        clearAllRenderedMarkers();
         drawAllSavedMarkers();
         
         // 마커제거 버튼 상태 업데이트
@@ -4778,8 +4733,12 @@
               markerGroup.markerElements = [];
               
               markerGroup.markers.forEach((markerData, index) => {
-                const markerId = `${markerGroup.name}-${index}`;
-                const emoji = (markerInfoData && markerInfoData[markerId] && markerInfoData[markerId].emoji) ? markerInfoData[markerId].emoji : '';
+                const idKey = (markerGroup && markerGroup.id) ? `${markerGroup.id}-${index}` : null;
+                const nameKey = `${markerGroup.name}-${index}`;
+                const infoForMarker = markerInfoData
+                  ? (idKey && markerInfoData[idKey]) || markerInfoData[nameKey] || null
+                  : null;
+                const emoji = (infoForMarker && infoForMarker.emoji) ? infoForMarker.emoji : '';
                 const useEmoji = !!emoji;
                 const markerOptions = {
                   position: new google.maps.LatLng(markerData.lat, markerData.lng),
@@ -4847,6 +4806,32 @@
           });
         } catch (e) {
           console.warn('마커 요소 제거 중 경고:', e);
+        }
+      }
+      
+      // Firestore 저장용으로 사용자 마커 데이터를 정제 (비직렬화 필드 제거)
+      function sanitizeSavedUserMarkersForFirestore(markers) {
+        try {
+          return (markers || []).map(function(group) {
+            return {
+              id: group && group.id ? group.id : undefined,
+              name: group && group.name ? group.name : undefined,
+              location: group && group.location ? group.location : undefined,
+              createdAt: group && group.createdAt ? group.createdAt : undefined,
+              markers: Array.isArray(group && group.markers)
+                ? group.markers.map(function(m) {
+                    return {
+                      lat: m && typeof m.lat === 'number' ? m.lat : (m && m.lat ? Number(m.lat) : undefined),
+                      lng: m && typeof m.lng === 'number' ? m.lng : (m && m.lng ? Number(m.lng) : undefined),
+                      title: (m && m.title) ? m.title : ''
+                    };
+                  })
+                : []
+            };
+          });
+        } catch (e) {
+          console.error('마커 데이터 정제 실패:', e);
+          return [];
         }
       }
       
@@ -5180,15 +5165,21 @@
       }
       // 마커 정보 수정 함수
       function editMarkerInfo(markerGroupName, index) {
-        const markerId = `${markerGroupName}-${index}`;
+        // group id 우선 키 사용 (하위 호환으로 name-index 유지)
+        const savedMarkers = window.savedUserMarkers || [];
+        const group = savedMarkers.find(g => g && (g.name === markerGroupName));
+        const idKey = (group && group.id) ? `${group.id}-${index}` : null;
+        const nameKey = `${markerGroupName}-${index}`;
+        const markerId = idKey || nameKey;
         
-        // 현재 저장된 정보 가져오기 또는 기본값 설정
-        const currentInfo = markerInfoData[markerId] || {
+        // 현재 저장된 정보 가져오기 또는 기본값 설정 (id 우선, name 대체)
+        const baseInfo = (idKey && markerInfoData[idKey]) || markerInfoData[nameKey] || null;
+        const currentInfo = baseInfo || {
           title: markerGroupName,
           content: '',
           link: ''
         };
-        const currentEmoji = currentInfo.emoji || '';
+        const currentEmoji = (baseInfo && baseInfo.emoji) ? baseInfo.emoji : '';
         
         // 화면 크기에 따른 다이얼로그 크기 조정
         const viewportWidth = window.innerWidth;
@@ -5387,7 +5378,10 @@
       }
       // 마커 정보 저장 함수
       async function saveMarkerInfo(markerGroupName, index) {
-        const markerId = `${markerGroupName}-${index}`;
+        // group id 우선 키 사용 (하위 호환으로 name-index 유지)
+        const savedMarkers = window.savedUserMarkers || [];
+        const group = savedMarkers.find(g => g && (g.name === markerGroupName));
+        const markerId = (group && group.id) ? `${group.id}-${index}` : `${markerGroupName}-${index}`;
         
         // 입력값 가져오기
         const titleInput = document.getElementById(`edit-title-${markerId}`);
@@ -5556,14 +5550,15 @@
             
             // 마커 정보 데이터 복사본 생성
             const updatedMarkerInfoData = { ...markerInfoData };
-            const markerId = `${markerGroupName}-${index}`;
+            const groupForId = (window.savedUserMarkers || []).find(g => g && (g.name === markerGroupName));
+            const markerId = (groupForId && groupForId.id) ? `${groupForId.id}-${index}` : `${markerGroupName}-${index}`;
             delete updatedMarkerInfoData[markerId];
             
             // 인덱스 재정렬
             const remainingCount = updatedMarkerGroup.markers?.length || updatedMarkerGroup.locations?.length || 0;
             for (let i = index; i < remainingCount; i++) {
-              const oldKey = `${markerGroupName}-${i + 1}`;
-              const newKey = `${markerGroupName}-${i}`;
+              const oldKey = (groupForId && groupForId.id) ? `${groupForId.id}-${i + 1}` : `${markerGroupName}-${i + 1}`;
+              const newKey = (groupForId && groupForId.id) ? `${groupForId.id}-${i}` : `${markerGroupName}-${i}`;
               if (updatedMarkerInfoData[oldKey]) {
                 updatedMarkerInfoData[newKey] = updatedMarkerInfoData[oldKey];
                 delete updatedMarkerInfoData[oldKey];
@@ -5580,7 +5575,7 @@
               updatedMarkers[markerGroupIndex] = updatedMarkerGroup;
             }
             
-            // Firebase에 업데이트
+            // Firebase에 업데이트 (직렬화 가능한 데이터만 전송)
             if (window.db && window.firestore) {
               console.log('Firebase에 마커 삭제 저장 시도 중...', {
                 markerGroupName,
@@ -5592,8 +5587,9 @@
               });
               
               const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+              const sanitizedSavedUserMarkers = sanitizeSavedUserMarkersForFirestore(updatedMarkers);
               await window.firestore.updateDoc(userDocRef, {
-                savedUserMarkers: updatedMarkers,
+                savedUserMarkers: sanitizedSavedUserMarkers,
                 markerInfoData: updatedMarkerInfoData,
                 lastUpdated: window.firestore.serverTimestamp()
               });
@@ -5619,7 +5615,10 @@
       
       // 저장된 정보로 마커 정보창 표시
       function showMarkerInfoWithData(markerGroupName, index) {
-        const markerId = `${markerGroupName}-${index}`;
+        // group id 우선 키 사용
+        const savedMarkers = window.savedUserMarkers || [];
+        const group = savedMarkers.find(g => g && (g.name === markerGroupName));
+        const markerId = (group && group.id) ? `${group.id}-${index}` : `${markerGroupName}-${index}`;
         const savedInfo = markerInfoData[markerId] || {
           title: markerGroupName,
           content: '',
@@ -5926,16 +5925,33 @@
            // 배열에서 해당 위치 마커들 제거
            const updatedMarkers = (window.savedUserMarkers || []).filter(marker => marker.location !== location);
            
-           // Firebase에서 해당 위치 마커들 제거
+           // markerInfoData에서 해당 위치의 마커 정보 키 제거
+           const updatedMarkerInfoData = { ...markerInfoData };
+           locationMarkers.forEach(function(group) {
+             const groupName = (group && group.name) ? group.name : ((group && group.location) ? (group.location + ' 마커') : '');
+             const count = Array.isArray(group && group.markers) ? group.markers.length : 0;
+             for (let i = 0; i < count; i++) {
+               const key = (group && group.id) ? `${group.id}-${i}` : `${groupName}-${i}`;
+               if (updatedMarkerInfoData[key]) {
+                 delete updatedMarkerInfoData[key];
+               }
+             }
+           });
+           
+           // Firebase에서 해당 위치 마커들 제거 (직렬화 가능한 데이터만 전송)
+           const sanitizedForDeleteByLocation = sanitizeSavedUserMarkersForFirestore(updatedMarkers);
            await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
-             savedUserMarkers: updatedMarkers,
+             savedUserMarkers: sanitizedForDeleteByLocation,
+             markerInfoData: updatedMarkerInfoData,
              lastUpdated: window.firestore.serverTimestamp()
            });
            
            // 전역 변수 업데이트
            window.savedUserMarkers = updatedMarkers;
+           markerInfoData = updatedMarkerInfoData;
            
            // UI 즉시 업데이트
+           clearAllRenderedMarkers();
            drawAllSavedMarkers();
            updateRouteRemoveButtons();
            
@@ -5954,7 +5970,21 @@
            
            // Firebase 실패 시 UI만 업데이트
            const updatedMarkers = (window.savedUserMarkers || []).filter(marker => marker.location !== location);
+           // markerInfoData에서도 해당 키들을 제거
+           const fallbackMarkerInfoData = { ...markerInfoData };
+           locationMarkers.forEach(function(group) {
+             const groupName = (group && group.name) ? group.name : ((group && group.location) ? (group.location + ' 마커') : '');
+             const count = Array.isArray(group && group.markers) ? group.markers.length : 0;
+             for (let i = 0; i < count; i++) {
+               const key = (group && group.id) ? `${group.id}-${i}` : `${groupName}-${i}`;
+               if (fallbackMarkerInfoData[key]) {
+                 delete fallbackMarkerInfoData[key];
+               }
+             }
+           });
            window.savedUserMarkers = updatedMarkers;
+           markerInfoData = fallbackMarkerInfoData;
+           clearAllRenderedMarkers();
            drawAllSavedMarkers();
            updateRouteRemoveButtons();
            
@@ -8303,36 +8333,40 @@
           left: 50%;
           transform: translateX(-50%);
           z-index: 1000;
-          width: 400px;
+          width: 380px;
           max-width: 90vw;
-          background: rgba(255, 255, 255, 0.95);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 16px;
-          box-shadow: 0 12px 32px rgba(0,0,0,0.15);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+          background: rgba(255, 255, 255, 0.85);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 20px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           overflow: hidden;
+          transition: all 0.3s ease;
         `;
         
         dialog.innerHTML = `
-          <div class="info-header" style="background: linear-gradient(135deg, #10b981, #059669);">
-            <h3 style="color: #ffffff; margin: 0;">새 일정 추가</h3>
-            <button class="close-btn" onclick="closeAddScheduleDialog()">×</button>
-          </div>
-          <div class="info-content" style="padding: 20px;">
-            <div class="form-group" style="margin-bottom: 16px;">
-              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #1f2937;">일정 제목</label>
-              <input type="text" id="scheduleTitle" placeholder="예: 2일차, 3일차, 특별일정 등" 
-                     style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+          <style>
+            #scheduleTitle::placeholder {
+              color: rgba(0, 0, 0, 0.5);
+            }
+          </style>
+          <div style="padding: 28px 24px 24px 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">새 일정 추가</h3>
+            </div>
+            <div style="margin-bottom: 24px;">
+              <input type="text" id="scheduleTitle" placeholder="일정 제목을 입력하세요" 
+                     style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);" 
+                     onfocus="this.style.background='rgba(255, 255, 255, 0.18)'; this.style.boxShadow='0 0 0 2px rgba(16, 185, 129, 0.3)'"
+                     onblur="this.style.background='rgba(255, 255, 255, 0.12)'; this.style.boxShadow='none'"
+                     onkeypress="if(event.key==='Enter') addNewSchedule()">
             </div>
 
-            <div style="display: flex; gap: 12px;">
-              <button onclick="addNewSchedule()" style="flex: 1; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">
+            <div style="text-align: center;">
+              <button onclick="addNewSchedule()" style="background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 32px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px); min-width: 120px;" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'; this.style.transform='translateY(0)'">
                 추가
-              </button>
-              <button onclick="closeAddScheduleDialog()" style="flex: 1; background: linear-gradient(135deg, #6b7280, #4b5563); color: white; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">
-                취소
               </button>
             </div>
           </div>
