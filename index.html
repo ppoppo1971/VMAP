@@ -8668,8 +8668,29 @@
       
       // 가계부 표로보기 열기 함수 (Firebase 연동)
       function openBudgetTable() {
-        // Firebase에서 직접 로드하도록 account.html 열기
-        window.open('account.html', '_blank');
+        // iOS/Safari/PWA 환경에서는 새창이 차단될 수 있으므로 동일 탭 이동으로 폴백
+        // 현재 페이지의 기본 URL을 사용하여 동적으로 account.html 경로 생성
+        const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
+        const url = baseUrl + 'account.html';
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+
+        if (isIOS || isStandalone) {
+          window.location.href = url;
+          return;
+        }
+
+        // 데스크탑 등에서는 새 탭 시도, 실패 시 동일 탭 이동
+        let opened = null;
+        try {
+          opened = window.open(url, '_blank', 'noopener,noreferrer');
+        } catch (e) {
+          opened = null;
+        }
+
+        if (!opened) {
+          window.location.href = url;
+        }
       }
       
       // 가계부 버튼 스와이프 기능 초기화
