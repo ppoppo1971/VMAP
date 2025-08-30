@@ -146,6 +146,7 @@
             border-radius: 15px;
             overflow: hidden;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            table-layout: fixed;
         }
         
         .budget-table th {
@@ -164,6 +165,45 @@
             padding: 16px 15px;
             border-bottom: 1px solid #f3f4f6;
             font-size: 14px;
+        }
+
+        /* 데스크탑/기본 컬럼 고정 너비 (요청 비율) */
+        .budget-table th:nth-child(1),
+        .budget-table td:nth-child(1) { /* 날짜 */
+            width: 10%;
+            text-align: center;
+        }
+        .budget-table th:nth-child(2),
+        .budget-table td:nth-child(2) { /* 항목 */
+            width: 12% !important;
+            min-width: 80px;
+            max-width: 80px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .budget-table th:nth-child(3),
+        .budget-table td:nth-child(3) { /* 내용 */
+            width: 35%;
+        }
+        .budget-table th:nth-child(4),
+        .budget-table td:nth-child(4) { /* 결제방법 */
+            width: 12%;
+            text-align: center;
+        }
+        .budget-table th:nth-child(5) { /* 금액 헤더 */
+            width: 16%;
+            text-align: center;
+        }
+        .budget-table td:nth-child(5) { /* 금액 값 */
+            width: 16%;
+            text-align: right;
+        }
+        .budget-table th:nth-child(6),
+        .budget-table td:nth-child(6) { /* 삭제 */
+            width: 8%;
+            text-align: center;
         }
         
         .budget-table tr:hover {
@@ -334,7 +374,8 @@
             .budget-table {
                 font-size: 11px;
                 min-width: 100%;
-                white-space: nowrap;
+                table-layout: fixed;
+                white-space: normal;
             }
             
             .budget-table th,
@@ -346,34 +387,39 @@
             /* 768px 이하 컬럼 고정 너비 (요청 비율) */
             .budget-table th:nth-child(1),
             .budget-table td:nth-child(1) { /* 날짜 */
-                width: 8%;
+                width: 10%;
                 text-align: center;
             }
 
             .budget-table th:nth-child(2),
             .budget-table td:nth-child(2) { /* 항목 */
-                width: 15%;
+                width: 12% !important;
+                min-width: 60px;
+                max-width: 60px;
                 text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
             .budget-table th:nth-child(3),
             .budget-table td:nth-child(3) { /* 내용 */
-                width: 19%;
+                width: 38%;
             }
 
             .budget-table th:nth-child(4),
             .budget-table td:nth-child(4) { /* 결제방법 */
-                width: 15%;
+                width: 12%;
                 text-align: center;
             }
 
             .budget-table th:nth-child(5) { /* 금액 (헤더 가운데) */
-                width: 35%;
+                width: 16%;
                 text-align: center;
             }
 
             .budget-table td:nth-child(5) { /* 금액 값은 오른쪽 정렬 */
-                width: 35%;
+                width: 16%;
                 text-align: right;
             }
 
@@ -435,6 +481,8 @@
             
             .budget-table {
                 font-size: 10px;
+                table-layout: fixed;
+                white-space: normal;
             }
             
             .budget-table th,
@@ -446,34 +494,39 @@
             /* 480px 이하 컬럼 고정 너비 (요청 비율) */
             .budget-table th:nth-child(1),
             .budget-table td:nth-child(1) { /* 날짜 */
-                width: 8%;
+                width: 10%;
                 text-align: center;
             }
 
             .budget-table th:nth-child(2),
             .budget-table td:nth-child(2) { /* 항목 */
-                width: 15%;
+                width: 12% !important;
+                min-width: 50px;
+                max-width: 50px;
                 text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }
 
             .budget-table th:nth-child(3),
             .budget-table td:nth-child(3) { /* 내용 */
-                width: 19%;
+                width: 25%;
             }
 
             .budget-table th:nth-child(4),
             .budget-table td:nth-child(4) { /* 결제방법 */
-                width: 15%;
+                width: 12%;
                 text-align: center;
             }
 
             .budget-table th:nth-child(5) { /* 금액 (헤더 가운데) */
-                width: 35%;
+                width: 23%;
                 text-align: center;
             }
 
             .budget-table td:nth-child(5) { /* 금액 값은 오른쪽 정렬 */
-                width: 35%;
+                width: 23%;
                 text-align: right;
             }
 
