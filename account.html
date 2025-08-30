@@ -1214,7 +1214,14 @@
             }
             
             // 이벤트 리스너 추가
-            editElement.addEventListener('blur', saveCurrentEdit);
+            editElement.addEventListener('blur', function(e) {
+                // blur 이벤트에서는 취소만 수행 (저장하지 않음)
+                setTimeout(() => {
+                    if (currentEditingCell === cell) {
+                        cancelEditWithoutWarning();
+                    }
+                }, 100);
+            });
             editElement.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     saveCurrentEdit();
@@ -1369,15 +1376,31 @@
             currentEditingCell = null;
         }
         
-        // 테이블 외부 클릭시 편집 취소
+        // 테이블 외부 클릭시 편집 취소 및 새 편집 시작
         document.addEventListener('click', function(e) {
-            if (currentEditingCell && !currentEditingCell.contains(e.target) && !e.target.classList.contains('editable-cell')) {
-                // 편집 가능한 셀을 클릭한 경우가 아닐 때만 편집 취소
-                setTimeout(() => {
-                    if (currentEditingCell && !currentEditingCell.contains(e.target)) {
-                        cancelEditWithoutWarning();
-                    }
-                }, 100);
+            if (currentEditingCell) {
+                // 현재 편집 중인 셀 또는 그 안의 요소를 클릭한 경우는 무시
+                if (currentEditingCell.contains(e.target)) {
+                    return;
+                }
+                
+                // 편집 가능한 셀을 클릭한 경우
+                const clickedEditableCell = e.target.closest('.editable-cell');
+                if (clickedEditableCell && clickedEditableCell !== currentEditingCell) {
+                    // 현재 편집 취소하고 새 셀 편집 시작
+                    cancelEditWithoutWarning();
+                    // 새 셀 편집은 해당 셀의 onclick 이벤트에서 처리됨
+                    return;
+                }
+                
+                // 편집 가능한 셀이 아닌 곳을 클릭한 경우 편집 취소
+                if (!clickedEditableCell) {
+                    setTimeout(() => {
+                        if (currentEditingCell) {
+                            cancelEditWithoutWarning();
+                        }
+                    }, 50);
+                }
             }
         });
         
