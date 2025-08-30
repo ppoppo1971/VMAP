@@ -8668,8 +8668,8 @@
       
       // 가계부 표로보기 열기 함수 (Firebase 연동)
       function openBudgetTable() {
-        // Firebase에서 직접 로드하도록 가계부.html 열기
-        window.open('가계부.html', '_blank');
+        // Firebase에서 직접 로드하도록 account.html 열기
+        window.open('account.html', '_blank');
       }
       
       // 가계부 버튼 스와이프 기능 초기화
@@ -8910,13 +8910,13 @@
             timestamp: Date.now()
           };
           
-          // 가계부 데이터는 가계부.html에서만 Firebase 관리
+          // 가계부 데이터는 account.html에서만 Firebase 관리
           // index47m.html에서는 localStorage 임시 저장만 (중복 방지)
           let budgetList = JSON.parse(localStorage.getItem('budgetList') || '[]');
           budgetList.push(budgetData);
           localStorage.setItem('budgetList', JSON.stringify(budgetList));
           
-          console.log('가계부 데이터 임시 저장 완료 (Firebase는 가계부.html에서 전담 관리)');
+          console.log('가계부 데이터 임시 저장 완료 (Firebase는 account.html에서 전담 관리)');
           
           const currencySymbol = currency === '원화' ? '원' : '¥';
           alert(`가계부에 추가되었습니다!\n${content}\n${category}: ${Number(amount).toLocaleString()}${currencySymbol} (${payment})`);
