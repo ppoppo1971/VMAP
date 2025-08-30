@@ -8746,6 +8746,61 @@
           }
         }, { passive: false });
         
+        // 마우스 이벤트 (데스크탑 지원) 추가
+        container.addEventListener('mousedown', function(e) {
+          console.log('가계부 스와이프 마우스 시작');
+          
+          startX = e.clientX;
+          startY = e.clientY;
+          startTime = Date.now();
+          isSwiping = true;
+          hasSwiped = false;
+          e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+          if (!isSwiping) return;
+          
+          currentX = e.clientX;
+          currentY = e.clientY;
+          const diffX = startX - currentX;
+          const diffY = Math.abs(startY - currentY);
+          const diffTime = Date.now() - startTime;
+          
+          // 세로 움직임이 가로보다 크면 스와이프 취소
+          if (diffY > Math.abs(diffX) && diffY > 20) {
+            return;
+          }
+          
+          // 빠른 스와이프 감지 (데스크탑용)
+          if (diffX > 30 && diffTime < 500 && diffY < 30) {
+            const translateX = Math.min(diffX, 100);
+            container.style.transform = `translateX(-${translateX}px)`;
+            hasSwiped = true;
+          }
+        });
+        
+        document.addEventListener('mouseup', function(e) {
+          if (!isSwiping) return;
+          
+          isSwiping = false;
+          
+          const diffX = startX - currentX;
+          const diffTime = Date.now() - startTime;
+          
+          // 데스크탑에서 스와이프 감지
+          if (hasSwiped && diffX > 30 && diffTime < 1000) {
+            // 스와이프 완료 - 상세보기 표시
+            container.style.transform = 'translateX(-100%)';
+            isSwipeRight = true;
+            console.log('가계부 스와이프 완료 - 상세보기 표시 (데스크탑)');
+          } else {
+            // 스와이프 취소 - 원래 위치로 복원
+            container.style.transform = 'translateX(0)';
+            isSwipeRight = false;
+          }
+        });
+        
         // 클릭 시 상태 관리
         document.getElementById('budgetBtn').addEventListener('click', () => {
           if (isSwipeRight) {
