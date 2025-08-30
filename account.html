@@ -1148,14 +1148,14 @@
         let currentEditingCell = null;
         
         function editCell(cell, itemId) {
-            // 이미 편집 중인 셀이 있으면 저장하고 종료
+            // 이미 편집 중인 셀이 있으면 취소하고 종료
             if (currentEditingCell && currentEditingCell !== cell) {
-                saveCurrentEdit();
+                cancelEditWithoutWarning();
             }
             
             // 같은 셀을 다시 클릭하면 편집 종료
             if (currentEditingCell === cell) {
-                saveCurrentEdit();
+                cancelEditWithoutWarning();
                 return;
             }
             
@@ -1329,13 +1329,52 @@
             currentEditingCell = null;
         }
         
-        // 테이블 외부 클릭시 편집 종료
+        // 경고창 없이 편집 취소 (다른 곳 클릭시 사용)
+        function cancelEditWithoutWarning() {
+            if (!currentEditingCell) return;
+            
+            // 원래 데이터로 복원
+            const itemId = currentEditingCell.closest('tr').dataset.itemId;
+            const field = currentEditingCell.dataset.field;
+            const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
+            
+            if (item) {
+                // 원래 값으로 셀 내용 복원
+                let originalValue = '';
+                switch (field) {
+                    case 'date':
+                        const dateObj = new Date(item.date);
+                        originalValue = `${dateObj.getMonth() + 1}/${dateObj.getDate().toString().padStart(2, '0')}`;
+                        break;
+                    case 'category':
+                        originalValue = `<span>${item.category}</span>`;
+                        break;
+                    case 'content':
+                        originalValue = item.content || '-';
+                        break;
+                    case 'payment':
+                        const paymentClass = item.payment === '카드' ? 'payment-card' : 'payment-cash';
+                        originalValue = `<span class="payment-badge ${paymentClass}">${item.payment}</span>`;
+                        break;
+                    case 'amount':
+                        const currencySymbol = item.currency === '원화' ? '원' : '¥';
+                        originalValue = `${item.amount.toLocaleString()}${currencySymbol}`;
+                        break;
+                }
+                currentEditingCell.innerHTML = originalValue;
+            }
+            
+            currentEditingCell.classList.remove('editing');
+            currentEditingCell = null;
+        }
+        
+        // 테이블 외부 클릭시 편집 취소
         document.addEventListener('click', function(e) {
             if (currentEditingCell && !currentEditingCell.contains(e.target) && !e.target.classList.contains('editable-cell')) {
-                // 편집 가능한 셀을 클릭한 경우가 아닐 때만 편집 종료
+                // 편집 가능한 셀을 클릭한 경우가 아닐 때만 편집 취소
                 setTimeout(() => {
                     if (currentEditingCell && !currentEditingCell.contains(e.target)) {
-                        saveCurrentEdit();
+                        cancelEditWithoutWarning();
                     }
                 }, 100);
             }
