@@ -8551,11 +8551,11 @@
           <div style="margin-bottom: 16px;">
             <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">항목</label>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center;">
-              <button type="button" onclick="selectBudgetCategory('🍽️', '식비')" id="btn-식비" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🍽️</button>
-              <button type="button" onclick="selectBudgetCategory('🚌', '교통비')" id="btn-교통비" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🚌</button>
-              <button type="button" onclick="selectBudgetCategory('🏨', '숙박비')" id="btn-숙박비" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🏨</button>
-              <button type="button" onclick="selectBudgetCategory('🛒', '쇼핑')" id="btn-쇼핑" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🛒</button>
-              <button type="button" onclick="selectBudgetCategory('💡', '기타')" id="btn-기타" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">💡</button>
+              <button type="button" onclick="selectBudgetCategory('🍽️', '식비')" id="btn-식비" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">식비</button>
+              <button type="button" onclick="selectBudgetCategory('🚌', '교통비')" id="btn-교통비" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">교통비</button>
+              <button type="button" onclick="selectBudgetCategory('🏨', '숙박비')" id="btn-숙박비" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">숙박비</button>
+              <button type="button" onclick="selectBudgetCategory('🛒', '쇼핑')" id="btn-쇼핑" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">쇼핑</button>
+              <button type="button" onclick="selectBudgetCategory('💡', '기타')" id="btn-기타" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">기타</button>
             </div>
             <input type="hidden" id="budgetCategory" value="">
           </div>
@@ -8570,8 +8570,8 @@
           <div style="margin-bottom: 16px;">
             <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">통화</label>
             <div style="display: flex; gap: 8px;">
-              <button type="button" onclick="selectCurrency('원화')" id="btn-원화" style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 14px;">🇰🇷 원화</button>
-              <button type="button" onclick="selectCurrency('엔화')" id="btn-엔화" style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 14px;">🇯🇵 엔화</button>
+              <button type="button" onclick="selectCurrency('원화')" id="btn-원화" style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 14px;">원화</button>
+              <button type="button" onclick="selectCurrency('엔화')" id="btn-엔화" style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 14px;">엔화</button>
             </div>
             <input type="hidden" id="budgetCurrency" value="">
           </div>
@@ -8822,14 +8822,18 @@
         categoryButtons.forEach(cat => {
           const btn = document.getElementById(`btn-${cat}`);
           if (btn) {
-            btn.style.background = 'rgba(255, 255, 255, 0.12)';
+            btn.style.background = 'rgba(79, 70, 229, 0.08)';
+            btn.style.color = '#000';
+            btn.style.boxShadow = 'none';
           }
         });
         
         // 선택된 버튼 강조
         const selectedBtn = document.getElementById(`btn-${category}`);
         if (selectedBtn) {
-          selectedBtn.style.background = 'rgba(255, 255, 255, 0.25)';
+          selectedBtn.style.background = '#4f46e5';
+          selectedBtn.style.color = '#fff';
+          selectedBtn.style.boxShadow = '0 0 0 2px rgba(79, 70, 229, 0.25) inset';
         }
         
         // hidden input에 값 설정
@@ -8843,14 +8847,18 @@
         paymentButtons.forEach(payment => {
           const btn = document.getElementById(`btn-${payment}`);
           if (btn) {
-            btn.style.background = 'rgba(255, 255, 255, 0.12)';
+            btn.style.background = 'rgba(79, 70, 229, 0.08)';
+            btn.style.color = '#000';
+            btn.style.boxShadow = 'none';
           }
         });
         
         // 선택된 버튼 강조
         const selectedBtn = document.getElementById(`btn-${method}`);
         if (selectedBtn) {
-          selectedBtn.style.background = 'rgba(255, 255, 255, 0.25)';
+          selectedBtn.style.background = '#4f46e5';
+          selectedBtn.style.color = '#fff';
+          selectedBtn.style.boxShadow = '0 0 0 2px rgba(79, 70, 229, 0.25) inset';
         }
         
         // hidden input에 값 설정
@@ -8864,14 +8872,18 @@
         currencyButtons.forEach(curr => {
           const btn = document.getElementById(`btn-${curr}`);
           if (btn) {
-            btn.style.background = 'rgba(255, 255, 255, 0.12)';
+            btn.style.background = 'rgba(79, 70, 229, 0.08)';
+            btn.style.color = '#000';
+            btn.style.boxShadow = 'none';
           }
         });
         
         // 선택된 버튼 강조
         const selectedBtn = document.getElementById(`btn-${currency}`);
         if (selectedBtn) {
-          selectedBtn.style.background = 'rgba(255, 255, 255, 0.25)';
+          selectedBtn.style.background = '#4f46e5';
+          selectedBtn.style.color = '#fff';
+          selectedBtn.style.boxShadow = '0 0 0 2px rgba(79, 70, 229, 0.25) inset';
         }
         
         // hidden input에 값 설정
