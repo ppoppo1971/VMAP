@@ -151,7 +151,7 @@
         .budget-table th {
             background: #f8fafc;
             padding: 18px 15px;
-            text-align: left;
+            text-align: center;
             font-weight: 600;
             color: #374151;
             font-size: 14px;
@@ -343,6 +343,42 @@
                 font-size: 11px;
             }
             
+            /* 768px 이하에서도 컬럼 너비 조정 */
+            .budget-table th:nth-child(1),
+            .budget-table td:nth-child(1) {
+                width: 8%;
+                text-align: center;
+            }
+            
+            .budget-table th:nth-child(2),
+            .budget-table td:nth-child(2) {
+                width: 10%;
+                text-align: center;
+            }
+            
+            .budget-table th:nth-child(3),
+            .budget-table td:nth-child(3) {
+                width: 52%;
+            }
+            
+            .budget-table th:nth-child(4),
+            .budget-table td:nth-child(4) {
+                width: 10%;
+                text-align: center;
+            }
+            
+            .budget-table th:nth-child(5),
+            .budget-table td:nth-child(5) {
+                width: 12%;
+                text-align: right;
+            }
+            
+            .budget-table th:nth-child(6),
+            .budget-table td:nth-child(6) {
+                width: 8%;
+                text-align: center;
+            }
+            
             .content-cell {
                 max-width: 80px;
                 word-break: break-all;
@@ -403,35 +439,40 @@
                 font-size: 10px;
             }
             
-            /* 모바일에서 컬럼 너비 조정 */
+            /* 모바일에서 컬럼 너비 조정 - 텍스트 길이에 맞춤 */
             .budget-table th:nth-child(1),
             .budget-table td:nth-child(1) {
-                width: 12%;
+                width: 8%;  /* 날짜: 8/03 형식 */
+                text-align: center;
             }
             
             .budget-table th:nth-child(2),
             .budget-table td:nth-child(2) {
-                width: 12%;
+                width: 10%; /* 항목: 식비, 교통비 등 */
+                text-align: center;
             }
             
             .budget-table th:nth-child(3),
             .budget-table td:nth-child(3) {
-                width: 40%;
+                width: 52%; /* 내용: 남는 여백 모두 할당 */
             }
             
             .budget-table th:nth-child(4),
             .budget-table td:nth-child(4) {
-                width: 12%;
+                width: 10%; /* 결제방법: 카드, 현금 */
+                text-align: center;
             }
             
             .budget-table th:nth-child(5),
             .budget-table td:nth-child(5) {
-                width: 14%;
+                width: 12%; /* 금액: 8자리 텍스트 */
+                text-align: right;
             }
             
             .budget-table th:nth-child(6),
             .budget-table td:nth-child(6) {
-                width: 10%;
+                width: 8%;  /* 삭제 버튼 */
+                text-align: center;
             }
             
             .content-cell {
@@ -484,8 +525,8 @@
                     <button class="filter-btn" data-filter="기타">기타</button>
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: space-between;">
-                    <button class="export-btn" onclick="exportToCSV()" style="flex: 1;">CSV 내보내기</button>
-                    <button class="export-btn" onclick="showAddBudgetDialog()" style="background: linear-gradient(135deg, #4f46e5, #06b6d4); flex: 1;">항목 추가</button>
+                    <button class="export-btn" onclick="exportToCSV()" style="flex: 1; background: white; color: #333; border: 2px solid white; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">CSV 내보내기</button>
+                    <button class="export-btn" onclick="showAddBudgetDialog()" style="flex: 1; background: white; color: #333; border: 2px solid white; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">항목 추가</button>
                 </div>
             </div>
             
