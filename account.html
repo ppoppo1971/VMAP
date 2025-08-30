@@ -310,6 +310,8 @@
                 gap: 10px;
             }
             
+
+            
             .filter-buttons {
                 justify-content: center;
                 flex-wrap: wrap;
@@ -404,27 +406,27 @@
             /* 모바일에서 컬럼 너비 조정 */
             .budget-table th:nth-child(1),
             .budget-table td:nth-child(1) {
-                width: 15%;
+                width: 12%;
             }
             
             .budget-table th:nth-child(2),
             .budget-table td:nth-child(2) {
-                width: 15%;
+                width: 12%;
             }
             
             .budget-table th:nth-child(3),
             .budget-table td:nth-child(3) {
-                width: 25%;
+                width: 40%;
             }
             
             .budget-table th:nth-child(4),
             .budget-table td:nth-child(4) {
-                width: 15%;
+                width: 12%;
             }
             
             .budget-table th:nth-child(5),
             .budget-table td:nth-child(5) {
-                width: 20%;
+                width: 14%;
             }
             
             .budget-table th:nth-child(6),
@@ -481,8 +483,10 @@
                     <button class="filter-btn" data-filter="쇼핑">쇼핑</button>
                     <button class="filter-btn" data-filter="기타">기타</button>
                 </div>
-                <button class="export-btn" onclick="exportToCSV()">CSV 내보내기</button>
-                <button class="export-btn" onclick="showAddBudgetDialog()" style="background: linear-gradient(135deg, #4f46e5, #06b6d4); margin-left: 10px;">항목 추가</button>
+                <div style="display: flex; gap: 10px; justify-content: space-between;">
+                    <button class="export-btn" onclick="exportToCSV()" style="flex: 1;">CSV 내보내기</button>
+                    <button class="export-btn" onclick="showAddBudgetDialog()" style="background: linear-gradient(135deg, #4f46e5, #06b6d4); flex: 1;">항목 추가</button>
+                </div>
             </div>
             
             <table class="budget-table" id="budgetTable">
@@ -775,11 +779,8 @@
             noDataMessage.style.display = 'none';
             
             const tableHTML = filteredData.map(item => {
-                const formattedDate = new Date(item.date).toLocaleDateString('ko-KR', {
-                    month: 'short',
-                    day: 'numeric',
-                    weekday: 'short'
-                });
+                const dateObj = new Date(item.date);
+                const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate().toString().padStart(2, '0')}`;
                 
                 const currencySymbol = item.currency === '원화' ? '원' : '¥';
                 const amountClass = item.currency === '원화' ? 'amount-krw' : 'amount-jpy';
