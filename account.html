@@ -144,7 +144,7 @@
             border-collapse: collapse;
             background: white;
             border-radius: 15px;
-            overflow: hidden;
+            overflow: visible;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             table-layout: fixed;
         }
@@ -588,9 +588,9 @@
                 <thead>
                     <tr>
                         <th onclick="toggleDateSort()" style="cursor: pointer; user-select: none;" id="dateHeader">날짜 ↓</th>
-                        <th onclick="toggleCategoryDropdown()" style="cursor: pointer; user-select: none; position: relative;" id="categoryHeader">
+                        <th onclick="toggleCategoryDropdown(event)" style="cursor: pointer; user-select: none; position: relative; z-index: 3; overflow: visible;" id="categoryHeader">
                             항목
-                            <div id="categoryDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 1000; margin-top: 5px;">
+                            <div id="categoryDropdown" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 9999; margin-top: 5px; min-width: 140px;">
                                 <div onclick="event.stopPropagation(); selectCategory('all')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6; font-weight: 600;">전체</div>
                                 <div onclick="event.stopPropagation(); selectCategory('식비')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6;">식비</div>
                                 <div onclick="event.stopPropagation(); selectCategory('교통비')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6;">교통비</div>
@@ -971,10 +971,24 @@
         }
         
         // 카테고리 드롭다운 토글
-        function toggleCategoryDropdown() {
+        function toggleCategoryDropdown(event) {
+            if (event) {
+                event.stopPropagation(); // 이벤트 전파 방지
+            }
+            
             const dropdown = document.getElementById('categoryDropdown');
+            console.log('toggleCategoryDropdown 호출됨'); // 디버깅용
+            console.log('dropdown 요소:', dropdown); // 디버깅용
+            
             if (dropdown) {
-                dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+                const currentDisplay = window.getComputedStyle(dropdown).display;
+                const isHidden = currentDisplay === 'none';
+                dropdown.style.display = isHidden ? 'block' : 'none';
+                console.log('현재 display:', currentDisplay, '→ 변경 후:', dropdown.style.display); // 디버깅용
+            } else {
+                console.error('categoryDropdown 요소를 찾을 수 없습니다.');
+                // 드롭다운이 없다면 헤더를 다시 생성
+                updateCategoryHeader();
             }
         }
         
@@ -991,9 +1005,19 @@
             const categoryHeader = document.getElementById('categoryHeader');
             if (categoryHeader) {
                 const headerText = currentCategoryFilter === 'all' ? '항목' : `항목(${currentCategoryFilter})`;
-                // 기존 드롭다운을 유지하면서 텍스트만 변경
-                const dropdown = document.getElementById('categoryDropdown');
-                const dropdownHTML = dropdown ? dropdown.outerHTML : '';
+                
+                // 기존 드롭다운 HTML을 보존
+                const dropdownHTML = `
+                    <div id="categoryDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 1000; margin-top: 5px;">
+                        <div onclick="event.stopPropagation(); selectCategory('all')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6; font-weight: 600;">전체</div>
+                        <div onclick="event.stopPropagation(); selectCategory('식비')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6;">식비</div>
+                        <div onclick="event.stopPropagation(); selectCategory('교통비')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6;">교통비</div>
+                        <div onclick="event.stopPropagation(); selectCategory('숙박비')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6;">숙박비</div>
+                        <div onclick="event.stopPropagation(); selectCategory('쇼핑')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6;">쇼핑</div>
+                        <div onclick="event.stopPropagation(); selectCategory('기타')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer;">기타</div>
+                    </div>
+                `;
+                
                 categoryHeader.innerHTML = headerText + dropdownHTML;
                 
                 // 색상 변경
@@ -1116,11 +1140,13 @@
                 
                 // 카테고리 헤더나 드롭다운을 클릭한 경우가 아니면 드롭다운 닫기
                 if (categoryHeader && categoryDropdown && 
-                    !categoryHeader.contains(e.target) && 
-                    !categoryDropdown.contains(e.target)) {
+                    !categoryHeader.contains(e.target)) {
                     hideDropdown();
                 }
             });
+            
+            // 초기 카테고리 헤더 설정
+            updateCategoryHeader();
         }
         
         // CSV 내보내기
