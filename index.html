@@ -8672,8 +8672,8 @@
         const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
         const url = baseUrl + 'account.html';
         
-        // 현재 탭에서 가계부 페이지로 이동
-        window.location.href = url;
+        // openUserItemLink와 완전히 동일한 방식으로 구현
+        openUserItemLink(url);
       }
       
       // 가계부 버튼 스와이프 기능 초기화
