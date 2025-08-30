@@ -281,31 +281,48 @@
         
         @media (max-width: 768px) {
             .container {
-                margin: 10px;
+                margin: 5px;
                 border-radius: 15px;
             }
             
             .header {
-                padding: 20px;
+                padding: 15px;
             }
             
             .header h1 {
-                font-size: 2rem;
+                font-size: 1.8rem;
             }
             
             .stats {
                 grid-template-columns: repeat(2, 1fr);
-                padding: 20px;
-                gap: 15px;
+                padding: 15px;
+                gap: 10px;
             }
             
             .table-container {
-                padding: 20px;
+                padding: 10px;
+                overflow-x: auto;
             }
             
             .controls {
                 flex-direction: column;
                 align-items: stretch;
+                gap: 10px;
+            }
+            
+            .filter-buttons {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .filter-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            
+            .export-btn {
+                padding: 10px 20px;
+                font-size: 12px;
             }
             
             .search-box input {
@@ -313,31 +330,132 @@
             }
             
             .budget-table {
-                font-size: 12px;
+                font-size: 11px;
+                min-width: 100%;
+                white-space: nowrap;
             }
             
             .budget-table th,
             .budget-table td {
-                padding: 12px 8px;
+                padding: 8px 4px;
+                font-size: 11px;
             }
             
             .content-cell {
-                max-width: 120px;
+                max-width: 80px;
+                word-break: break-all;
+                white-space: normal;
+                line-height: 1.2;
+            }
+            
+            .date-cell {
+                min-width: 60px;
+                font-size: 10px;
+            }
+            
+            .amount-cell {
+                min-width: 70px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            
+            .payment-badge {
+                padding: 2px 6px;
+                font-size: 10px;
             }
         }
         
         @media (max-width: 480px) {
             body {
+                padding: 5px;
+            }
+            
+            .container {
+                margin: 0;
+            }
+            
+            .header {
                 padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
             }
             
             .stats {
                 grid-template-columns: 1fr;
+                padding: 10px;
             }
             
-            .budget-table th:nth-child(n+4),
-            .budget-table td:nth-child(n+4) {
-                display: none;
+            .table-container {
+                padding: 5px;
+            }
+            
+            .budget-table {
+                font-size: 10px;
+            }
+            
+            .budget-table th,
+            .budget-table td {
+                padding: 6px 2px;
+                font-size: 10px;
+            }
+            
+            /* 모바일에서 컬럼 너비 조정 */
+            .budget-table th:nth-child(1),
+            .budget-table td:nth-child(1) {
+                width: 15%;
+            }
+            
+            .budget-table th:nth-child(2),
+            .budget-table td:nth-child(2) {
+                width: 15%;
+            }
+            
+            .budget-table th:nth-child(3),
+            .budget-table td:nth-child(3) {
+                width: 25%;
+            }
+            
+            .budget-table th:nth-child(4),
+            .budget-table td:nth-child(4) {
+                width: 15%;
+            }
+            
+            .budget-table th:nth-child(5),
+            .budget-table td:nth-child(5) {
+                width: 20%;
+            }
+            
+            .budget-table th:nth-child(6),
+            .budget-table td:nth-child(6) {
+                width: 10%;
+            }
+            
+            .content-cell {
+                max-width: none;
+                word-break: break-all;
+                white-space: normal;
+                line-height: 1.1;
+            }
+            
+            .date-cell {
+                font-size: 9px;
+            }
+            
+            .amount-cell {
+                font-size: 10px;
+            }
+            
+            .payment-badge {
+                padding: 1px 4px;
+                font-size: 9px;
+            }
+            
+            /* 삭제 버튼 크기 조정 */
+            .budget-table button {
+                padding: 2px 4px;
+                font-size: 9px;
             }
         }
     </style>
