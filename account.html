@@ -185,7 +185,7 @@
         }
         .budget-table th:nth-child(3),
         .budget-table td:nth-child(3) { /* 내용 */
-            width: 35%;
+            width: 33%;
         }
         .budget-table th:nth-child(4),
         .budget-table td:nth-child(4) { /* 결제방법 */
@@ -202,8 +202,9 @@
         }
         .budget-table th:nth-child(6),
         .budget-table td:nth-child(6) { /* 삭제 */
-            width: 8%;
+            width: 10%;
             text-align: center;
+            white-space: nowrap;
         }
         
         .budget-table tr:hover {
@@ -211,9 +212,7 @@
         }
         
         .category-cell {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            /* flex 레이아웃 제거하여 다른 셀과 동일한 표시 */
         }
         
         .category-emoji { display: none; }
@@ -404,7 +403,7 @@
 
             .budget-table th:nth-child(3),
             .budget-table td:nth-child(3) { /* 내용 */
-                width: 38%;
+                width: 36%;
             }
 
             .budget-table th:nth-child(4),
@@ -425,8 +424,9 @@
 
             .budget-table th:nth-child(6),
             .budget-table td:nth-child(6) { /* 삭제 */
-                width: 8%;
+                width: 10%;
                 text-align: center;
+                white-space: nowrap;
             }
 
             .content-cell {
@@ -511,7 +511,7 @@
 
             .budget-table th:nth-child(3),
             .budget-table td:nth-child(3) { /* 내용 */
-                width: 25%;
+                width: 23%;
             }
 
             .budget-table th:nth-child(4),
@@ -532,8 +532,9 @@
 
             .budget-table th:nth-child(6),
             .budget-table td:nth-child(6) { /* 삭제 */
-                width: 8%;
+                width: 10%;
                 text-align: center;
+                white-space: nowrap;
             }
             
             .content-cell {
@@ -918,7 +919,7 @@
                 footer.innerHTML = `
                     <tr>
                         <td colspan="4" style="text-align:right; font-weight:700; color:#374151; background:#f9fafb;">합계</td>
-                        <td style="text-align:right; font-weight:700; background:#f9fafb;">
+                        <td style="text-align:right; font-weight:700; background:#f9fafb; white-space:nowrap; overflow:visible; min-width:max-content;">
                             <span style="color: #2563eb;">${totalKRW.toLocaleString()}원</span>${totalJPY ? ` / <span style="color: #dc2626;">¥${totalJPY.toLocaleString()}</span>` : ''}
                         </td>
                         <td style="background:#f9fafb;"></td>
@@ -1148,7 +1149,7 @@
         let currentEditingCell = null;
         
         function editCell(cell, itemId) {
-            // 이미 편집 중인 셀이 있으면 취소하고 종료
+            // 이미 편집 중인 셀이 있으면 취소
             if (currentEditingCell && currentEditingCell !== cell) {
                 cancelEditWithoutWarning();
             }
