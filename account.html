@@ -184,11 +184,11 @@
         }
         
         .amount-krw {
-            color: #059669;
+            color: #2563eb; /* 파란색 */
         }
         
         .amount-jpy {
-            color: #dc2626;
+            color: #dc2626; /* 빨간색 유지 */
         }
         
         .payment-badge {
@@ -358,7 +358,7 @@
             
             .budget-table th:nth-child(3),
             .budget-table td:nth-child(3) {
-                width: 52%;
+                width: 57%; /* 금액에서 줄인 5% 추가 (52% → 57%) */
             }
             
             .budget-table th:nth-child(4),
@@ -367,9 +367,13 @@
                 text-align: center;
             }
             
-            .budget-table th:nth-child(5),
+            .budget-table th:nth-child(5) {
+                width: 7%;
+                text-align: center;
+            }
+            
             .budget-table td:nth-child(5) {
-                width: 12%;
+                width: 7%;
                 text-align: right;
             }
             
@@ -454,7 +458,7 @@
             
             .budget-table th:nth-child(3),
             .budget-table td:nth-child(3) {
-                width: 52%; /* 내용: 남는 여백 모두 할당 */
+                width: 57%; /* 내용: 남는 여백 모두 할당 (금액에서 5% 추가) */
             }
             
             .budget-table th:nth-child(4),
@@ -463,9 +467,13 @@
                 text-align: center;
             }
             
-            .budget-table th:nth-child(5),
+            .budget-table th:nth-child(5) {
+                width: 7%; /* 금액: 40% 줄임 (12% → 7%) */
+                text-align: center;
+            }
+            
             .budget-table td:nth-child(5) {
-                width: 12%; /* 금액: 8자리 텍스트 */
+                width: 7%; /* 금액: 40% 줄임 (12% → 7%) */
                 text-align: right;
             }
             
@@ -830,11 +838,11 @@
                 return `
                     <tr data-item-id="${item.id || item.timestamp}">
                         <td class="date-cell editable-cell" data-field="date" data-type="date" onclick="editCell(this, '${item.id || item.timestamp}')">${formattedDate}</td>
-                        <td class="category-cell editable-cell" data-field="category" data-type="select" onclick="editCell(this, '${item.id || item.timestamp}')">
+                        <td class="category-cell editable-cell" data-field="category" data-type="select" onclick="event.stopPropagation(); editCell(this, '${item.id || item.timestamp}')">
                             <span>${item.category}</span>
                         </td>
                         <td class="content-cell editable-cell" data-field="content" data-type="text" onclick="editCell(this, '${item.id || item.timestamp}')">${item.content || '-'}</td>
-                        <td class="editable-cell" data-field="payment" data-type="select" onclick="editCell(this, '${item.id || item.timestamp}')">
+                        <td class="editable-cell" data-field="payment" data-type="select" onclick="event.stopPropagation(); editCell(this, '${item.id || item.timestamp}')">
                             <span class="payment-badge ${paymentClass}">${item.payment}</span>
                         </td>
                         <td class="amount-cell ${amountClass} editable-cell" data-field="amount" data-type="number" onclick="editCell(this, '${item.id || item.timestamp}')">
@@ -858,7 +866,7 @@
                     <tr>
                         <td colspan="4" style="text-align:right; font-weight:700; color:#374151; background:#f9fafb;">합계</td>
                         <td style="text-align:right; font-weight:700; background:#f9fafb;">
-                            ${totalKRW.toLocaleString()}원${totalJPY ? ` / ¥${totalJPY.toLocaleString()}` : ''}
+                            <span style="color: #2563eb;">${totalKRW.toLocaleString()}원</span>${totalJPY ? ` / <span style="color: #dc2626;">¥${totalJPY.toLocaleString()}</span>` : ''}
                         </td>
                         <td style="background:#f9fafb;"></td>
                     </tr>
@@ -1270,8 +1278,13 @@
         
         // 테이블 외부 클릭시 편집 종료
         document.addEventListener('click', function(e) {
-            if (currentEditingCell && !currentEditingCell.contains(e.target)) {
-                saveCurrentEdit();
+            if (currentEditingCell && !currentEditingCell.contains(e.target) && !e.target.classList.contains('editable-cell')) {
+                // 편집 가능한 셀을 클릭한 경우가 아닐 때만 편집 종료
+                setTimeout(() => {
+                    if (currentEditingCell && !currentEditingCell.contains(e.target)) {
+                        saveCurrentEdit();
+                    }
+                }, 100);
             }
         });
         
