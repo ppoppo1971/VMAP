@@ -1017,7 +1017,7 @@
                         
                         <div style="margin-bottom: 15px;">
                             <label style="display: block; margin-bottom: 5px; font-weight: 600;">내용</label>
-                            <input type="text" id="dialogContent" placeholder="상세 내용 입력" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                            <input type="text" id="dialogContent" placeholder="상세 내용 입력" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
                         </div>
                         
                         <div style="margin-bottom: 15px;">
@@ -1040,7 +1040,7 @@
                         
                         <div style="margin-bottom: 20px;">
                             <label style="display: block; margin-bottom: 5px; font-weight: 600;">금액</label>
-                            <input type="number" id="dialogAmount" placeholder="금액 입력" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                            <input type="number" id="dialogAmount" placeholder="금액 입력" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
                         </div>
                         
                         <div style="display: flex; gap: 10px;">
@@ -1051,6 +1051,61 @@
                 </div>
             `;
             document.body.insertAdjacentHTML('beforeend', dialogHTML);
+            
+            // 입력 필드 이벤트 리스너 추가
+            const contentInput = document.getElementById('dialogContent');
+            const amountInput = document.getElementById('dialogAmount');
+            
+            // 내용 입력 필드 이벤트
+            if (contentInput) {
+                // 엔터 키로 입력 완료
+                contentInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        checkAndSaveIfComplete();
+                    }
+                });
+                
+                // blur 이벤트로 입력 완료 체크
+                contentInput.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        checkAndSaveIfComplete();
+                    }, 200);
+                });
+            }
+            
+            // 금액 입력 필드 이벤트
+            if (amountInput) {
+                // blur 이벤트로 입력 완료 체크
+                amountInput.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        checkAndSaveIfComplete();
+                    }, 200);
+                });
+                
+                // 엔터 키로 입력 완료
+                amountInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        checkAndSaveIfComplete();
+                    }
+                });
+            }
+        }
+        
+        // 모든 필드가 입력되었는지 확인하고 자동 저장
+        function checkAndSaveIfComplete() {
+            const date = document.getElementById('dialogDate')?.value;
+            const category = document.getElementById('dialogCategory')?.value;
+            const content = document.getElementById('dialogContent')?.value?.trim();
+            const payment = document.getElementById('dialogPayment')?.value;
+            const currency = document.getElementById('dialogCurrency')?.value;
+            const amount = document.getElementById('dialogAmount')?.value?.trim();
+            
+            // 모든 필드가 입력되었는지 확인
+            if (date && category && content && payment && currency && amount && Number(amount) > 0) {
+                saveBudgetFromDialog();
+            }
         }
         
         // 다이얼로그 선택 함수들
