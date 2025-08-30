@@ -578,15 +578,6 @@
         
         <div class="table-container">
             <div class="controls">
-                <div class="filter-buttons">
-                    <button class="filter-btn active" data-filter="all">전체</button>
-                    <button class="filter-btn" data-filter="식비">식비</button>
-                    <button class="filter-btn" data-filter="교통비">교통비</button>
-                    <button class="filter-btn" data-filter="숙박비">숙박비</button>
-                    <button class="filter-btn" data-filter="쇼핑">쇼핑</button>
-                    <button class="filter-btn" data-filter="기타">기타</button>
-                    <button class="filter-btn" data-payment-filter="all" id="paymentFilter" onclick="togglePaymentFilter()" style="margin-left: 15px; background: #e5e7eb;">결제방법</button>
-                </div>
                 <div style="display: flex; gap: 10px; justify-content: space-between;">
                     <button class="export-btn" onclick="exportToCSV()" style="flex: 1; background: white; color: #333; border: 2px solid white; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">CSV 내보내기</button>
                     <button class="export-btn" onclick="showAddBudgetDialog()" style="flex: 1; background: white; color: #333; border: 2px solid white; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">항목 추가</button>
@@ -597,9 +588,19 @@
                 <thead>
                     <tr>
                         <th onclick="toggleDateSort()" style="cursor: pointer; user-select: none;" id="dateHeader">날짜 ↓</th>
-                        <th>항목</th>
+                        <th onclick="toggleCategoryDropdown()" style="cursor: pointer; user-select: none; position: relative;" id="categoryHeader">
+                            항목
+                            <div id="categoryDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 1000; margin-top: 5px;">
+                                <div onclick="event.stopPropagation(); selectCategory('all')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6; font-weight: 600;">전체</div>
+                                <div onclick="event.stopPropagation(); selectCategory('식비')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6;">식비</div>
+                                <div onclick="event.stopPropagation(); selectCategory('교통비')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6;">교통비</div>
+                                <div onclick="event.stopPropagation(); selectCategory('숙박비')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6;">숙박비</div>
+                                <div onclick="event.stopPropagation(); selectCategory('쇼핑')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f3f4f6;">쇼핑</div>
+                                <div onclick="event.stopPropagation(); selectCategory('기타')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding: 8px 12px; cursor: pointer;">기타</div>
+                            </div>
+                        </th>
                         <th>내용</th>
-                        <th>결제방법</th>
+                        <th onclick="togglePaymentFilter()" style="cursor: pointer; user-select: none;" id="paymentHeader">결제방법</th>
                         <th>금액</th>
                         <th>삭제</th>
                     </tr>
@@ -944,31 +945,71 @@
             } else {
                 currentPaymentFilter = 'all';
             }
-            updatePaymentFilterButton();
+            updatePaymentHeader();
             applyFilters();
         }
         
-        // 결제방법 필터 버튼 업데이트
-        function updatePaymentFilterButton() {
-            const paymentBtn = document.getElementById('paymentFilter');
-            if (paymentBtn) {
+        // 결제방법 헤더 업데이트
+        function updatePaymentHeader() {
+            const paymentHeader = document.getElementById('paymentHeader');
+            if (paymentHeader) {
                 switch (currentPaymentFilter) {
                     case 'cash':
-                        paymentBtn.textContent = '현금만';
-                        paymentBtn.style.background = '#dcfce7';
-                        paymentBtn.style.color = '#166534';
+                        paymentHeader.textContent = '결제방법(현금)';
+                        paymentHeader.style.color = '#166534';
                         break;
                     case 'card':
-                        paymentBtn.textContent = '카드만';
-                        paymentBtn.style.background = '#dbeafe';
-                        paymentBtn.style.color = '#1d4ed8';
+                        paymentHeader.textContent = '결제방법(카드)';
+                        paymentHeader.style.color = '#1d4ed8';
                         break;
                     default:
-                        paymentBtn.textContent = '결제방법';
-                        paymentBtn.style.background = '#e5e7eb';
-                        paymentBtn.style.color = '#374151';
+                        paymentHeader.textContent = '결제방법';
+                        paymentHeader.style.color = '#374151';
                         break;
                 }
+            }
+        }
+        
+        // 카테고리 드롭다운 토글
+        function toggleCategoryDropdown() {
+            const dropdown = document.getElementById('categoryDropdown');
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+        
+        // 카테고리 선택
+        function selectCategory(category) {
+            currentCategoryFilter = category;
+            updateCategoryHeader();
+            hideDropdown();
+            applyFilters();
+        }
+        
+        // 카테고리 헤더 업데이트
+        function updateCategoryHeader() {
+            const categoryHeader = document.getElementById('categoryHeader');
+            if (categoryHeader) {
+                const headerText = currentCategoryFilter === 'all' ? '항목' : `항목(${currentCategoryFilter})`;
+                // 기존 드롭다운을 유지하면서 텍스트만 변경
+                const dropdown = document.getElementById('categoryDropdown');
+                const dropdownHTML = dropdown ? dropdown.outerHTML : '';
+                categoryHeader.innerHTML = headerText + dropdownHTML;
+                
+                // 색상 변경
+                if (currentCategoryFilter === 'all') {
+                    categoryHeader.style.color = '#374151';
+                } else {
+                    categoryHeader.style.color = '#4f46e5';
+                }
+            }
+        }
+        
+        // 드롭다운 숨기기
+        function hideDropdown() {
+            const dropdown = document.getElementById('categoryDropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
             }
         }
         
@@ -1066,25 +1107,19 @@
         // 검색 기능
         function setupSearch() { /* 검색 기능 제거 */ }
         
-        // 필터 기능
+        // 필터 기능 (드롭다운 외부 클릭시 닫기)
         function setupFilters() {
-            const filterButtons = document.querySelectorAll('.filter-btn[data-filter]');
-            filterButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    // 결제방법 필터 버튼이 아닌 경우만 처리
-                    if (!btn.hasAttribute('data-payment-filter')) {
-                        // 카테고리 필터 버튼들에서만 active 클래스 처리
-                        filterButtons.forEach(b => {
-                            if (!b.hasAttribute('data-payment-filter')) {
-                                b.classList.remove('active');
-                            }
-                        });
-                        btn.classList.add('active');
-                        
-                        currentCategoryFilter = btn.dataset.filter;
-                        applyFilters();
-                    }
-                });
+            // 문서 전체에 클릭 이벤트 추가하여 드롭다운 외부 클릭시 닫기
+            document.addEventListener('click', function(e) {
+                const categoryHeader = document.getElementById('categoryHeader');
+                const categoryDropdown = document.getElementById('categoryDropdown');
+                
+                // 카테고리 헤더나 드롭다운을 클릭한 경우가 아니면 드롭다운 닫기
+                if (categoryHeader && categoryDropdown && 
+                    !categoryHeader.contains(e.target) && 
+                    !categoryDropdown.contains(e.target)) {
+                    hideDropdown();
+                }
             });
         }
         
