@@ -2736,6 +2736,64 @@
         if (existingInfo) {
           existingInfo.remove();
         }
+        
+        // 현재 활성 섹션 초기화 (화면은 그대로 유지)
+        window.currentActiveSection = '';
+      }
+      
+      // 전체 지도를 모든 마커와 경로가 보이도록 조정하는 함수
+      function resetMapToShowAllItems() {
+        console.log('전체 지도로 돌아가기');
+        
+        const bounds = new google.maps.LatLngBounds();
+        let hasItems = false;
+        
+        // 1. 모든 저장된 경로들 포함
+        savedUserRoutes.forEach(route => {
+          if (route.path && route.path.length > 0) {
+            route.path.forEach(point => {
+              bounds.extend(new google.maps.LatLng(point.lat, point.lng));
+              hasItems = true;
+            });
+          }
+        });
+        
+        // 2. 모든 저장된 마커들 포함
+        (window.savedUserMarkers || []).forEach(markerGroup => {
+          if (markerGroup.markers && markerGroup.markers.length > 0) {
+            markerGroup.markers.forEach(marker => {
+              bounds.extend(new google.maps.LatLng(marker.lat, marker.lng));
+              hasItems = true;
+            });
+          }
+        });
+        
+        // 3. 마커나 경로가 있으면 화면에 맞추기, 없으면 기본 홋카이도 지역으로
+        if (hasItems) {
+          console.log('모든 마커/경로를 포함하여 화면 맞추기');
+          
+          const paddingOptions = {
+            top: isMobile ? 80 : 60,
+            bottom: isMobile ? 80 : 60,
+            left: isMobile ? 40 : 220,  // 사이드메뉴 공간 고려
+            right: isMobile ? 40 : 60
+          };
+          
+          map.fitBounds(bounds, paddingOptions);
+          
+          // 너무 많이 확대되는 것을 방지
+          setTimeout(() => {
+            const currentZoom = map.getZoom();
+            if (currentZoom > 14) {
+              map.setZoom(14);
+            }
+          }, 100);
+        } else {
+          console.log('마커/경로가 없어 기본 홋카이도 지역으로 이동');
+          // 기본 홋카이도 지역으로 설정
+          map.setCenter({ lat: 43.2203, lng: 142.8635 });
+          map.setZoom(7);
+        }
       }
       
       // 사이드패널 터치 이벤트 리스너 추가 (스와이프 상태 해제용)
@@ -5329,21 +5387,44 @@
       // 경로 정보 수정 다이얼로그
       function editRouteInfo(routeId, routeName) {
         // 현재 저장된 정보 가져오기
-        const current = (routeInfoData && routeInfoData[routeId]) ? routeInfoData[routeId] : { content: '', link: '' };
+        const current = (routeInfoData && routeInfoData[routeId]) ? routeInfoData[routeId] : { content: '', link: '', color: '#3b82f6' };
         const isMobileView = window.innerWidth <= 768;
-        const dialogWidth = isMobileView ? Math.min(280, window.innerWidth - 40) : 320;
-        const maxWidth = isMobileView ? '90vw' : '400px';
+        const dialogWidth = isMobileView ? Math.min(320, window.innerWidth - 40) : 360;
+        const maxWidth = isMobileView ? '90vw' : '440px';
+        
+        // 색상 옵션 정의
+        const colorOptions = [
+          { name: '파랑', value: '#3b82f6', label: '파' },
+          { name: '빨강', value: '#ef4444', label: '빨' },
+          { name: '주황', value: '#f97316', label: '주' },
+          { name: '노랑', value: '#eab308', label: '노' },
+          { name: '초록', value: '#22c55e', label: '초' },
+          { name: '보라', value: '#8b5cf6', label: '보' }
+        ];
         
         const html = `
           <div style="padding: 28px 24px 24px 24px; width: ${dialogWidth}px; max-width: ${maxWidth}; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">경로 수정</h3>
+            <div style="text-align: center; margin-bottom: 24px; position: relative;">
+              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">${routeName} - 경로 수정</h3>
+              <button type="button" onclick="cancelRouteEdit('${routeId}', '${routeName}')" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 20px; color: #666; cursor: pointer; padding: 5px; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(0,0,0,0.1)'" onmouseout="this.style.background='none'" title="취소">×</button>
             </div>
             <div style="margin-bottom: 16px;">
               <textarea id="route-edit-content" rows="${isMobileView ? '3':'4'}" placeholder="내용을 입력하세요" style="width:100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px); resize:vertical;" onfocus="this.style.background='rgba(255, 255, 255, 0.18)'" onblur="this.style.background='rgba(255, 255, 255, 0.12)'">${(current.content||'').replace(/"/g,'&quot;')}</textarea>
             </div>
-            <div style="margin-bottom: 24px;">
+            <div style="margin-bottom: 16px;">
               <input id="route-edit-link" type="text" placeholder="링크를 입력하세요 (https://...)" value="${(current.link||'').replace(/"/g,'&quot;')}" style="width:100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);" onfocus="this.style.background='rgba(255, 255, 255, 0.18)'" onblur="this.style.background='rgba(255, 255, 255, 0.12)'" />
+            </div>
+            <div style="margin-bottom: 24px;">
+              <div style="margin-bottom: 8px; color: #333; font-size: 14px; font-weight: 500;">경로 색상</div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                ${colorOptions.map(color => `
+                  <button type="button" onclick="selectRouteColor('${routeId}', '${color.value}')" 
+                          style="width: 40px; height: 40px; border-radius: 8px; border: ${(current.color || '#3b82f6') === color.value ? '3px solid #000' : '2px solid rgba(255,255,255,0.3)'}; background: ${color.value}; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px;"
+                          title="${color.name}">
+                    ${color.label}
+                  </button>
+                `).join('')}
+              </div>
             </div>
             <div style="display:flex; gap:12px; ${isMobileView ? 'flex-direction:column;':''}">
               <button onclick="saveRouteInfo('${routeId}', '${routeName}')" style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">저장</button>
@@ -5397,6 +5478,56 @@
         }, 150);
       }
       
+      // 경로 색상 선택 함수
+      function selectRouteColor(routeId, color) {
+        // 선택된 색상을 전역 변수에 저장
+        window.selectedRouteColor = window.selectedRouteColor || {};
+        window.selectedRouteColor[routeId] = color;
+        
+        // UI 업데이트 - 모든 색상 버튼의 테두리를 리셋하고 선택된 것만 하이라이트
+        const buttons = document.querySelectorAll(`button[onclick*="selectRouteColor('${routeId}'"]`);
+        buttons.forEach(button => {
+          if (button.onclick.toString().includes(`'${color}'`)) {
+            button.style.border = '3px solid #000';
+          } else {
+            button.style.border = '2px solid rgba(255,255,255,0.3)';
+          }
+        });
+        
+        console.log('경로 색상 선택:', routeId, color);
+      }
+      
+      // 경로 색상 업데이트 함수
+      function updateRouteColor(routeId, color) {
+        console.log('경로 색상 업데이트:', routeId, color);
+        
+        // 해당 경로 찾기
+        const route = savedUserRoutes.find(r => r.id === routeId);
+        if (route) {
+          // 메인 경로 색상 업데이트
+          if (route.pathElement) {
+            route.pathElement.setOptions({
+              strokeColor: color
+            });
+          }
+          
+          // 점선 효과 색상 업데이트
+          if (route.dottedPathElement) {
+            const icons = route.dottedPathElement.get('icons');
+            if (icons && icons.length > 0) {
+              icons[0].icon.fillColor = color;
+              route.dottedPathElement.setOptions({
+                icons: icons
+              });
+            }
+          }
+          
+          console.log('경로 색상 업데이트 완료:', routeId, color);
+        } else {
+          console.log('경로를 찾을 수 없음:', routeId);
+        }
+      }
+      
       // 경로 정보 저장
       async function saveRouteInfo(routeId, routeName) {
         try {
@@ -5405,9 +5536,14 @@
           const newContent = (contentInput && contentInput.value) || '';
           const newLink = (linkInput && linkInput.value) || '';
           
+          // 선택된 색상 가져오기
+          const selectedColor = window.selectedRouteColor && window.selectedRouteColor[routeId] !== undefined ? 
+                               window.selectedRouteColor[routeId] : 
+                               (routeInfoData[routeId] && routeInfoData[routeId].color) || '#3b82f6';
+          
           // 로컬 반영
           routeInfoData = routeInfoData || {};
-          routeInfoData[routeId] = { content: newContent, link: newLink };
+          routeInfoData[routeId] = { content: newContent, link: newLink, color: selectedColor };
           
           // Firebase 반영
           if (window.db && window.firestore) {
@@ -5423,6 +5559,9 @@
           if (editDialog) {
             editDialog.remove();
           }
+          
+          // 경로 색상 즉시 업데이트
+          updateRouteColor(routeId, selectedColor);
           
           // 저장 후 현재 정보창에 내용 표시로 갱신
           const route = savedUserRoutes.find(r => r.id === routeId) || { id: routeId, name: routeName, path: [] };
@@ -5467,8 +5606,9 @@
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           ">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">마커 수정</h3>
+            <div style="text-align: center; margin-bottom: 24px; position: relative;">
+              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">${group?.location || markerGroupName} - 마커 수정</h3>
+              <button type="button" onclick="cancelMarkerEdit('${markerGroupName}', ${index})" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 20px; color: #666; cursor: pointer; padding: 5px; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(0,0,0,0.1)'" onmouseout="this.style.background='none'" title="취소">×</button>
             </div>
             <div style="margin-bottom: 16px;">
               <input type="text" id="edit-title-${markerId}" value="${currentInfo.title}" placeholder="제목을 입력하세요"
@@ -5549,13 +5689,13 @@
         document.body.appendChild(dialogDiv);
         
         // 입력 필드에 포커스
-        setTimeout(() => {
-          const titleInput = document.getElementById(`edit-title-${markerId}`);
-          if (titleInput) {
-            titleInput.focus();
-            titleInput.select();
-          }
-        }, 150);
+          setTimeout(() => {
+            const titleInput = document.getElementById(`edit-title-${markerId}`);
+            if (titleInput) {
+              titleInput.focus();
+              titleInput.select();
+            }
+          }, 150);
       }
       // 마커 정보 저장 함수
       // 이모지 선택 함수
@@ -5743,6 +5883,19 @@
         // 정보창을 일반 보기 모드로 되돌리기
         showMarkerInfoWithData(markerGroupName, index);
       }
+      
+      // 경로 수정 취소 함수
+      function cancelRouteEdit(routeId, routeName) {
+        // 편집 다이얼로그 닫기
+        const editDialog = document.getElementById('routeEditDialog');
+        if (editDialog) {
+          editDialog.remove();
+        }
+        
+        // 정보창을 일반 보기 모드로 되돌리기
+        const route = savedUserRoutes.find(r => r.id === routeId) || { id: routeId, name: routeName, path: [] };
+        showRouteInfo(route, null);
+      }
       // 편집 모드에서 마커 삭제 함수
       async function deleteMarkerFromEdit(markerGroupName, index) {
         if (!confirm('이 마커를 삭제하시겠습니까?')) {
@@ -5888,9 +6041,9 @@
         
         // 제목과 링크 처리
         let titleDisplay = savedInfo.title;
-        if (savedInfo.link && savedInfo.link.trim()) {
+          if (savedInfo.link && savedInfo.link.trim()) {
           // 링크가 있으면 제목에 링크 연결
-          const validLink = savedInfo.link.startsWith('http') ? savedInfo.link : `https://${savedInfo.link}`;
+            const validLink = savedInfo.link.startsWith('http') ? savedInfo.link : `https://${savedInfo.link}`;
           titleDisplay = `<span onclick="openUserItemLink('${validLink}')" 
                     style="color: #8b5cf6; text-decoration: none; cursor: pointer; border-bottom: 1px dotted #3b82f6;"
                     onmouseover="this.style.color='#3b82f6'; this.style.textDecoration='underline';"
@@ -5939,11 +6092,14 @@
           if (route.path && route.path.length >= 2) {
             const path = route.path.map(point => new google.maps.LatLng(point.lat, point.lng));
             
+            // 저장된 색상 정보 가져오기
+            const routeColor = (routeInfoData && routeInfoData[route.id] && routeInfoData[route.id].color) || '#3b82f6';
+            
             // 메인 경로
             route.pathElement = new google.maps.Polyline({
               path: path,
               geodesic: true,
-              strokeColor: '#3b82f6',
+              strokeColor: routeColor,
               strokeOpacity: 0.1,
               strokeWeight: 4,
               zIndex: 10 // 라벨 아래에 표시
@@ -5968,7 +6124,7 @@
               icons: [{
                 icon: {
                   path: google.maps.SymbolPath.CIRCLE,
-                  fillColor: '#3b82f6',
+                  fillColor: routeColor,
                   fillOpacity: 1,
                   strokeColor: '#ffffff',
                   strokeWeight: 1,
@@ -9248,6 +9404,68 @@
         }
       }
       
+      // 해당 일정의 마커와 경로를 화면에 맞추는 함수
+      function fitScheduleItemsToScreen(scheduleTitle) {
+        console.log('해당 일정의 마커와 경로를 화면에 맞추기:', scheduleTitle);
+        
+        const bounds = new google.maps.LatLngBounds();
+        let hasItems = false;
+        
+        // 1. 해당 일정의 저장된 경로들 찾기
+        const scheduleRoutes = savedUserRoutes.filter(route => route.location === scheduleTitle);
+        console.log('찾은 경로:', scheduleRoutes.length, '개');
+        
+        scheduleRoutes.forEach(route => {
+          if (route.path && route.path.length > 0) {
+            route.path.forEach(point => {
+              bounds.extend(new google.maps.LatLng(point.lat, point.lng));
+              hasItems = true;
+            });
+          }
+        });
+        
+        // 2. 해당 일정의 저장된 마커들 찾기
+        const scheduleMarkers = (window.savedUserMarkers || []).filter(markerGroup => markerGroup.location === scheduleTitle);
+        console.log('찾은 마커 그룹:', scheduleMarkers.length, '개');
+        
+        scheduleMarkers.forEach(markerGroup => {
+          if (markerGroup.markers && markerGroup.markers.length > 0) {
+            markerGroup.markers.forEach(marker => {
+              bounds.extend(new google.maps.LatLng(marker.lat, marker.lng));
+              hasItems = true;
+            });
+          }
+        });
+        
+        // 3. 마커나 경로가 있으면 화면에 맞추기
+        if (hasItems) {
+          console.log('마커/경로 발견 - 화면에 맞추기 실행');
+          
+          // 약간의 여백을 위해 패딩 추가
+          const paddingOptions = {
+            top: isMobile ? 100 : 80,
+            bottom: isMobile ? 100 : 80,
+            left: isMobile ? 50 : 250,  // 사이드메뉴 공간 고려
+            right: isMobile ? 50 : 80
+          };
+          
+          // 지도 화면에 맞추기
+          map.fitBounds(bounds, paddingOptions);
+          
+          // 너무 많이 확대되는 것을 방지 (최대 줌 레벨 제한)
+          setTimeout(() => {
+            const currentZoom = map.getZoom();
+            if (currentZoom > 16) {
+              map.setZoom(16);
+            }
+          }, 100);
+          
+          console.log('화면 맞추기 완료');
+        } else {
+          console.log('해당 일정에 마커나 경로가 없음');
+        }
+      }
+      
       // 일정 정보 표시 함수
       function showScheduleInfo(title) {
         // 기존 정보창이 있으면 제거
@@ -9332,6 +9550,11 @@
         updateRouteRemoveButtons();
         // 마커제거 버튼 상태 업데이트
         updateMarkerRemoveButtons();
+        
+        // 해당 일정의 마커와 경로를 화면에 맞추기 (정보창 표시 후 지연)
+        setTimeout(() => {
+          fitScheduleItemsToScreen(title);
+        }, 300);
         
         // 정보창 위치 조정 - 모바일 최적화
         setTimeout(() => {
