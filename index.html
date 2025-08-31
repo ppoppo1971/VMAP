@@ -645,15 +645,14 @@
         
         .info-content {
             padding: 20px;
-            overflow-y: scroll;
+            overflow-y: auto;
             overflow-x: hidden;
             flex: 1;
             min-height: 0;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
             scrollbar-color: rgba(0,0,0,0.3) transparent;
-            height: 100%;
-            max-height: 100%;
+            /* height/max-height 제거: flex 컨테이너 기준으로 스크롤 */
         }
         
         /* 웹킷 브라우저용 스크롤바 스타일 */
@@ -752,12 +751,11 @@
             .info-content {
                 padding: 15px;
                 overflow-y: auto !important;
+                overflow-x: hidden;
                 -webkit-overflow-scrolling: touch;
                 overscroll-behavior: contain;
                 flex: 1 1 auto;
                 min-height: 0;
-                height: 100%;
-                max-height: 100%;
             }
         }
             
@@ -786,12 +784,11 @@
             .info-content {
                 padding: 12px;
                 overflow-y: auto !important;
+                overflow-x: hidden;
                 -webkit-overflow-scrolling: touch;
                 overscroll-behavior: contain;
                 flex: 1 1 auto;
                 min-height: 0;
-                height: 100%;
-                max-height: 100%;
             }
             
             #routeSaveDialog, #markerSaveDialog {
@@ -9349,13 +9346,6 @@
             infoDiv.style.left = '50%';
             infoDiv.style.transform = 'translateX(-50%)';
             infoDiv.style.top = '80px';
-            
-            // 모바일에서 스크롤 활성화
-            const content = infoDiv.querySelector('.info-content');
-            if (content) {
-              content.style.overflowY = 'scroll';
-              content.style.webkitOverflowScrolling = 'touch';
-            }
           } else {
             // 데스크톱: 사이드메뉴 오른쪽에 표시
             infoDiv.style.left = (menuRect.right + 10) + 'px';
