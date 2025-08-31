@@ -48,8 +48,6 @@
             max-height: calc(100vh - 40px);
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            touch-action: pan-y;
-            overscroll-behavior: contain;
         }
         #customMapMenu.hide {
             left: -220px;
@@ -64,7 +62,7 @@
             text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
         }
         .menu-group {
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
         .menu-group label {
             font-size: 0.9rem;
@@ -80,14 +78,14 @@
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
-            padding: 12px 8px;
-            margin-bottom: 4px;
+            padding: 8px 6px;
+            margin-bottom: 2px;
             font-size: 0.9rem;
             color: #1a1a1a;
             cursor: pointer;
             transition: all 0.2s ease;
             -webkit-tap-highlight-color: transparent;
-            min-height: 44px;
+            min-height: 31px;
             display: flex;
             align-items: center;
             justify-content: flex-start;
@@ -282,11 +280,8 @@
                 left: 10px;
                 padding: 12px 10px 10px 10px;
                 max-height: calc(100vh - 30px);
-                height: calc(100vh - 30px);
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
-                touch-action: pan-y;
-                overscroll-behavior: contain;
             }
             
             #customMapMenu.hide {
@@ -314,14 +309,14 @@
             }
             
             .map-type-btn {
-                padding: 10px 14px;
+                padding: 7px 10px;
                 font-size: 0.85rem;
-                min-height: 40px;
+                min-height: 28px;
             }
             
             .toggle-btn {
-                padding: 10px 8px;
-                min-height: 40px;
+                padding: 7px 6px;
+                min-height: 28px;
                 font-size: 0.85rem;
             }
             
@@ -337,7 +332,7 @@
             
             /* 모바일에서 터치 최적화 */
             .menu-group button, .toggle-btn, .map-type-btn {
-                min-height: 48px; /* iOS 권장 최소 터치 영역 */
+                min-height: 34px; /* 30% 줄인 높이 */
                 -webkit-tap-highlight-color: transparent;
                 touch-action: manipulation;
             }
@@ -356,11 +351,8 @@
                 left: 8px;
                 padding: 10px 8px 8px 8px;
                 max-height: calc(100vh - 20px);
-                height: calc(100vh - 20px);
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
-                touch-action: pan-y;
-                overscroll-behavior: contain;
             }
             
             #customMapMenu.hide {
@@ -388,14 +380,14 @@
             }
             
             .map-type-btn {
-                padding: 8px 12px;
+                padding: 6px 8px;
                 font-size: 0.8rem;
-                min-height: 36px;
+                min-height: 25px;
             }
             
             .toggle-btn {
-                padding: 8px 6px;
-                min-height: 36px;
+                padding: 6px 4px;
+                min-height: 25px;
                 font-size: 0.8rem;
             }
             
@@ -434,10 +426,8 @@
             -webkit-tap-highlight-color: transparent;
         }
         
-        /* 기본 스크롤바 숨기기 (일정창 제외) */
-        body::-webkit-scrollbar,
-        #map::-webkit-scrollbar,
-        .menu-group::-webkit-scrollbar {
+        /* 스크롤바 숨기기 */
+        ::-webkit-scrollbar {
             display: none;
         }
         
@@ -509,21 +499,17 @@
             
             /* 모바일에서 스크롤 성능 향상 */
             .info-content::-webkit-scrollbar {
-                width: 6px;
+                width: 4px;
             }
             
             .info-content::-webkit-scrollbar-track {
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: 3px;
+                background: rgba(0, 0, 0, 0.1);
+                border-radius: 2px;
             }
             
             .info-content::-webkit-scrollbar-thumb {
-                background: rgba(0, 0, 0, 0.4);
-                border-radius: 3px;
-            }
-            
-            .info-content::-webkit-scrollbar-thumb:hover {
-                background: rgba(0, 0, 0, 0.6);
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 2px;
             }
             
 
@@ -567,9 +553,7 @@
             z-index: 15;
             width: 400px;
             max-width: 90vw;
-            max-height: calc(100vh - 40px);
-            height: auto;
-            min-height: 400px;
+            max-height: 80vh;
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 20px;
@@ -581,25 +565,6 @@
             animation: slideIn 0.3s ease-out;
             display: flex;
             flex-direction: column;
-        }
-        
-        /* 일정창 헤더 고정 스타일 */
-        #preparationInfo .schedule-header {
-            flex-shrink: 0;
-            background: rgba(255, 255, 255, 0.1);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 1;
-        }
-        
-        /* 모바일 터치 스크롤 최적화 */
-        @supports (-webkit-overflow-scrolling: touch) {
-            .info-content {
-                -webkit-overflow-scrolling: touch;
-                transform: translateZ(0);
-                will-change: scroll-position;
-            }
         }
         
         @keyframes slideIn {
@@ -651,33 +616,8 @@
         .info-content {
             padding: 20px;
             overflow-y: auto;
-            overflow-x: hidden;
-            flex: 1 1 auto;
+            flex: 1;
             min-height: 0;
-            max-height: calc(100vh - 120px);
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(0,0,0,0.3) transparent;
-            /* flex 컨테이너 기준으로 스크롤 */
-        }
-        
-        /* 웹킷 브라우저용 스크롤바 스타일 */
-        .info-content::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        .info-content::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.1);
-            border-radius: 4px;
-        }
-        
-        .info-content::-webkit-scrollbar-thumb {
-            background: rgba(0,0,0,0.4);
-            border-radius: 4px;
-        }
-        
-        .info-content::-webkit-scrollbar-thumb:hover {
-            background: rgba(0,0,0,0.6);
         }
         
         .info-section {
@@ -748,26 +688,9 @@
                 transform: translateX(-50%) !important;
                 top: 80px !important;
                 max-width: 90vw;
-                max-height: calc(100vh - 100px);
-                height: auto;
-                min-height: 300px;
+                max-height: 75vh;
                 margin: 0 auto;
-                display: flex;
-                flex-direction: column;
             }
-            
-            /* 모바일에서 스크롤 영역 최적화 */
-            .info-content {
-                padding: 15px;
-                overflow-y: auto !important;
-                overflow-x: hidden;
-                -webkit-overflow-scrolling: touch;
-                overscroll-behavior: contain;
-                flex: 1 1 auto;
-                min-height: 0;
-                max-height: calc(100vh - 180px);
-            }
-        }
             
             #routeSaveDialog, #markerSaveDialog {
                 width: 350px;
@@ -777,7 +700,7 @@
                 max-width: 90vw;
                 margin: 0 auto;
             }
-        
+        }
         
         @media (max-width: 480px) {
             #preparationInfo {
@@ -786,23 +709,7 @@
                 left: 50% !important;
                 transform: translateX(-50%) !important;
                 max-width: 95vw;
-                max-height: calc(100vh - 90px);
-                height: auto;
-                min-height: 300px;
-                display: flex;
-                flex-direction: column;
-            }
-            
-            /* 작은 화면에서 스크롤 영역 최적화 */
-            .info-content {
-                padding: 12px;
-                overflow-y: auto !important;
-                overflow-x: hidden;
-                -webkit-overflow-scrolling: touch;
-                overscroll-behavior: contain;
-                flex: 1 1 auto;
-                min-height: 0;
-                max-height: calc(100vh - 170px);
+                max-height: 70vh;
             }
             
             #routeSaveDialog, #markerSaveDialog {
@@ -1819,36 +1726,10 @@
           
           // 모바일에서 스크롤 성능 최적화
           document.addEventListener('touchmove', function(event) {
-            if (
-              event.target.closest('.info-content') ||
-              event.target.closest('#customMapMenu')
-            ) {
+            if (event.target.closest('.info-content')) {
               event.stopPropagation();
             }
           }, { passive: true });
-          
-          // 화면 회전 시 일정창 높이 재계산
-          window.addEventListener('orientationchange', function() {
-            setTimeout(() => {
-              const preparationInfo = document.getElementById('preparationInfo');
-              if (preparationInfo && isMobile) {
-                const viewportHeight = window.innerHeight;
-                const topOffset = 80;
-                const bottomMargin = 20;
-                const maxHeight = viewportHeight - topOffset - bottomMargin;
-                
-                preparationInfo.style.maxHeight = maxHeight + 'px';
-                
-                const infoContent = preparationInfo.querySelector('.info-content');
-                if (infoContent) {
-                  const header = preparationInfo.querySelector('.schedule-header');
-                  const headerHeight = header ? header.offsetHeight : 60;
-                  const contentMaxHeight = maxHeight - headerHeight - 20;
-                  infoContent.style.maxHeight = contentMaxHeight + 'px';
-                }
-              }
-            }, 500); // 화면 회전 완료 후 실행
-          });
           
           // 모바일에서 버튼 터치 피드백 최적화 (일정 항목 스와이프 버튼 제외)
           const buttons = document.querySelectorAll('button, .toggle-btn, .map-type-btn');
@@ -2850,8 +2731,6 @@
         const customMapMenu = document.getElementById('customMapMenu');
         if (customMapMenu) {
           customMapMenu.addEventListener('touchstart', function(e) {
-            // 패널 내부 스크롤 중 지도/문서로의 터치 이벤트 전파 차단
-            e.stopPropagation();
             // 스와이프 버튼이나 일정 버튼을 터치한 경우가 아니면 스와이프 상태 해제
             if (!e.target.classList.contains('swipe-edit-btn') &&
                 !e.target.classList.contains('swipe-delete-btn') &&
@@ -2859,12 +2738,7 @@
                 !e.target.closest('.user-added-item')) {
               clearAllSwipeStates();
             }
-          }, { passive: true });
-
-          // 패널 내부 터치 이동 시 상위로의 전파 차단 (지도 리스너 간섭 방지)
-          customMapMenu.addEventListener('touchmove', function(e) {
-            e.stopPropagation();
-          }, { passive: true });
+          });
         }
       }
       
@@ -9304,7 +9178,7 @@
         const infoDiv = document.createElement('div');
         infoDiv.id = 'preparationInfo';
         infoDiv.innerHTML = `
-          <div class="schedule-header" style="padding: 28px 24px 8px 24px; text-align: center; position: relative; flex-shrink: 0;">
+          <div style="padding: 28px 24px 8px 24px; text-align: center; position: relative; flex-shrink: 0;">
             <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">${title}</h3>
             <button type="button" onclick="closeScheduleInfo()" class="schedule-close-btn" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 20px; color: #666; cursor: pointer; padding: 5px; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">×</button>
           </div>
@@ -9345,40 +9219,6 @@
                 </div>
               </div>
             </div>
-            
-            <!-- 하단 액션 버튼들 섹션 -->
-            <div class="info-section" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-              <div style="display: flex; flex-direction: column; gap: 8px;">
-                <button onclick="showAddScheduleDialog()" style="
-                  background: linear-gradient(135deg, #10b981, #059669);
-                  color: white;
-                  border: none;
-                  border-radius: 8px;
-                  padding: 12px 16px;
-                  font-size: 14px;
-                  font-weight: 600;
-                  cursor: pointer;
-                  transition: all 0.2s ease;
-                  min-height: 44px;
-                " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.3)'" onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
-                  + 일정추가
-                </button>
-                <button onclick="showBudgetDialog()" style="
-                  background: rgba(134, 239, 172, 0.6);
-                  color: #1a1a1a;
-                  border: none;
-                  border-radius: 8px;
-                  padding: 12px 16px;
-                  font-size: 14px;
-                  font-weight: 600;
-                  cursor: pointer;
-                  transition: all 0.2s ease;
-                  min-height: 44px;
-                " onmouseover="this.style.background='rgba(134, 239, 172, 0.8)'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(134, 239, 172, 0.4)'" onmouseout="this.style.background='rgba(134, 239, 172, 0.6)'; this.style.transform='none'; this.style.boxShadow='none'">
-                  가계부
-                </button>
-              </div>
-            </div>
           </div>
         `;
         
@@ -9417,23 +9257,6 @@
             infoDiv.style.left = '50%';
             infoDiv.style.transform = 'translateX(-50%)';
             infoDiv.style.top = '80px';
-            
-            // 모바일에서 동적 높이 계산
-            const viewportHeight = window.innerHeight;
-            const topOffset = 80;
-            const bottomMargin = 20;
-            const maxHeight = viewportHeight - topOffset - bottomMargin;
-            
-            infoDiv.style.maxHeight = maxHeight + 'px';
-            
-            // info-content 영역의 최대 높이도 동적으로 계산
-            const infoContent = infoDiv.querySelector('.info-content');
-            if (infoContent) {
-              const header = infoDiv.querySelector('.schedule-header');
-              const headerHeight = header ? header.offsetHeight : 60;
-              const contentMaxHeight = maxHeight - headerHeight - 20; // 20px는 여백
-              infoContent.style.maxHeight = contentMaxHeight + 'px';
-            }
           } else {
             // 데스크톱: 사이드메뉴 오른쪽에 표시
             infoDiv.style.left = (menuRect.right + 10) + 'px';
@@ -9441,7 +9264,6 @@
             infoDiv.style.transform = 'none';
           }
         }, 100);
-
       }
       // 저장된 사용자 정의 일정들 복원 함수
       async function restoreCustomSchedules() {
