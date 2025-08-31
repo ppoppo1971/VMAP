@@ -4822,7 +4822,9 @@
         
         // 마커 데이터 생성
         const markerData = {
-          id: 'marker_' + Date.now(),
+          id: (window.crypto && window.crypto.randomUUID)
+                ? `marker_${window.crypto.randomUUID()}`
+                : `marker_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}`,
           name: `${location} 마커`,
           location: location,
           markers: customMarkers.map(marker => ({
@@ -5044,8 +5046,8 @@
            window.currentInfoWindow = null;
          }
         
-        // 저장된 정보로 정보창 표시
-        showMarkerInfoWithData(markerGroup.name, index);
+        // 저장된 정보로 정보창 표시 (그룹 id 우선 전달)
+        showMarkerInfoWithData(markerGroup.id || markerGroup.name, index);
         
         // X 버튼 제거를 위한 스타일 추가
         google.maps.event.addListener(window.currentInfoWindow, 'domready', function() {
@@ -5368,7 +5370,7 @@
       function editMarkerInfo(markerGroupName, index) {
         // group id 우선 키 사용 (하위 호환으로 name-index 유지)
         const savedMarkers = window.savedUserMarkers || [];
-        const group = savedMarkers.find(g => g && (g.name === markerGroupName));
+        const group = savedMarkers.find(g => g && (g.id === markerGroupName || g.name === markerGroupName));
         const idKey = (group && group.id) ? `${group.id}-${index}` : null;
         const nameKey = `${markerGroupName}-${index}`;
         const markerId = idKey || nameKey;
@@ -5556,7 +5558,7 @@
       async function saveMarkerInfo(markerGroupName, index) {
         // group id 우선 키 사용 (하위 호환으로 name-index 유지)
         const savedMarkers = window.savedUserMarkers || [];
-        const group = savedMarkers.find(g => g && (g.name === markerGroupName));
+        const group = savedMarkers.find(g => g && (g.id === markerGroupName || g.name === markerGroupName));
         const markerId = (group && group.id) ? `${group.id}-${index}` : `${markerGroupName}-${index}`;
         
         // 입력값 가져오기
@@ -5619,7 +5621,7 @@
           // 저장 직후 지도상의 마커 라벨/아이콘 즉시 갱신
           try {
             const savedMarkers = window.savedUserMarkers || [];
-            const group = savedMarkers.find(g => g && g.name === markerGroupName);
+            const group = savedMarkers.find(g => g && (g.id === markerGroupName || g.name === markerGroupName));
             if (group && group.markerElements && group.markerElements[index]) {
               const markerEl = group.markerElements[index];
               if (newInfo.emoji) {
@@ -5688,7 +5690,7 @@
           
           // 저장된 마커들에서 해당 마커 그룹 찾기
           const savedMarkers = window.savedUserMarkers || [];
-          const markerGroupIndex = savedMarkers.findIndex(group => group.name === markerGroupName);
+          const markerGroupIndex = savedMarkers.findIndex(group => (group.id === markerGroupName || group.name === markerGroupName));
           
           if (markerGroupIndex === -1) {
             alert('마커를 찾을 수 없습니다.');
@@ -5730,7 +5732,7 @@
             
             // 마커 정보 데이터 복사본 생성
             const updatedMarkerInfoData = { ...markerInfoData };
-            const groupForId = (window.savedUserMarkers || []).find(g => g && (g.name === markerGroupName));
+            const groupForId = (window.savedUserMarkers || []).find(g => g && (g.id === markerGroupName || g.name === markerGroupName));
             const markerId = (groupForId && groupForId.id) ? `${groupForId.id}-${index}` : `${markerGroupName}-${index}`;
             delete updatedMarkerInfoData[markerId];
             
@@ -5795,9 +5797,9 @@
       
       // 저장된 정보로 마커 정보창 표시
       function showMarkerInfoWithData(markerGroupName, index) {
-        // group id 우선 키 사용
+        // group id 우선 키 사용 (id 또는 name으로 탐색)
         const savedMarkers = window.savedUserMarkers || [];
-        const group = savedMarkers.find(g => g && (g.name === markerGroupName));
+        const group = savedMarkers.find(g => g && (g.id === markerGroupName || g.name === markerGroupName));
         const markerId = (group && group.id) ? `${group.id}-${index}` : `${markerGroupName}-${index}`;
         const savedInfo = markerInfoData[markerId] || {
           title: markerGroupName,
