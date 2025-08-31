@@ -575,6 +575,25 @@
             flex-direction: column;
         }
         
+        /* 일정창 헤더 고정 스타일 */
+        #preparationInfo .schedule-header {
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        
+        /* 모바일 터치 스크롤 최적화 */
+        @supports (-webkit-overflow-scrolling: touch) {
+            .info-content {
+                -webkit-overflow-scrolling: touch;
+                transform: translateZ(0);
+                will-change: scroll-position;
+            }
+        }
+        
         @keyframes slideIn {
             from {
                 opacity: 0;
@@ -624,8 +643,30 @@
         .info-content {
             padding: 20px;
             overflow-y: auto;
+            overflow-x: hidden;
             flex: 1;
             min-height: 0;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0,0,0,0.3) transparent;
+        }
+        
+        /* 웹킷 브라우저용 스크롤바 스타일 */
+        .info-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .info-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .info-content::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.3);
+            border-radius: 3px;
+        }
+        
+        .info-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,0,0,0.5);
         }
         
         .info-section {
@@ -700,6 +741,16 @@
                 margin: 0 auto;
             }
             
+            /* 모바일에서 스크롤 영역 최적화 */
+            .info-content {
+                padding: 15px;
+                max-height: calc(75vh - 80px);
+                overflow-y: scroll;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+            }
+        }
+            
             #routeSaveDialog, #markerSaveDialog {
                 width: 350px;
                 left: 50% !important;
@@ -708,7 +759,7 @@
                 max-width: 90vw;
                 margin: 0 auto;
             }
-        }
+        
         
         @media (max-width: 480px) {
             #preparationInfo {
@@ -718,6 +769,15 @@
                 transform: translateX(-50%) !important;
                 max-width: 95vw;
                 max-height: 70vh;
+            }
+            
+            /* 작은 화면에서 스크롤 영역 최적화 */
+            .info-content {
+                padding: 12px;
+                max-height: calc(70vh - 70px);
+                overflow-y: scroll;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
             }
             
             #routeSaveDialog, #markerSaveDialog {
@@ -9196,7 +9256,7 @@
         const infoDiv = document.createElement('div');
         infoDiv.id = 'preparationInfo';
         infoDiv.innerHTML = `
-          <div style="padding: 28px 24px 8px 24px; text-align: center; position: relative; flex-shrink: 0;">
+          <div class="schedule-header" style="padding: 28px 24px 8px 24px; text-align: center; position: relative; flex-shrink: 0;">
             <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">${title}</h3>
             <button type="button" onclick="closeScheduleInfo()" class="schedule-close-btn" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 20px; color: #666; cursor: pointer; padding: 5px; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">×</button>
           </div>
@@ -9275,6 +9335,18 @@
             infoDiv.style.left = '50%';
             infoDiv.style.transform = 'translateX(-50%)';
             infoDiv.style.top = '80px';
+            
+            // 모바일에서 스크롤 영역 높이 동적 계산
+            const header = infoDiv.querySelector('.schedule-header');
+            const content = infoDiv.querySelector('.info-content');
+            if (header && content) {
+              const headerHeight = header.offsetHeight;
+              const windowHeight = window.innerHeight;
+              const topOffset = 80; // top 위치
+              const bottomMargin = 40; // 하단 여백
+              const maxContentHeight = windowHeight - topOffset - headerHeight - bottomMargin;
+              content.style.maxHeight = maxContentHeight + 'px';
+            }
           } else {
             // 데스크톱: 사이드메뉴 오른쪽에 표시
             infoDiv.style.left = (menuRect.right + 10) + 'px';
@@ -9282,6 +9354,34 @@
             infoDiv.style.transform = 'none';
           }
         }, 100);
+        
+        // 화면 크기 변경 시 스크롤 영역 재조정
+        const resizeHandler = () => {
+          if (isMobile && infoDiv && infoDiv.parentNode) {
+            const header = infoDiv.querySelector('.schedule-header');
+            const content = infoDiv.querySelector('.info-content');
+            if (header && content) {
+              const headerHeight = header.offsetHeight;
+              const windowHeight = window.innerHeight;
+              const topOffset = window.innerWidth <= 480 ? 70 : 80;
+              const bottomMargin = 40;
+              const maxContentHeight = windowHeight - topOffset - headerHeight - bottomMargin;
+              content.style.maxHeight = maxContentHeight + 'px';
+            }
+          }
+        };
+        
+        window.addEventListener('resize', resizeHandler);
+        window.addEventListener('orientationchange', () => {
+          setTimeout(resizeHandler, 300);
+        });
+        
+        // 정보창이 제거될 때 이벤트 리스너도 제거
+        const originalRemove = infoDiv.remove;
+        infoDiv.remove = function() {
+          window.removeEventListener('resize', resizeHandler);
+          originalRemove.call(this);
+        };
       }
       // 저장된 사용자 정의 일정들 복원 함수
       async function restoreCustomSchedules() {
