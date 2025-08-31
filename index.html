@@ -780,10 +780,13 @@
         /* 사용자 추가 항목 폼 스타일 */
         .add-item-form {
             margin-top: 20px;
-            padding: 16px;
-            background: rgba(29, 78, 216, 0.05);
-            border-radius: 12px;
-            border: 1px solid rgba(29, 78, 216, 0.1);
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            overflow: hidden;
         }
         
         .form-group {
@@ -1144,42 +1147,7 @@
             transform: translateY(-50%) scale(0.95) !important;
         }
         
-        /* 새 항목 추가 폼 헤더 스타일 */
-        .add-form-header {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            padding: 16px 20px;
-            border-radius: 12px 12px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .add-form-header h4 {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-        
-        .add-form-header .close-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s ease;
-        }
-        
-        .add-form-header .close-btn:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
+        /* 새 항목 추가 폼 스타일 - 이제 edit-form-header 사용 */
         
         /* 통일된 폼 헤더 스타일 */
         .edit-form-header {
@@ -9217,28 +9185,30 @@
           <div class="info-content">
               <div class="info-section">
                 <!-- 사용자 추가 항목들이 여기에 표시됩니다 -->
-              <div id="userAddedItems"></div>
-              
-              <!-- 새 항목 추가 버튼 -->
-              <div class="add-item-section">
-                <button type="button" onclick="showAddForm()" class="toggle-add-btn" id="toggleAddBtn">+ 새 항목 추가</button>
+                <div id="userAddedItems"></div>
+                
+                <!-- 새 항목 추가 버튼 -->
+                <div class="add-item-section">
+                  <button type="button" onclick="showAddForm()" class="toggle-add-btn" id="toggleAddBtn">+ 새 항목 추가</button>
+                </div>
+                
+                <!-- 새 항목 추가 폼 (처음에는 숨김) -->
+                <div class="add-item-form" id="addItemForm" style="display: none;">
+                  <div class="edit-form-header">
+                    <h4>새 항목 추가</h4>
+                    <button type="button" onclick="hideAddForm()" class="close-btn">×</button>
+                  </div>
+                  <div style="padding: 20px 24px 24px 24px;">
+                    <div class="form-group">
+                      <input type="text" id="newItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50">
+                      <input type="url" id="newItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200">
+                    </div>
+                    <div class="form-buttons">
+                      <button type="button" onclick="addNewItem()" class="add-btn">추가</button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              
-              <!-- 새 항목 추가 폼 (처음에는 숨김) -->
-              <div class="add-item-form" id="addItemForm" style="display: none;">
-                <div class="add-form-header">
-                  <h4>새 항목 추가</h4>
-                  <button type="button" onclick="hideAddForm()" class="close-btn">×</button>
-                </div>
-                <div class="form-group">
-                  <input type="text" id="newItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50">
-                  <input type="url" id="newItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200">
-                </div>
-                <div class="form-buttons">
-                  <button type="button" onclick="addNewItem()" class="add-btn">추가</button>
-                </div>
-              </div>
-            </div>
             
             <!-- 저장된 경로/마커 제거 버튼 섹션 -->
             <div class="info-section">
