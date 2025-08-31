@@ -967,32 +967,38 @@
         /* 일정 항목(사이드패널)용 스와이프 버튼 - 모바일 클릭 정확도 개선 */
         .user-added-item[data-item-type="schedule"] .swipe-edit-btn {
             right: -350px;
-            width: auto;
+            width: 60px;
             min-width: 60px;
-            padding: 8px 16px;
+            max-width: 60px;
+            padding: 12px 8px;
             font-size: 0.8rem;
-            height: auto;
+            height: 44px;
             min-height: 44px;
-            line-height: 1.3;
+            max-height: 44px;
+            line-height: 1;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
+            box-sizing: border-box;
         }
         
         .user-added-item[data-item-type="schedule"] .swipe-delete-btn {
             right: -250px;
-            width: auto;
+            width: 60px;
             min-width: 60px;
-            padding: 8px 16px;
+            max-width: 60px;
+            padding: 12px 8px;
             font-size: 0.8rem;
-            height: auto;
+            height: 44px;
             min-height: 44px;
-            line-height: 1.3;
+            max-height: 44px;
+            line-height: 1;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
+            box-sizing: border-box;
         }
         
         .user-added-item .swipe-edit-btn:hover,
@@ -1932,15 +1938,18 @@
             currentInfoWindow = null;
           }
           
-          // 사용자 생성 마커 정보창 닫기
-          if (window.currentInfoWindow) {
-            window.currentInfoWindow.close();
-            window.currentInfoWindow = null;
-          }
+                  // 사용자 생성 마커 정보창 닫기
+        if (window.currentInfoWindow) {
+          window.currentInfoWindow.close();
+          window.currentInfoWindow = null;
+        }
+        
+        // 사이드패널 터치 이벤트 설정
+        setupSidePanelTouchEvents();
           
-          // 스와이프 상태 해제, 사이드패널 닫기, 검색 마커 제거
+          // 스와이프 상태 해제, 일정창 닫기 (사이드패널은 유지)
           clearAllSwipeStates();
-          closeSidePanel();
+          closeScheduleInfo();
           
           // 정보창 닫기 (X 버튼이 제거되었으므로 지도 클릭으로 닫기)
           if (currentInfoWindow) {
@@ -1948,8 +1957,11 @@
             currentInfoWindow = null;
           }
           
-          // 기존 기능들
-          if (!getElement('customMapMenu').classList.contains('hide')) {
+          // 사이드패널만 열려있는 상태에서 지도 클릭시 닫기
+          const customMapMenu = getElement('customMapMenu');
+          const preparationInfo = document.getElementById('preparationInfo');
+          
+          if (!customMapMenu.classList.contains('hide') && !preparationInfo) {
             hideMenu();
           }
           if (!getElement('mapTypeSelector').classList.contains('hide')) {
@@ -2604,6 +2616,30 @@
         const customMapMenu = document.getElementById('customMapMenu');
         if (customMapMenu && !customMapMenu.classList.contains('hide')) {
           hideMenu();
+        }
+      }
+      
+      // 일정창만 닫는 함수
+      function closeScheduleInfo() {
+        const existingInfo = document.getElementById('preparationInfo');
+        if (existingInfo) {
+          existingInfo.remove();
+        }
+      }
+      
+      // 사이드패널 터치 이벤트 리스너 추가 (스와이프 상태 해제용)
+      function setupSidePanelTouchEvents() {
+        const customMapMenu = document.getElementById('customMapMenu');
+        if (customMapMenu) {
+          customMapMenu.addEventListener('touchstart', function(e) {
+            // 스와이프 버튼이나 일정 버튼을 터치한 경우가 아니면 스와이프 상태 해제
+            if (!e.target.classList.contains('swipe-edit-btn') &&
+                !e.target.classList.contains('swipe-delete-btn') &&
+                !e.target.classList.contains('toggle-btn') &&
+                !e.target.closest('.user-added-item')) {
+              clearAllSwipeStates();
+            }
+          });
         }
       }
       
@@ -7054,6 +7090,9 @@
               return;
             }
             
+            // 다른 아이템의 스와이프 상태 해제
+            clearAllSwipeStates();
+            
             console.log('터치 시작:', this.dataset.itemId);
             
             startX = e.touches[0].clientX;
@@ -7176,8 +7215,7 @@
             if (!e.target.classList.contains('swipe-edit-btn') &&
                 !e.target.classList.contains('swipe-delete-btn') &&
                 !e.target.classList.contains('prep-checkbox')) {
-              this.classList.remove('swiped');
-              this.querySelector('.item-content').style.transform = 'translateX(0)';
+              clearAllSwipeStates();
             }
           });
           
@@ -8119,36 +8157,67 @@
         // 스와이프 삭제 기능 초기화
         initializeSwipeDelete();
         
+        // 사이드패널 터치 이벤트 설정
+        setupSidePanelTouchEvents();
+        
         // 모바일에서 수정/삭제 버튼 터치 이벤트 추가
         if (isMobile) {
           const editButtons = container.querySelectorAll('.swipe-edit-btn');
           const deleteButtons = container.querySelectorAll('.swipe-delete-btn');
           
-          // 수정 버튼 터치 이벤트
+          // 수정 버튼 터치 이벤트 - 모바일 클릭 정확도 개선
           editButtons.forEach(btn => {
             btn.addEventListener('touchstart', function(e) {
               e.stopPropagation();
               e.preventDefault();
-              // 일정 항목은 스케일 변화 없이 translateY만 유지
               this.style.transform = 'translateY(-50%)';
+              this.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
             }, { passive: false });
             
             btn.addEventListener('touchend', function(e) {
               e.stopPropagation();
               e.preventDefault();
-              // 일정 항목은 원래 위치 유지
               this.style.transform = 'translateY(-50%)';
+              this.style.backgroundColor = 'transparent';
+              
+              // 터치 종료 시 클릭 이벤트 발생
+              const clickEvent = new Event('click', { bubbles: true });
+              this.dispatchEvent(clickEvent);
             }, { passive: false });
             
             btn.addEventListener('touchcancel', function(e) {
               e.stopPropagation();
-              // 일정 항목은 원래 위치 유지
               this.style.transform = 'translateY(-50%)';
+              this.style.backgroundColor = 'transparent';
             }, { passive: true });
           });
           
-          // 삭제 버튼 터치 이벤트
+          // 삭제 버튼 터치 이벤트 - 모바일 클릭 정확도 개선
           deleteButtons.forEach(btn => {
+            btn.addEventListener('touchstart', function(e) {
+              e.stopPropagation();
+              e.preventDefault();
+              this.style.transform = 'translateY(-50%)';
+              this.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+            }, { passive: false });
+            
+            btn.addEventListener('touchend', function(e) {
+              e.stopPropagation();
+              e.preventDefault();
+              this.style.transform = 'translateY(-50%)';
+              this.style.backgroundColor = 'transparent';
+              
+              // 터치 종료 시 클릭 이벤트 발생
+              const clickEvent = new Event('click', { bubbles: true });
+              this.dispatchEvent(clickEvent);
+            }, { passive: false });
+            
+            btn.addEventListener('touchcancel', function(e) {
+              e.stopPropagation();
+              this.style.transform = 'translateY(-50%)';
+              this.style.backgroundColor = 'transparent';
+            }, { passive: true });
+          });
             btn.addEventListener('touchstart', function(e) {
               e.stopPropagation();
               e.preventDefault();
@@ -9043,6 +9112,9 @@
         if (existingInfo) {
           existingInfo.remove();
         }
+        
+        // 다른 일정 클릭시 스와이프 상태 해제
+        clearAllSwipeStates();
         
         // 현재 활성 섹션 설정
         window.currentActiveSection = title;
