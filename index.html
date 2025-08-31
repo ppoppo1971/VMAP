@@ -564,6 +564,7 @@
             width: 400px;
             max-width: 90vw;
             max-height: 80vh;
+            height: 80vh;
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 20px;
@@ -743,17 +744,20 @@
                 top: 80px !important;
                 max-width: 90vw;
                 max-height: 75vh;
+                height: 75vh;
                 margin: 0 auto;
             }
             
             /* 모바일에서 스크롤 영역 최적화 */
             .info-content {
                 padding: 15px;
-                overflow-y: scroll !important;
+                overflow-y: auto !important;
                 -webkit-overflow-scrolling: touch;
                 overscroll-behavior: contain;
-                height: auto;
-                max-height: none;
+                flex: 1 1 auto;
+                min-height: 0;
+                height: 100%;
+                max-height: 100%;
             }
         }
             
@@ -775,16 +779,19 @@
                 transform: translateX(-50%) !important;
                 max-width: 95vw;
                 max-height: 70vh;
+                height: 70vh;
             }
             
             /* 작은 화면에서 스크롤 영역 최적화 */
             .info-content {
                 padding: 12px;
-                overflow-y: scroll !important;
+                overflow-y: auto !important;
                 -webkit-overflow-scrolling: touch;
                 overscroll-behavior: contain;
-                height: auto;
-                max-height: none;
+                flex: 1 1 auto;
+                min-height: 0;
+                height: 100%;
+                max-height: 100%;
             }
             
             #routeSaveDialog, #markerSaveDialog {
