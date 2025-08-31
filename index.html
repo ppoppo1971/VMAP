@@ -2019,12 +2019,20 @@
           if (!window.searchMarkerClicked && currentInfoWindow) {
             currentInfoWindow.close();
             currentInfoWindow = null;
+            // 추적 변수 초기화
+            window.currentOpenMarkerGroup = null;
+            window.currentOpenMarkerIndex = null;
+            window.currentOpenRouteId = null;
           }
           
                   // 사용자 생성 마커 정보창 닫기
         if (window.currentInfoWindow) {
           window.currentInfoWindow.close();
           window.currentInfoWindow = null;
+          // 추적 변수 초기화
+          window.currentOpenMarkerGroup = null;
+          window.currentOpenMarkerIndex = null;
+          window.currentOpenRouteId = null;
         }
         
         // 사이드패널 터치 이벤트 설정
@@ -2038,6 +2046,10 @@
           if (currentInfoWindow) {
             currentInfoWindow.close();
             currentInfoWindow = null;
+            // 추적 변수 초기화
+            window.currentOpenMarkerGroup = null;
+            window.currentOpenMarkerIndex = null;
+            window.currentOpenRouteId = null;
           }
           
           // 사이드패널은 유지: 일정창이 열려 있으면 일정창만 닫음
@@ -5106,6 +5118,9 @@
         if (isMarkerMode || isRouteMode) {
           return;
         }
+        
+        // 현재 열린 경로 정보 추적
+        window.currentOpenRouteId = route.id;
          const path = route.path || route.getPath();
          const distance = calculateRouteDistance(path);
          const formattedDistance = formatDistance(distance);
@@ -5857,6 +5872,10 @@
       
       // 저장된 정보로 마커 정보창 표시
       function showMarkerInfoWithData(markerGroupName, index) {
+        // 현재 열린 마커 정보 추적
+        window.currentOpenMarkerGroup = markerGroupName;
+        window.currentOpenMarkerIndex = index;
+        
         // group id 우선 키 사용 (id 또는 name으로 탐색)
         const savedMarkers = window.savedUserMarkers || [];
         const group = savedMarkers.find(g => g && (g.id === markerGroupName || g.name === markerGroupName));
@@ -8163,6 +8182,16 @@
                     clearAllRenderedMarkers();
                     drawAllSavedMarkers();
                     
+                    // 현재 열린 정보창이 마커 정보창이면 갱신
+                    try {
+                      if (window.currentInfoWindow && window.currentInfoWindow.getContent && window.currentOpenMarkerGroup && window.currentOpenMarkerIndex !== undefined) {
+                        console.log('현재 열린 마커 정보창 실시간 갱신:', window.currentOpenMarkerGroup, window.currentOpenMarkerIndex);
+                        showMarkerInfoWithData(window.currentOpenMarkerGroup, window.currentOpenMarkerIndex);
+                      }
+                    } catch (e) {
+                      console.log('마커 정보창 갱신 중 오류:', e);
+                    }
+                    
                     updateSyncStatus('마커 정보 동기화 완료', 'success');
                   } else {
                     console.log('마커 정보 변경 없음 - 업데이트 건너뜀');
@@ -8176,16 +8205,21 @@
                   const newRouteInfo = data.routeInfoData;
                   if (JSON.stringify(currentRouteInfo) !== JSON.stringify(newRouteInfo)) {
                     routeInfoData = newRouteInfo;
+                    console.log('경로 정보 동기화 완료', newRouteInfo);
+                    updateSyncStatus('경로 정보 동기화 완료', 'success');
+                    
                     // 현재 열린 정보창이 경로 정보창이면 갱신
-                    // (간단히 재오픈 없이 setContent를 위해 다시 showRouteInfo 호출)
-                    // 열린 상태에서 위치 정보가 없을 수 있으므로 clickPosition은 null 전달
                     try {
-                      if (window.currentInfoWindow && window.currentInfoWindow.getContent) {
-                        // 경로 중 하나를 찾아 업데이트 시도 (정확한 대상은 다음 클릭에서 최신 표시)
-                        // 특별히 즉시 갱신하지 않아도 다음 클릭에 반영되므로 로그만 남김
-                        console.log('경로 정보 동기화 반영 완료');
+                      if (window.currentInfoWindow && window.currentInfoWindow.getContent && window.currentOpenRouteId) {
+                        const route = savedUserRoutes.find(r => r.id === window.currentOpenRouteId);
+                        if (route) {
+                          console.log('현재 열린 경로 정보창 실시간 갱신:', route.id);
+                          showRouteInfo(route, null);
+                        }
                       }
-                    } catch (_) {}
+                    } catch (e) {
+                      console.log('경로 정보창 갱신 중 오류:', e);
+                    }
                   }
                 }
                 
