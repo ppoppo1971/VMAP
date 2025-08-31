@@ -8218,39 +8218,6 @@
               this.style.backgroundColor = 'transparent';
             }, { passive: true });
           });
-            btn.addEventListener('touchstart', function(e) {
-              e.stopPropagation();
-              e.preventDefault();
-              // 일정 항목은 스케일 변화 없이 translateY만 유지
-              this.style.transform = 'translateY(-50%)';
-            }, { passive: false });
-            
-            btn.addEventListener('touchend', function(e) {
-              e.stopPropagation();
-              e.preventDefault();
-              // 일정 항목은 원래 위치 유지
-              this.style.transform = 'translateY(-50%)';
-              
-              const itemId = this.closest('.user-added-item, .checklist-item').getAttribute('data-item-id');
-              if (itemId) {
-                // 약간의 지연을 두어 터치 피드백을 보여줌
-                setTimeout(() => {
-                  const itemType = this.closest('.user-added-item, .checklist-item').getAttribute('data-item-type');
-                  if (itemType === 'user') {
-                    deleteUserItem(itemId);
-                  } else {
-                    deleteExistingItem(itemId);
-                  }
-                }, 100);
-              }
-            }, { passive: false });
-            
-            btn.addEventListener('touchcancel', function(e) {
-              e.stopPropagation();
-              // 일정 항목은 원래 위치 유지
-              this.style.transform = 'translateY(-50%)';
-            }, { passive: true });
-          });
         }
       }
       
