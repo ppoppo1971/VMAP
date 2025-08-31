@@ -4934,7 +4934,7 @@
                 const markerOptions = {
                   position: new google.maps.LatLng(markerData.lat, markerData.lng),
                   map: map,
-                  title: markerData.title || `${markerGroup.name} ${index + 1}`,
+                  title: markerGroup.location || markerData.title || `${markerGroup.name} ${index + 1}`,
                   zIndex: 1000
                 };
                 if (useEmoji) {
@@ -5213,10 +5213,15 @@
         console.log('경로 삭제 시작 - isSyncing 플래그 무시하고 즉시 처리');
         
         try {
-          // 정보창 닫기
+          // 정보창과 편집 다이얼로그 닫기
           if (window.currentInfoWindow) {
             window.currentInfoWindow.close();
             window.currentInfoWindow = null;
+          }
+          
+          const editDialog = document.getElementById('routeEditDialog');
+          if (editDialog) {
+            editDialog.remove();
           }
           
           // 저장된 경로들에서 해당 경로 찾기
@@ -5332,9 +5337,49 @@
           </div>
         `;
         
+        // 기존 정보창 닫기
         if (window.currentInfoWindow) {
-          window.currentInfoWindow.setContent(html);
+          window.currentInfoWindow.close();
+          window.currentInfoWindow = null;
         }
+        
+        // 기존 경로 편집 다이얼로그가 있으면 제거
+        const existingDialog = document.getElementById('routeEditDialog');
+        if (existingDialog) {
+          existingDialog.remove();
+        }
+        
+        // 화면 중앙에 편집 다이얼로그 생성
+        const dialogDiv = document.createElement('div');
+        dialogDiv.id = 'routeEditDialog';
+        dialogDiv.style.cssText = `
+          position: fixed;
+          z-index: 1000;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: ${dialogWidth}px;
+          max-width: ${maxWidth};
+          background: rgba(255, 255, 255, 0.95);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 16px;
+          box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          overflow: hidden;
+        `;
+        
+        dialogDiv.innerHTML = html;
+        document.body.appendChild(dialogDiv);
+        
+        // 입력 필드에 포커스
+        setTimeout(() => {
+          const contentInput = document.getElementById('route-edit-content');
+          if (contentInput) {
+            contentInput.focus();
+          }
+        }, 150);
       }
       
       // 경로 정보 저장
@@ -5358,6 +5403,12 @@
             });
           }
           
+          // 편집 다이얼로그 닫기
+          const editDialog = document.getElementById('routeEditDialog');
+          if (editDialog) {
+            editDialog.remove();
+          }
+          
           // 저장 후 현재 정보창에 내용 표시로 갱신
           const route = savedUserRoutes.find(r => r.id === routeId) || { id: routeId, name: routeName, path: [] };
           showRouteInfo(route, null);
@@ -5378,7 +5429,7 @@
         // 현재 저장된 정보 가져오기 또는 기본값 설정 (id 우선, name 대체)
         const baseInfo = (idKey && markerInfoData[idKey]) || markerInfoData[nameKey] || null;
         const currentInfo = baseInfo || {
-          title: markerGroupName,
+          title: group?.location || markerGroupName,
           content: '',
           link: ''
         };
@@ -5410,12 +5461,7 @@
                      onfocus="this.style.background='rgba(255, 255, 255, 0.18)'"
                      onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
             </div>
-            <div style="margin-bottom: 16px;">
-              <textarea id="edit-content-${markerId}" rows="${isMobileView ? '2' : '3'}" placeholder="내용을 입력하세요"
-                        style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px); resize: vertical; min-height: ${isMobileView ? '60px' : '80px'};max-height: ${isMobileView ? '120px' : '150px'};"
-                        onfocus="this.style.background='rgba(255, 255, 255, 0.18)'"
-                        onblur="this.style.background='rgba(255, 255, 255, 0.12)'">${currentInfo.content}</textarea>
-            </div>
+
             <div style="margin-bottom: 16px;">
               <input type="text" id="edit-link-${markerId}" value="${currentInfo.link}" placeholder="링크를 입력하세요 (https://...)"
                      style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);"
@@ -5424,14 +5470,14 @@
             </div>
             <div style="margin-bottom: 24px;">
               <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center;">
-                <button type="button" onclick="selectEmoji('${markerId}', '')" style="padding:8px 12px; background: ${!currentEmoji ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">번호</button>
-                <button type="button" onclick="selectEmoji('${markerId}', '🛏️')" style="padding:8px 12px; background: ${currentEmoji === '🛏️' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🛏️</button>
-                <button type="button" onclick="selectEmoji('${markerId}', '🍽️')" style="padding:8px 12px; background: ${currentEmoji === '🍽️' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🍽️</button>
-                <button type="button" onclick="selectEmoji('${markerId}', '🥤')" style="padding:8px 12px; background: ${currentEmoji === '🥤' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🥤</button>
-                <button type="button" onclick="selectEmoji('${markerId}', '📷')" style="padding:8px 12px; background: ${currentEmoji === '📷' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">📷</button>
-                <button type="button" onclick="selectEmoji('${markerId}', '🛒')" style="padding:8px 12px; background: ${currentEmoji === '🛒' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🛒</button>
-                <button type="button" onclick="selectEmoji('${markerId}', '🌳')" style="padding:8px 12px; background: ${currentEmoji === '🌳' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🌳</button>
-                <button type="button" onclick="selectEmoji('${markerId}', '🚌')" style="padding:8px 12px; background: ${currentEmoji === '🚌' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)'}; border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🚌</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '')" style="padding:8px 12px; background: ${!currentEmoji ? 'rgba(100, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.12)'}; border: ${!currentEmoji ? '2px solid rgba(50, 50, 50, 0.6)' : 'none'}; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">번호</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '🛏️')" style="padding:8px 12px; background: ${currentEmoji === '🛏️' ? 'rgba(100, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.12)'}; border: ${currentEmoji === '🛏️' ? '2px solid rgba(50, 50, 50, 0.6)' : 'none'}; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🛏️</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '🍽️')" style="padding:8px 12px; background: ${currentEmoji === '🍽️' ? 'rgba(100, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.12)'}; border: ${currentEmoji === '🍽️' ? '2px solid rgba(50, 50, 50, 0.6)' : 'none'}; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🍽️</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '🥤')" style="padding:8px 12px; background: ${currentEmoji === '🥤' ? 'rgba(100, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.12)'}; border: ${currentEmoji === '🥤' ? '2px solid rgba(50, 50, 50, 0.6)' : 'none'}; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🥤</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '📷')" style="padding:8px 12px; background: ${currentEmoji === '📷' ? 'rgba(100, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.12)'}; border: ${currentEmoji === '📷' ? '2px solid rgba(50, 50, 50, 0.6)' : 'none'}; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">📷</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '🛒')" style="padding:8px 12px; background: ${currentEmoji === '🛒' ? 'rgba(100, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.12)'}; border: ${currentEmoji === '🛒' ? '2px solid rgba(50, 50, 50, 0.6)' : 'none'}; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🛒</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '🌳')" style="padding:8px 12px; background: ${currentEmoji === '🌳' ? 'rgba(100, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.12)'}; border: ${currentEmoji === '🌳' ? '2px solid rgba(50, 50, 50, 0.6)' : 'none'}; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🌳</button>
+                <button type="button" onclick="selectEmoji('${markerId}', '🚌')" style="padding:8px 12px; background: ${currentEmoji === '🚌' ? 'rgba(100, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.12)'}; border: ${currentEmoji === '🚌' ? '2px solid rgba(50, 50, 50, 0.6)' : 'none'}; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🚌</button>
               </div>
             </div>
             <div style="display: flex; gap: 12px; ${isMobileView ? 'flex-direction: column;' : ''}">
@@ -5451,58 +5497,50 @@
           </div>
         `;
         
-        // 정보창 내용 업데이트 및 옵션 설정
+        // 기존 정보창 닫기
         if (window.currentInfoWindow) {
-          window.currentInfoWindow.setContent(editInfo);
-          
-          // 모바일에서 InfoWindow 옵션 조정
-          if (isMobileView) {
-            window.currentInfoWindow.setOptions({
-              maxWidth: Math.min(dialogWidth + 20, viewportWidth - 20),
-              pixelOffset: new google.maps.Size(0, -10),
-              disableAutoPan: false
-            });
-          } else {
-            window.currentInfoWindow.setOptions({
-              maxWidth: 400,
-              disableAutoPan: false
-            });
-          }
-          
-          // 입력 필드에 포커스 및 정보창 위치 조정
-          setTimeout(() => {
-            const titleInput = document.getElementById(`edit-title-${markerId}`);
-            if (titleInput) {
-              titleInput.focus();
-              titleInput.select();
-            }
-            
-            // 정보창이 화면 밖으로 나가지 않도록 위치 보정
-            if (window.currentInfoWindow && map) {
-              const markerPosition = window.currentInfoWindow.getPosition();
-              if (markerPosition) {
-                // 화면 중앙에 가깝게 이동하여 정보창이 잘리지 않도록 함
-                const bounds = map.getBounds();
-                if (bounds && !bounds.contains(markerPosition)) {
-                  map.panTo(markerPosition);
-                } else {
-                  // 마커가 화면 가장자리에 있으면 중앙쪽으로 살짝 이동
-                  const center = map.getCenter();
-                  const lat = markerPosition.lat();
-                  const lng = markerPosition.lng();
-                  const centerLat = center.lat();
-                  const centerLng = center.lng();
-                  
-                  // 마커가 가장자리에 있으면 중앙 쪽으로 조정
-                  const adjustedLat = lat + (centerLat - lat) * 0.1;
-                  const adjustedLng = lng + (centerLng - lng) * 0.1;
-                  
-                  map.panTo(new google.maps.LatLng(adjustedLat, adjustedLng));
-                }
-              }
-            }
-          }, 150);
+          window.currentInfoWindow.close();
+          window.currentInfoWindow = null;
         }
+        
+        // 기존 편집 다이얼로그가 있으면 제거
+        const existingDialog = document.getElementById('markerEditDialog');
+        if (existingDialog) {
+          existingDialog.remove();
+        }
+        
+        // 화면 중앙에 편집 다이얼로그 생성
+        const dialogDiv = document.createElement('div');
+        dialogDiv.id = 'markerEditDialog';
+        dialogDiv.style.cssText = `
+          position: fixed;
+          z-index: 1000;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: ${dialogWidth}px;
+          max-width: ${maxWidth};
+          background: rgba(255, 255, 255, 0.95);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 16px;
+          box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          overflow: hidden;
+        `;
+        
+        dialogDiv.innerHTML = editInfo;
+        document.body.appendChild(dialogDiv);
+        
+        // 입력 필드에 포커스
+        setTimeout(() => {
+          const titleInput = document.getElementById(`edit-title-${markerId}`);
+          if (titleInput) {
+            titleInput.focus();
+            titleInput.select();
+          }
+        }, 150);
       }
       // 마커 정보 저장 함수
       // 이모지 선택 함수
@@ -5514,10 +5552,16 @@
         // UI 업데이트 - 모든 이모지 버튼의 배경을 리셋하고 선택된 것만 하이라이트
         const buttons = document.querySelectorAll(`button[onclick*="selectEmoji('${markerId}'"]`);
         buttons.forEach(button => {
-          if (button.onclick.toString().includes(`'${emoji}'`)) {
-            button.style.background = 'rgba(255, 255, 255, 0.25)';
+          const buttonText = button.textContent.trim();
+          const isNumberButton = buttonText === '번호';
+          const isSelected = (isNumberButton && emoji === '') || (!isNumberButton && button.onclick.toString().includes(`'${emoji}'`));
+          
+          if (isSelected) {
+            button.style.background = 'rgba(100, 100, 100, 0.4)';
+            button.style.border = '2px solid rgba(50, 50, 50, 0.6)';
           } else {
             button.style.background = 'rgba(255, 255, 255, 0.12)';
+            button.style.border = 'none';
           }
         });
         
@@ -5563,10 +5607,9 @@
         
         // 입력값 가져오기
         const titleInput = document.getElementById(`edit-title-${markerId}`);
-        const contentInput = document.getElementById(`edit-content-${markerId}`);
         const linkInput = document.getElementById(`edit-link-${markerId}`);
         
-        if (!titleInput || !contentInput || !linkInput) {
+        if (!titleInput || !linkInput) {
           alert('입력 필드를 찾을 수 없습니다.');
           return;
         }
@@ -5577,8 +5620,8 @@
                              (markerInfoData[markerId] && markerInfoData[markerId].emoji) || '';
         
         const newInfo = {
-          title: titleInput.value.trim() || markerGroupName,
-          content: contentInput.value.trim(),
+          title: titleInput.value.trim() || group?.location || markerGroupName,
+          content: '',
           link: linkInput.value.trim(),
           emoji: selectedEmoji
         };
@@ -5614,6 +5657,12 @@
           // 성공 메시지
           console.log('마커 정보가 저장되었습니다.');
           onFirebaseUploadSuccess('마커 정보');
+          
+          // 편집 다이얼로그 닫기
+          const editDialog = document.getElementById('markerEditDialog');
+          if (editDialog) {
+            editDialog.remove();
+          }
           
           // 정보창을 일반 보기 모드로 되돌리기
           showMarkerInfoWithData(markerGroupName, index);
@@ -5670,6 +5719,12 @@
       
       // 마커 수정 취소 함수
       function cancelMarkerEdit(markerGroupName, index) {
+        // 편집 다이얼로그 닫기
+        const editDialog = document.getElementById('markerEditDialog');
+        if (editDialog) {
+          editDialog.remove();
+        }
+        
         // 정보창을 일반 보기 모드로 되돌리기
         showMarkerInfoWithData(markerGroupName, index);
       }
@@ -5682,10 +5737,15 @@
         console.log('마커 삭제 시작 - isSyncing 플래그 무시하고 즉시 처리');
         
         try {
-          // 정보창 닫기
+          // 정보창과 편집 다이얼로그 닫기
           if (window.currentInfoWindow) {
             window.currentInfoWindow.close();
             window.currentInfoWindow = null;
+          }
+          
+          const editDialog = document.getElementById('markerEditDialog');
+          if (editDialog) {
+            editDialog.remove();
           }
           
           // 저장된 마커들에서 해당 마커 그룹 찾기
@@ -5802,27 +5862,20 @@
         const group = savedMarkers.find(g => g && (g.id === markerGroupName || g.name === markerGroupName));
         const markerId = (group && group.id) ? `${group.id}-${index}` : `${markerGroupName}-${index}`;
         const savedInfo = markerInfoData[markerId] || {
-          title: markerGroupName,
+          title: group?.location || markerGroupName,
           content: '',
           link: ''
         };
         
-        // 내용과 링크 처리
-        let contentDisplay = '';
-        if (savedInfo.content) {
-          if (savedInfo.link && savedInfo.link.trim()) {
-            // 링크가 있으면 내용 텍스트에 링크 연결
-            const validLink = savedInfo.link.startsWith('http') ? savedInfo.link : `https://${savedInfo.link}`;
-            contentDisplay = `<p style="margin: 5px 0;">
-              <span onclick="openUserItemLink('${validLink}')" 
-                    style="color: #333; text-decoration: none; cursor: pointer; border-bottom: 1px dotted #3b82f6;"
+        // 제목과 링크 처리
+        let titleDisplay = savedInfo.title;
+        if (savedInfo.link && savedInfo.link.trim()) {
+          // 링크가 있으면 제목에 링크 연결
+          const validLink = savedInfo.link.startsWith('http') ? savedInfo.link : `https://${savedInfo.link}`;
+          titleDisplay = `<span onclick="openUserItemLink('${validLink}')" 
+                    style="color: #8b5cf6; text-decoration: none; cursor: pointer; border-bottom: 1px dotted #3b82f6;"
                     onmouseover="this.style.color='#3b82f6'; this.style.textDecoration='underline';"
-                    onmouseout="this.style.color='#333'; this.style.textDecoration='none';">${savedInfo.content}</span>
-            </p>`;
-          } else {
-            // 링크가 없으면 일반 텍스트로 표시
-            contentDisplay = `<p style="margin: 5px 0; color: #333;">${savedInfo.content}</p>`;
-          }
+                    onmouseout="this.style.color='#8b5cf6'; this.style.textDecoration='none';">${savedInfo.title}</span>`;
         }
         
         const info = `
@@ -5833,8 +5886,7 @@
                            border-radius: 4px; padding: 4px 8px; font-size: 12px; 
                            cursor: pointer; z-index: 1000;"
                     title="수정">수정</button>
-            <h4 style="margin: 0 0 10px 0; color: #8b5cf6; padding-right: 50px;">${savedInfo.title}</h4>
-            ${contentDisplay}
+            <h4 style="margin: 0 0 10px 0; padding-right: 50px;">${titleDisplay}</h4>
           </div>
         `;
         
