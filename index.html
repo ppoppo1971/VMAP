@@ -45,6 +45,9 @@
             gap: 8px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             transition: all 0.3s ease;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         #customMapMenu.hide {
             left: -220px;
@@ -276,6 +279,9 @@
                 top: 15px;
                 left: 10px;
                 padding: 12px 10px 10px 10px;
+                max-height: calc(100vh - 30px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
             
             #customMapMenu.hide {
@@ -345,6 +351,9 @@
                 top: 10px;
                 left: 8px;
                 padding: 10px 8px 8px 8px;
+                max-height: calc(100vh - 20px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
             
             #customMapMenu.hide {
@@ -1957,12 +1966,20 @@
             currentInfoWindow = null;
           }
           
-          // 사이드패널만 열려있는 상태에서 지도 클릭시 닫기
+          // 사이드패널은 유지: 일정창이 열려 있으면 일정창만 닫음
+          // 단, 일정창이 없고 왼쪽/오른쪽 패널만 열려있는 상태에서는 기존 동작 유지
           const customMapMenu = getElement('customMapMenu');
+          const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
           const preparationInfo = document.getElementById('preparationInfo');
           
-          if (!customMapMenu.classList.contains('hide') && !preparationInfo) {
-            hideMenu();
+          if (!preparationInfo) {
+            // 일정창이 없을 때만 패널 토글 처리
+            if (!customMapMenu.classList.contains('hide')) {
+              hideMenu();
+            }
+            if (rightPanelOpen) {
+              hideRightMenu();
+            }
           }
           if (!getElement('mapTypeSelector').classList.contains('hide')) {
             hideRightMenu();
@@ -2442,6 +2459,10 @@
       }
       
       function showMenu() {
+        // 오른쪽 패널이 열려있다면 먼저 닫기
+        if (!getElement('mapTypeSelector').classList.contains('hide')) {
+          hideRightMenu();
+        }
         getElement('customMapMenu').classList.remove('hide');
         getElement('menuToggleBtn').classList.remove('show');
       }
@@ -2454,6 +2475,10 @@
         
         if (isHidden) {
           // 메뉴를 보여줄 때
+          // 왼쪽 패널이 열려있다면 닫기
+          if (!getElement('customMapMenu').classList.contains('hide')) {
+            hideMenu();
+          }
           mapTypeSelector.classList.remove('hide');
           rightMenuToggleBtn.style.display = 'none'; // 토글 버튼 숨기기
         } else {
