@@ -339,7 +339,6 @@
             
             /* 모바일에서 스크롤 최적화 */
             .info-content {
-                max-height: 60vh;
                 -webkit-overflow-scrolling: touch;
             }
         }
@@ -554,6 +553,7 @@
             z-index: 15;
             width: 400px;
             max-width: 90vw;
+            max-height: 80vh;
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 20px;
@@ -563,6 +563,8 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow: hidden;
             animation: slideIn 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
         }
         
         @keyframes slideIn {
@@ -613,8 +615,9 @@
         
         .info-content {
             padding: 20px;
-            max-height: 70vh;
             overflow-y: auto;
+            flex: 1;
+            min-height: 0;
         }
         
         .info-section {
@@ -685,6 +688,7 @@
                 transform: translateX(-50%) !important;
                 top: 80px !important;
                 max-width: 90vw;
+                max-height: 75vh;
                 margin: 0 auto;
             }
             
@@ -705,6 +709,7 @@
                 left: 50% !important;
                 transform: translateX(-50%) !important;
                 max-width: 95vw;
+                max-height: 70vh;
             }
             
             #routeSaveDialog, #markerSaveDialog {
@@ -1122,6 +1127,107 @@
         .add-item-section {
             margin-top: 10px;
             text-align: center;
+        }
+        
+        /* 일정창 닫기 버튼 스타일 */
+        .schedule-close-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .schedule-close-btn:hover {
+            background-color: rgba(0, 0, 0, 0.1) !important;
+            color: #333 !important;
+        }
+        
+        .schedule-close-btn:active {
+            background-color: rgba(0, 0, 0, 0.2) !important;
+            transform: translateY(-50%) scale(0.95) !important;
+        }
+        
+        /* 새 항목 추가 폼 헤더 스타일 */
+        .add-form-header {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .add-form-header h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .add-form-header .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s ease;
+        }
+        
+        .add-form-header .close-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* 통일된 폼 헤더 스타일 */
+        .edit-form-header {
+            padding: 28px 24px 8px 24px;
+            text-align: center;
+            position: relative;
+            background: transparent;
+            color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .edit-form-header h4 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+        }
+        
+        .edit-form-header .close-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #666;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .edit-form-header .close-btn:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+            color: #333;
+        }
+        
+        .edit-form-header .close-btn:active {
+            background-color: rgba(0, 0, 0, 0.2);
+            transform: translateY(-50%) scale(0.95);
         }
         
         .toggle-add-btn {
@@ -2862,10 +2968,11 @@
         `;
         
         editForm.innerHTML = `
-          <div style="padding: 28px 24px 24px 24px;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">항목 수정</h3>
-            </div>
+          <div class="edit-form-header">
+            <h4>항목 수정</h4>
+            <button type="button" onclick="closeEditForm()" class="close-btn">×</button>
+          </div>
+          <div style="padding: 20px 24px 24px 24px;">
             <div style="margin-bottom: 16px;">
               <input type="text" id="editItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50" value="${currentTitle}"
                      style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);" 
@@ -2879,11 +2986,8 @@
                      onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
             </div>
             <div style="display: flex; gap: 12px;">
-              <button onclick="saveEditedItem('${itemId}', '${itemType}')" style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
+              <button onclick="saveEditedItem('${itemId}', '${itemType}')" style="width: 100%; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
                 저장
-              </button>
-              <button onclick="closeEditForm()" style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
-                취소
               </button>
             </div>
           </div>
@@ -8457,10 +8561,11 @@
               color: rgba(0, 0, 0, 0.5);
             }
           </style>
-          <div style="padding: 28px 24px 24px 24px;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">새 일정 추가</h3>
-            </div>
+          <div class="edit-form-header">
+            <h4>새 일정 추가</h4>
+            <button type="button" onclick="closeAddScheduleDialog()" class="close-btn">×</button>
+          </div>
+          <div style="padding: 20px 24px 24px 24px;">
             <div style="margin-bottom: 24px;">
               <input type="text" id="scheduleTitle" placeholder="일정 제목을 입력하세요" 
                      style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);" 
@@ -8617,14 +8722,19 @@
           background: rgba(255, 255, 255, 0.2);
           backdrop-filter: blur(20px);
           border-radius: 20px;
-          padding: 28px 24px 24px 24px;
           box-shadow: 0 8px 32px rgba(0,0,0,0.12);
           border: 1px solid rgba(255, 255, 255, 0.12);
           min-width: 320px;
           max-width: 90vw;
+          overflow: hidden;
         `;
         
         dialog.innerHTML = `
+          <div class="edit-form-header">
+            <h4>가계부 추가</h4>
+            <button type="button" onclick="closeBudgetDialog()" class="close-btn">×</button>
+          </div>
+          <div style="padding: 20px 24px 24px 24px;">
           <div style="margin-bottom: 16px;">
             <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">날짜</label>
             <input type="date" id="budgetDate" value="${new Date().toISOString().split('T')[0]}" style="
@@ -8702,7 +8812,7 @@
           </div>
           <div style="display: flex; gap: 12px;">
             <button onclick="addBudgetItem()" style="
-              flex: 1; 
+              width: 100%; 
               background: rgba(255, 255, 255, 0.12); 
               color: #000; 
               border: none; 
@@ -8717,22 +8827,7 @@
             " onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'; this.style.transform='translateY(0)'">
               추가
             </button>
-            <button onclick="closeBudgetDialog()" style="
-              flex: 1; 
-              background: rgba(255, 255, 255, 0.12); 
-              color: #000; 
-              border: none; 
-              border-radius: 12px; 
-              padding: 14px 32px; 
-              font-size: 15px; 
-              font-weight: 500; 
-              cursor: pointer; 
-              transition: all 0.2s ease; 
-              backdrop-filter: blur(10px); 
-              min-width: 120px;
-            " onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'; this.style.transform='translateY(0)'">
-              취소
-            </button>
+          </div>
           </div>
         `;
         
@@ -9115,10 +9210,11 @@
         const infoDiv = document.createElement('div');
         infoDiv.id = 'preparationInfo';
         infoDiv.innerHTML = `
-          <div style="padding: 28px 24px 8px 24px; text-align: center;">
+          <div style="padding: 28px 24px 8px 24px; text-align: center; position: relative; flex-shrink: 0;">
             <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">${title}</h3>
+            <button type="button" onclick="closeScheduleInfo()" class="schedule-close-btn" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 20px; color: #666; cursor: pointer; padding: 5px; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">×</button>
           </div>
-                      <div class="info-content">
+          <div class="info-content">
               <div class="info-section">
                 <!-- 사용자 추가 항목들이 여기에 표시됩니다 -->
               <div id="userAddedItems"></div>
@@ -9130,6 +9226,10 @@
               
               <!-- 새 항목 추가 폼 (처음에는 숨김) -->
               <div class="add-item-form" id="addItemForm" style="display: none;">
+                <div class="add-form-header">
+                  <h4>새 항목 추가</h4>
+                  <button type="button" onclick="hideAddForm()" class="close-btn">×</button>
+                </div>
                 <div class="form-group">
                   <input type="text" id="newItemTitle" placeholder="항목 제목을 입력하세요" maxlength="50">
                   <input type="url" id="newItemLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200">
@@ -9343,10 +9443,11 @@
         `;
         
         dialog.innerHTML = `
-          <div style="padding: 28px 24px 24px 24px;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">일정 수정</h3>
-            </div>
+          <div class="edit-form-header">
+            <h4>일정 수정</h4>
+            <button type="button" onclick="closeEditScheduleDialog()" class="close-btn">×</button>
+          </div>
+          <div style="padding: 20px 24px 24px 24px;">
             <div style="margin-bottom: 24px;">
               <input type="text" id="editScheduleTitle" placeholder="일정 제목을 입력하세요" 
                      value="${currentTitle}" maxlength="50"
@@ -9355,11 +9456,8 @@
                      onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
             </div>
             <div style="display: flex; gap: 12px;">
-              <button onclick="saveScheduleEdit('${scheduleId}')" style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
+              <button onclick="saveScheduleEdit('${scheduleId}')" style="width: 100%; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
                 저장
-              </button>
-              <button onclick="closeEditScheduleDialog()" style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
-                취소
               </button>
             </div>
           </div>
