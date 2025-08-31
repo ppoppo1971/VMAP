@@ -48,6 +48,8 @@
             max-height: calc(100vh - 40px);
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+            overscroll-behavior: contain;
         }
         #customMapMenu.hide {
             left: -220px;
@@ -280,8 +282,11 @@
                 left: 10px;
                 padding: 12px 10px 10px 10px;
                 max-height: calc(100vh - 30px);
+                height: calc(100vh - 30px);
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
+                touch-action: pan-y;
+                overscroll-behavior: contain;
             }
             
             #customMapMenu.hide {
@@ -351,8 +356,11 @@
                 left: 8px;
                 padding: 10px 8px 8px 8px;
                 max-height: calc(100vh - 20px);
+                height: calc(100vh - 20px);
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
+                touch-action: pan-y;
+                overscroll-behavior: contain;
             }
             
             #customMapMenu.hide {
