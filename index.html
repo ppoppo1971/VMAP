@@ -1734,7 +1734,10 @@
           
           // 모바일에서 스크롤 성능 최적화
           document.addEventListener('touchmove', function(event) {
-            if (event.target.closest('.info-content')) {
+            if (
+              event.target.closest('.info-content') ||
+              event.target.closest('#customMapMenu')
+            ) {
               event.stopPropagation();
             }
           }, { passive: true });
@@ -2739,6 +2742,8 @@
         const customMapMenu = document.getElementById('customMapMenu');
         if (customMapMenu) {
           customMapMenu.addEventListener('touchstart', function(e) {
+            // 패널 내부 스크롤 중 지도/문서로의 터치 이벤트 전파 차단
+            e.stopPropagation();
             // 스와이프 버튼이나 일정 버튼을 터치한 경우가 아니면 스와이프 상태 해제
             if (!e.target.classList.contains('swipe-edit-btn') &&
                 !e.target.classList.contains('swipe-delete-btn') &&
@@ -2746,7 +2751,12 @@
                 !e.target.closest('.user-added-item')) {
               clearAllSwipeStates();
             }
-          });
+          }, { passive: true });
+
+          // 패널 내부 터치 이동 시 상위로의 전파 차단 (지도 리스너 간섭 방지)
+          customMapMenu.addEventListener('touchmove', function(e) {
+            e.stopPropagation();
+          }, { passive: true });
         }
       }
       
