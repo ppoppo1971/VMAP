@@ -509,17 +509,21 @@
             
             /* 모바일에서 스크롤 성능 향상 */
             .info-content::-webkit-scrollbar {
-                width: 4px;
+                width: 6px;
             }
             
             .info-content::-webkit-scrollbar-track {
-                background: rgba(0, 0, 0, 0.1);
-                border-radius: 2px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 3px;
             }
             
             .info-content::-webkit-scrollbar-thumb {
-                background: rgba(0, 0, 0, 0.3);
-                border-radius: 2px;
+                background: rgba(0, 0, 0, 0.4);
+                border-radius: 3px;
+            }
+            
+            .info-content::-webkit-scrollbar-thumb:hover {
+                background: rgba(0, 0, 0, 0.6);
             }
             
 
@@ -563,8 +567,9 @@
             z-index: 15;
             width: 400px;
             max-width: 90vw;
-            max-height: 80vh;
-            height: 80vh;
+            max-height: calc(100vh - 40px);
+            height: auto;
+            min-height: 400px;
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 20px;
@@ -647,12 +652,13 @@
             padding: 20px;
             overflow-y: auto;
             overflow-x: hidden;
-            flex: 1;
+            flex: 1 1 auto;
             min-height: 0;
+            max-height: calc(100vh - 120px);
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
             scrollbar-color: rgba(0,0,0,0.3) transparent;
-            /* height/max-height 제거: flex 컨테이너 기준으로 스크롤 */
+            /* flex 컨테이너 기준으로 스크롤 */
         }
         
         /* 웹킷 브라우저용 스크롤바 스타일 */
@@ -742,9 +748,12 @@
                 transform: translateX(-50%) !important;
                 top: 80px !important;
                 max-width: 90vw;
-                max-height: 75vh;
-                height: 75vh;
+                max-height: calc(100vh - 100px);
+                height: auto;
+                min-height: 300px;
                 margin: 0 auto;
+                display: flex;
+                flex-direction: column;
             }
             
             /* 모바일에서 스크롤 영역 최적화 */
@@ -756,6 +765,7 @@
                 overscroll-behavior: contain;
                 flex: 1 1 auto;
                 min-height: 0;
+                max-height: calc(100vh - 180px);
             }
         }
             
@@ -776,8 +786,11 @@
                 left: 50% !important;
                 transform: translateX(-50%) !important;
                 max-width: 95vw;
-                max-height: 70vh;
-                height: 70vh;
+                max-height: calc(100vh - 90px);
+                height: auto;
+                min-height: 300px;
+                display: flex;
+                flex-direction: column;
             }
             
             /* 작은 화면에서 스크롤 영역 최적화 */
@@ -789,6 +802,7 @@
                 overscroll-behavior: contain;
                 flex: 1 1 auto;
                 min-height: 0;
+                max-height: calc(100vh - 170px);
             }
             
             #routeSaveDialog, #markerSaveDialog {
@@ -1812,6 +1826,29 @@
               event.stopPropagation();
             }
           }, { passive: true });
+          
+          // 화면 회전 시 일정창 높이 재계산
+          window.addEventListener('orientationchange', function() {
+            setTimeout(() => {
+              const preparationInfo = document.getElementById('preparationInfo');
+              if (preparationInfo && isMobile) {
+                const viewportHeight = window.innerHeight;
+                const topOffset = 80;
+                const bottomMargin = 20;
+                const maxHeight = viewportHeight - topOffset - bottomMargin;
+                
+                preparationInfo.style.maxHeight = maxHeight + 'px';
+                
+                const infoContent = preparationInfo.querySelector('.info-content');
+                if (infoContent) {
+                  const header = preparationInfo.querySelector('.schedule-header');
+                  const headerHeight = header ? header.offsetHeight : 60;
+                  const contentMaxHeight = maxHeight - headerHeight - 20;
+                  infoContent.style.maxHeight = contentMaxHeight + 'px';
+                }
+              }
+            }, 500); // 화면 회전 완료 후 실행
+          });
           
           // 모바일에서 버튼 터치 피드백 최적화 (일정 항목 스와이프 버튼 제외)
           const buttons = document.querySelectorAll('button, .toggle-btn, .map-type-btn');
@@ -9308,6 +9345,40 @@
                 </div>
               </div>
             </div>
+            
+            <!-- 하단 액션 버튼들 섹션 -->
+            <div class="info-section" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button onclick="showAddScheduleDialog()" style="
+                  background: linear-gradient(135deg, #10b981, #059669);
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  padding: 12px 16px;
+                  font-size: 14px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  transition: all 0.2s ease;
+                  min-height: 44px;
+                " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.3)'" onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
+                  + 일정추가
+                </button>
+                <button onclick="showBudgetDialog()" style="
+                  background: rgba(134, 239, 172, 0.6);
+                  color: #1a1a1a;
+                  border: none;
+                  border-radius: 8px;
+                  padding: 12px 16px;
+                  font-size: 14px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  transition: all 0.2s ease;
+                  min-height: 44px;
+                " onmouseover="this.style.background='rgba(134, 239, 172, 0.8)'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(134, 239, 172, 0.4)'" onmouseout="this.style.background='rgba(134, 239, 172, 0.6)'; this.style.transform='none'; this.style.boxShadow='none'">
+                  가계부
+                </button>
+              </div>
+            </div>
           </div>
         `;
         
@@ -9346,6 +9417,23 @@
             infoDiv.style.left = '50%';
             infoDiv.style.transform = 'translateX(-50%)';
             infoDiv.style.top = '80px';
+            
+            // 모바일에서 동적 높이 계산
+            const viewportHeight = window.innerHeight;
+            const topOffset = 80;
+            const bottomMargin = 20;
+            const maxHeight = viewportHeight - topOffset - bottomMargin;
+            
+            infoDiv.style.maxHeight = maxHeight + 'px';
+            
+            // info-content 영역의 최대 높이도 동적으로 계산
+            const infoContent = infoDiv.querySelector('.info-content');
+            if (infoContent) {
+              const header = infoDiv.querySelector('.schedule-header');
+              const headerHeight = header ? header.offsetHeight : 60;
+              const contentMaxHeight = maxHeight - headerHeight - 20; // 20px는 여백
+              infoContent.style.maxHeight = contentMaxHeight + 'px';
+            }
           } else {
             // 데스크톱: 사이드메뉴 오른쪽에 표시
             infoDiv.style.left = (menuRect.right + 10) + 'px';
