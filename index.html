@@ -10079,9 +10079,21 @@
           
           updateSyncStatus('가계부 저장 중...', 'info');
           
+          // 기존 데이터 가져오기
           const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+          const docSnap = await window.firestore.getDoc(userDocRef);
+          let existingBudgetItems = [];
+          
+          if (docSnap.exists() && docSnap.data().budgetItems) {
+            existingBudgetItems = docSnap.data().budgetItems;
+          }
+          
+          // 새 데이터 추가
+          existingBudgetItems.push(budgetData);
+          
+          // 전체 배열 업데이트
           await window.firestore.updateDoc(userDocRef, {
-            budgetItems: window.firestore.arrayUnion(budgetData),
+            budgetItems: existingBudgetItems,
             lastUpdated: window.firestore.serverTimestamp()
           });
           
