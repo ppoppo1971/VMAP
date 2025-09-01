@@ -1693,7 +1693,10 @@
                          // 통화 선택 시 금액 입력창 표시
                          currencySelect.addEventListener('change', function(e) {
                              const selectedCurrency = this.value;
-                             showAmountInputAfterCurrency(selectedCurrency, currentValue, cell, itemId);
+                             // 모바일에서 드롭다운 닫힘을 기다린 후 금액 입력창 표시
+                             setTimeout(() => {
+                                 showAmountInputAfterCurrency(selectedCurrency, currentValue, cell, itemId);
+                             }, 200);
                          });
                          
                          // ESC 키로 편집 취소
@@ -1781,9 +1784,13 @@
             cell.innerHTML = '';
             cell.appendChild(amountInput);
             
-            // 포커스 및 선택
-            amountInput.focus();
-            amountInput.select();
+            // 모바일에서 키보드가 바로 닫히지 않도록 지연 포커스
+            setTimeout(() => {
+                amountInput.focus();
+                amountInput.select();
+                // 모바일에서 키보드 강제 활성화
+                amountInput.click();
+            }, 300);
             
             // iOS 모바일에서 숫자만 입력되도록 제한
             amountInput.addEventListener('input', function(e) {
@@ -1799,9 +1806,11 @@
                 }
             });
             
-            // blur 이벤트
+            // blur 이벤트 - 모바일에서 키보드 숨김 시에만 처리
+            let blurTimeout;
             amountInput.addEventListener('blur', function(e) {
-                setTimeout(() => {
+                // 모바일에서 키보드 숨김 감지를 위한 지연
+                blurTimeout = setTimeout(() => {
                     if (currentEditingCell === cell) {
                         const value = this.value.trim();
                         if (value && !isNaN(value) && Number(value) > 0) {
@@ -1810,7 +1819,14 @@
                             cancelEditWithoutWarning();
                         }
                     }
-                }, 100);
+                }, 500); // 더 긴 지연 시간
+            });
+            
+            // 포커스 시 blur 타이머 취소
+            amountInput.addEventListener('focus', function(e) {
+                if (blurTimeout) {
+                    clearTimeout(blurTimeout);
+                }
             });
             
             // iOS 모바일에서 키보드 숨김 감지
@@ -1823,7 +1839,7 @@
                 }
             });
             
-            // 페이지 포커스 아웃 시 저장
+            // 페이지 포커스 아웃 시 저장 - 모바일에서 키보드 숨김과 함께 발생
             window.addEventListener('blur', function() {
                 if (currentEditingCell === cell) {
                     setTimeout(() => {
@@ -1831,7 +1847,7 @@
                         if (value && !isNaN(value) && Number(value) > 0) {
                             saveAmountWithCurrency();
                         }
-                    }, 100);
+                    }, 500); // 더 긴 지연 시간
                 }
             });
             
