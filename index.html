@@ -9643,12 +9643,13 @@
           z-index: 1000;
           background: rgba(255, 255, 255, 0.2);
           backdrop-filter: blur(20px);
-          border-radius: 20px;
+          border-radius: 16px;
           box-shadow: 0 8px 32px rgba(0,0,0,0.12);
           border: 1px solid rgba(255, 255, 255, 0.12);
-          min-width: 320px;
-          max-width: 90vw;
-          overflow: hidden;
+          min-width: 280px;
+          max-width: 95vw;
+          max-height: 90vh;
+          overflow-y: auto;
         `;
         
         dialog.innerHTML = `
@@ -9656,15 +9657,15 @@
             <h4>가계부 추가</h4>
             <button type="button" onclick="closeBudgetDialog()" class="close-btn">×</button>
           </div>
-          <div style="padding: 20px 24px 24px 24px;">
-          <div style="margin-bottom: 16px;">
+          <div style="padding: 16px 20px 20px 20px;">
+          <div style="margin-bottom: 12px;">
             <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">날짜</label>
             <input type="date" id="budgetDate" value="${new Date().toISOString().split('T')[0]}" style="
               width: 100%; 
-              padding: 16px 18px; 
+              padding: 12px 14px; 
               border: none; 
-              border-radius: 12px; 
-              font-size: 15px; 
+              border-radius: 8px; 
+              font-size: 14px; 
               background: rgba(255, 255, 255, 0.12); 
               color: #000; 
               box-sizing: border-box; 
@@ -9673,41 +9674,41 @@
               backdrop-filter: blur(10px);
             " onfocus="this.style.background='rgba(255, 255, 255, 0.18)'" onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
           </div>
-          <div style="margin-bottom: 16px;">
+          <div style="margin-bottom: 12px;">
             <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">항목</label>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center;">
-              <button type="button" onclick="selectBudgetCategory('🍽️', '식비')" id="btn-식비" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">식비</button>
-              <button type="button" onclick="selectBudgetCategory('🚌', '교통비')" id="btn-교통비" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">교통비</button>
-              <button type="button" onclick="selectBudgetCategory('🏨', '숙박비')" id="btn-숙박비" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">숙박비</button>
-              <button type="button" onclick="selectBudgetCategory('🛒', '쇼핑')" id="btn-쇼핑" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">쇼핑</button>
-              <button type="button" onclick="selectBudgetCategory('💡', '기타')" id="btn-기타" style="padding:8px 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">기타</button>
+              <button type="button" onclick="selectBudgetCategory('🍽️', '식비')" id="btn-식비" style="padding:6px 10px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:6px; cursor:pointer; transition: all 0.2s ease; font-size: 13px; color:#000;">식비</button>
+              <button type="button" onclick="selectBudgetCategory('🚌', '교통비')" id="btn-교통비" style="padding:6px 10px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:6px; cursor:pointer; transition: all 0.2s ease; font-size: 13px; color:#000;">교통비</button>
+              <button type="button" onclick="selectBudgetCategory('🏨', '숙박비')" id="btn-숙박비" style="padding:6px 10px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:6px; cursor:pointer; transition: all 0.2s ease; font-size: 13px; color:#000;">숙박비</button>
+              <button type="button" onclick="selectBudgetCategory('🛒', '쇼핑')" id="btn-쇼핑" style="padding:6px 10px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:6px; cursor:pointer; transition: all 0.2s ease; font-size: 13px; color:#000;">쇼핑</button>
+              <button type="button" onclick="selectBudgetCategory('💡', '기타')" id="btn-기타" style="padding:6px 10px; background: rgba(255, 255, 255, 0.12); border: none; border-radius:6px; cursor:pointer; transition: all 0.2s ease; font-size: 13px; color:#000;">기타</button>
             </div>
             <input type="hidden" id="budgetCategory" value="">
           </div>
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">결제 방법</label>
-            <div style="display: flex; gap: 8px;">
-              <button type="button" onclick="selectPaymentMethod('카드')" id="btn-카드" style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 14px;">카드</button>
-              <button type="button" onclick="selectPaymentMethod('현금')" id="btn-현금" style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 14px;">현금</button>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 6px; color: #000; font-size: 14px; font-weight: 500;">결제 방법</label>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" onclick="selectPaymentMethod('카드')" id="btn-카드" style="flex: 1; padding: 10px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 13px;">카드</button>
+              <button type="button" onclick="selectPaymentMethod('현금')" id="btn-현금" style="flex: 1; padding: 10px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 13px;">현금</button>
             </div>
             <input type="hidden" id="budgetPayment" value="">
           </div>
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">통화</label>
-            <div style="display: flex; gap: 8px;">
-              <button type="button" onclick="selectCurrency('원화')" id="btn-원화" style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 14px;">원화</button>
-              <button type="button" onclick="selectCurrency('엔화')" id="btn-엔화" style="flex: 1; padding: 12px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 14px;">엔화</button>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 6px; color: #000; font-size: 14px; font-weight: 500;">통화</label>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" onclick="selectCurrency('원화')" id="btn-원화" style="flex: 1; padding: 10px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 13px;">원화</button>
+              <button type="button" onclick="selectCurrency('엔화')" id="btn-엔화" style="flex: 1; padding: 10px; background: rgba(255, 255, 255, 0.12); border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; color: #000; font-size: 13px;">엔화</button>
             </div>
             <input type="hidden" id="budgetCurrency" value="">
           </div>
-          <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">내용</label>
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 6px; color: #000; font-size: 14px; font-weight: 500;">내용</label>
             <input type="text" id="budgetContent" placeholder="상세 내용 입력" style="
               width: 100%; 
-              padding: 16px 18px; 
+              padding: 12px 14px; 
               border: none; 
-              border-radius: 12px; 
-              font-size: 15px; 
+              border-radius: 8px; 
+              font-size: 14px; 
               background: rgba(255, 255, 255, 0.12); 
               color: #000; 
               box-sizing: border-box; 
@@ -9716,14 +9717,14 @@
               backdrop-filter: blur(10px);
             " onfocus="this.style.background='rgba(255, 255, 255, 0.18)'" onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
           </div>
-          <div style="margin-bottom: 24px;">
-            <label style="display: block; margin-bottom: 8px; color: #000; font-size: 14px; font-weight: 500;">금액</label>
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 6px; color: #000; font-size: 14px; font-weight: 500;">금액</label>
             <input type="number" id="budgetAmount" placeholder="금액 입력" style="
               width: 100%; 
-              padding: 16px 18px; 
+              padding: 12px 14px; 
               border: none; 
-              border-radius: 12px; 
-              font-size: 15px; 
+              border-radius: 8px; 
+              font-size: 14px; 
               background: rgba(255, 255, 255, 0.12); 
               color: #000; 
               box-sizing: border-box; 
@@ -9732,20 +9733,20 @@
               backdrop-filter: blur(10px);
             " onfocus="this.style.background='rgba(255, 255, 255, 0.18)'" onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
           </div>
-          <div style="display: flex; gap: 12px;">
+          <div style="display: flex; gap: 8px;">
             <button onclick="addBudgetItem()" style="
               width: 100%; 
               background: rgba(255, 255, 255, 0.12); 
               color: #000; 
               border: none; 
-              border-radius: 12px; 
-              padding: 14px 32px; 
-              font-size: 15px; 
+              border-radius: 8px; 
+              padding: 12px 24px; 
+              font-size: 14px; 
               font-weight: 500; 
               cursor: pointer; 
               transition: all 0.2s ease; 
               backdrop-filter: blur(10px); 
-              min-width: 120px;
+              min-width: 100px;
             " onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'; this.style.transform='translateY(0)'">
               추가
             </button>
