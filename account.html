@@ -1621,8 +1621,8 @@
             
             // 이벤트 리스너 추가
             editElement.addEventListener('blur', function(e) {
-                // 날짜 필드의 경우 blur 이벤트 무시 (change 이벤트로 처리)
-                if (type === 'date') {
+                // 날짜 필드와 select 필드의 경우 blur 이벤트 무시 (change 이벤트로 처리)
+                if (type === 'date' || type === 'select') {
                     return;
                 }
                 // blur 이벤트에서는 취소만 수행 (저장하지 않음)
@@ -1635,6 +1635,13 @@
             
             // 날짜 필드의 경우 change 이벤트로 자동 저장
             if (type === 'date') {
+                editElement.addEventListener('change', function(e) {
+                    saveCurrentEdit();
+                });
+            }
+            
+            // select 필드의 경우 change 이벤트로 자동 저장
+            if (type === 'select') {
                 editElement.addEventListener('change', function(e) {
                     saveCurrentEdit();
                 });
