@@ -1554,106 +1554,131 @@
         // 인라인 편집 기능
         let currentEditingCell = null;
         
-        function editCell(cell, itemId) {
-            // 이미 편집 중인 셀이 있으면 취소
-            if (currentEditingCell && currentEditingCell !== cell) {
-                cancelEditWithoutWarning();
-            }
+                 function editCell(cell, itemId) {
+             // 이미 편집 중인 셀이 있으면 취소
+             if (currentEditingCell && currentEditingCell !== cell) {
+                 cancelEditWithoutWarning();
+             }
+             
+             // 같은 셀을 다시 클릭하면 편집 종료
+             if (currentEditingCell === cell) {
+                 cancelEditWithoutWarning();
+                 return;
+             }
+             
+             const field = cell.dataset.field;
+             const type = cell.dataset.type;
+             const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
+             if (!item) return;
+             
+             currentEditingCell = cell;
+             cell.classList.add('editing');
+             
+             const originalContent = cell.innerHTML;
+             let currentValue = '';
+             
+             // 현재 값 추출
+             switch (field) {
+                 case 'date':
+                     currentValue = item.date;
+                     break;
+                 case 'category':
+                     currentValue = item.category;
+                     break;
+                 case 'content':
+                     currentValue = item.content;
+                     break;
+                 case 'payment':
+                     currentValue = item.payment;
+                     break;
+                 case 'amount':
+                     currentValue = item.amount;
+                     break;
+             }
+             
+             // 편집 요소 생성
+             let editElement;
+             if (type === 'select' && field === 'category') {
+                 editElement = createCategorySelect(currentValue);
+             } else if (type === 'select' && field === 'payment') {
+                 editElement = createPaymentSelect(currentValue);
+             } else if (type === 'date') {
+                 editElement = document.createElement('input');
+                 editElement.type = 'date';
+                 editElement.value = currentValue;
+                 editElement.className = 'inline-input';
+             } else if (type === 'number') {
+                 // 금액 필드의 경우 통화 선택 기능 추가
+                 editElement = createAmountInputWithCurrency(currentValue, item.currency);
+             } else {
+                 editElement = document.createElement('input');
+                 editElement.type = 'text';
+                 editElement.value = currentValue;
+                 editElement.className = 'inline-input';
+             }
             
-            // 같은 셀을 다시 클릭하면 편집 종료
-            if (currentEditingCell === cell) {
-                cancelEditWithoutWarning();
-                return;
-            }
-            
-            const field = cell.dataset.field;
-            const type = cell.dataset.type;
-            const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
-            if (!item) return;
-            
-            currentEditingCell = cell;
-            cell.classList.add('editing');
-            
-            const originalContent = cell.innerHTML;
-            let currentValue = '';
-            
-            // 현재 값 추출
-            switch (field) {
-                case 'date':
-                    currentValue = item.date;
-                    break;
-                case 'category':
-                    currentValue = item.category;
-                    break;
-                case 'content':
-                    currentValue = item.content;
-                    break;
-                case 'payment':
-                    currentValue = item.payment;
-                    break;
-                case 'amount':
-                    currentValue = item.amount;
-                    break;
-            }
-            
-            // 편집 요소 생성
-            let editElement;
-            if (type === 'select' && field === 'category') {
-                editElement = createCategorySelect(currentValue);
-            } else if (type === 'select' && field === 'payment') {
-                editElement = createPaymentSelect(currentValue);
-            } else if (type === 'date') {
-                editElement = document.createElement('input');
-                editElement.type = 'date';
-                editElement.value = currentValue;
-                editElement.className = 'inline-input';
-            } else if (type === 'number') {
-                editElement = document.createElement('input');
-                editElement.type = 'number';
-                editElement.value = currentValue;
-                editElement.className = 'inline-input';
-            } else {
-                editElement = document.createElement('input');
-                editElement.type = 'text';
-                editElement.value = currentValue;
-                editElement.className = 'inline-input';
-            }
-            
-            // 이벤트 리스너 추가
-            editElement.addEventListener('blur', function(e) {
-                // 날짜 필드와 select 필드의 경우 blur 이벤트 무시 (change 이벤트로 처리)
-                if (type === 'date' || type === 'select') {
-                    return;
-                }
-                // blur 이벤트에서는 취소만 수행 (저장하지 않음)
-                setTimeout(() => {
-                    if (currentEditingCell === cell) {
-                        cancelEditWithoutWarning();
-                    }
-                }, 100);
-            });
-            
-            // 날짜 필드의 경우 change 이벤트로 자동 저장
-            if (type === 'date') {
-                editElement.addEventListener('change', function(e) {
-                    saveCurrentEdit();
-                });
-            }
-            
-            // select 필드의 경우 change 이벤트로 자동 저장
-            if (type === 'select') {
-                editElement.addEventListener('change', function(e) {
-                    saveCurrentEdit();
-                });
-            }
-            
-            editElement.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    saveCurrentEdit();
-                } else if (e.key === 'Escape') {
-                    cancelEdit(originalContent);
-                }
-            });
+                         // 이벤트 리스너 추가
+             editElement.addEventListener('blur', function(e) {
+                 // 날짜 필드, select 필드, 금액 필드의 경우 blur 이벤트 무시 (change 이벤트로 처리)
+                 if (type === 'date' || type === 'select' || type === 'number') {
+                     return;
+                 }
+                 // blur 이벤트에서는 취소만 수행 (저장하지 않음)
+                 setTimeout(() => {
+                     if (currentEditingCell === cell) {
+                         cancelEditWithoutWarning();
+                     }
+                 }, 100);
+             });
+             
+             // 날짜 필드의 경우 change 이벤트로 자동 저장
+             if (type === 'date') {
+                 editElement.addEventListener('change', function(e) {
+                     saveCurrentEdit();
+                 });
+             }
+             
+             // select 필드의 경우 change 이벤트로 자동 저장
+             if (type === 'select') {
+                 editElement.addEventListener('change', function(e) {
+                     saveCurrentEdit();
+                 });
+             }
+             
+             // 금액 필드의 경우 특별 처리
+             if (type === 'number') {
+                 const amountContainer = editElement;
+                 const amountInput = amountContainer.querySelector('input[type="number"]');
+                 const currencySelect = amountContainer.querySelector('select');
+                 
+                 if (amountInput) {
+                     // 금액 입력 필드에서 엔터 키 처리
+                     amountInput.addEventListener('keydown', function(e) {
+                         if (e.key === 'Enter') {
+                             e.preventDefault();
+                             saveCurrentEdit();
+                         } else if (e.key === 'Escape') {
+                             cancelEdit(originalContent);
+                         }
+                     });
+                 }
+                 
+                 if (currencySelect) {
+                     // 통화 선택에서 change 이벤트로 자동 저장
+                     currencySelect.addEventListener('change', function(e) {
+                         saveCurrentEdit();
+                     });
+                 }
+             } else {
+                 // 다른 필드들의 키보드 이벤트
+                 editElement.addEventListener('keydown', function(e) {
+                     if (e.key === 'Enter') {
+                         saveCurrentEdit();
+                     } else if (e.key === 'Escape') {
+                         cancelEdit(originalContent);
+                     }
+                 });
+             }
             
             // 셀 내용 교체 및 포커스
             cell.innerHTML = '';
@@ -1678,98 +1703,166 @@
             return select;
         }
         
-        function createPaymentSelect(currentValue) {
-            const select = document.createElement('select');
-            select.className = 'inline-select';
-            
-            const payments = ['카드', '현금'];
-            payments.forEach(payment => {
-                const option = document.createElement('option');
-                option.value = payment;
-                option.textContent = payment;
-                if (payment === currentValue) option.selected = true;
-                select.appendChild(option);
-            });
-            
-            return select;
-        }
+                 function createPaymentSelect(currentValue) {
+             const select = document.createElement('select');
+             select.className = 'inline-select';
+             
+             const payments = ['카드', '현금'];
+             payments.forEach(payment => {
+                 const option = document.createElement('option');
+                 option.value = payment;
+                 option.textContent = payment;
+                 if (payment === currentValue) option.selected = true;
+                 select.appendChild(option);
+             });
+             
+             return select;
+         }
+         
+         // 금액 입력 필드와 통화 선택 기능
+         function createAmountInputWithCurrency(currentValue, currentCurrency) {
+             const container = document.createElement('div');
+             container.style.display = 'flex';
+             container.style.gap = '8px';
+             container.style.alignItems = 'center';
+             
+             // 금액 입력 필드
+             const amountInput = document.createElement('input');
+             amountInput.type = 'number';
+             amountInput.value = currentValue;
+             amountInput.className = 'inline-input';
+             amountInput.style.flex = '1';
+             amountInput.style.minWidth = '80px';
+             
+             // 통화 선택 드롭다운
+             const currencySelect = document.createElement('select');
+             currencySelect.className = 'inline-select';
+             currencySelect.style.width = '60px';
+             currencySelect.style.flexShrink = '0';
+             
+             const currencies = ['원화', '엔화'];
+             currencies.forEach(currency => {
+                 const option = document.createElement('option');
+                 option.value = currency;
+                 option.textContent = currency === '원화' ? '원' : '¥';
+                 if (currency === currentCurrency) option.selected = true;
+                 currencySelect.appendChild(option);
+             });
+             
+             container.appendChild(amountInput);
+             container.appendChild(currencySelect);
+             
+             // 데이터 속성 추가 (saveCurrentEdit에서 사용)
+             container.dataset.amountInput = 'true';
+             container.dataset.currencySelect = 'true';
+             
+             return container;
+         }
         
-        async function saveCurrentEdit() {
-            if (!currentEditingCell) return;
-            
-            const cell = currentEditingCell;
-            const itemId = cell.closest('tr').dataset.itemId;
-            const field = cell.dataset.field;
-            const editElement = cell.querySelector('input, select');
-            
-            if (!editElement) {
-                currentEditingCell = null;
-                return;
-            }
-            
-            const newValue = editElement.value.trim();
-            const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
-            
-            if (!item) {
-                cancelEdit();
-                return;
-            }
-            
-            // 값 검증
-            if (field === 'amount' && (isNaN(newValue) || Number(newValue) <= 0)) {
-                alert('올바른 금액을 입력해주세요.');
-                editElement.focus();
-                return;
-            }
-            
-            if (!newValue && field !== 'content') {
-                alert('값을 입력해주세요.');
-                editElement.focus();
-                return;
-            }
-            
-            try {
-                // Firebase 업데이트
-                const updateData = {};
-                if (field === 'amount') {
-                    updateData[field] = Number(newValue);
-                } else {
-                    updateData[field] = newValue;
-                }
-                
-                await updateBudgetDataInFirebase(itemId, updateData);
-                
-                // 성공시 UI 업데이트
-                currentEditingCell.classList.remove('editing');
-                currentEditingCell = null;
-                
-                // 테이블 다시 렌더링 (전체 데이터 다시 로드하지 않고 로컬 업데이트)
-                renderStats();
-                renderTable();
-                
-            } catch (error) {
-                console.error('가계부 수정 실패:', error);
-                
-                // 오프라인 지원 - 실패한 작업을 대기 큐에 추가
-                const operationId = addPendingOperation({
-                  type: OPERATION_TYPES.BUDGET_UPDATE,
-                  oldData: item,
-                  newData: { ...item, ...updateData }
-                });
-                
-                // 임시로 로컬 데이터 수정 (UI 반영)
-                Object.assign(item, updateData);
-                
-                // UI 업데이트
-                currentEditingCell.classList.remove('editing');
-                currentEditingCell = null;
-                renderStats();
-                renderTable();
-                
-                console.log(`가계부 수정 오프라인 저장 완료 (작업 ID: ${operationId})`);
-                alert('항목이 임시 수정되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
-            }
-        }
+                 async function saveCurrentEdit() {
+             if (!currentEditingCell) return;
+             
+             const cell = currentEditingCell;
+             const itemId = cell.closest('tr').dataset.itemId;
+             const field = cell.dataset.field;
+             const editElement = cell.querySelector('input, select');
+             
+             if (!editElement) {
+                 currentEditingCell = null;
+                 return;
+             }
+             
+             const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
+             
+             if (!item) {
+                 cancelEdit();
+                 return;
+             }
+             
+             let newValue = '';
+             let updateData = {};
+             
+             // 금액 필드의 경우 특별 처리
+             if (field === 'amount') {
+                 const amountContainer = cell.querySelector('[data-amount-input="true"]');
+                 if (amountContainer) {
+                     const amountInput = amountContainer.querySelector('input[type="number"]');
+                     const currencySelect = amountContainer.querySelector('select');
+                     
+                     if (amountInput && currencySelect) {
+                         const amountValue = amountInput.value.trim();
+                         const currencyValue = currencySelect.value;
+                         
+                         // 값 검증
+                         if (isNaN(amountValue) || Number(amountValue) <= 0) {
+                             alert('올바른 금액을 입력해주세요.');
+                             amountInput.focus();
+                             return;
+                         }
+                         
+                         updateData = {
+                             amount: Number(amountValue),
+                             currency: currencyValue
+                         };
+                     }
+                 } else {
+                     // 기존 방식 (단순 input)
+                     newValue = editElement.value.trim();
+                     if (isNaN(newValue) || Number(newValue) <= 0) {
+                         alert('올바른 금액을 입력해주세요.');
+                         editElement.focus();
+                         return;
+                     }
+                     updateData = { amount: Number(newValue) };
+                 }
+             } else {
+                 // 다른 필드들
+                 newValue = editElement.value.trim();
+                 
+                 if (!newValue && field !== 'content') {
+                     alert('값을 입력해주세요.');
+                     editElement.focus();
+                     return;
+                 }
+                 
+                 updateData[field] = newValue;
+             }
+             
+             try {
+                 // Firebase 업데이트
+                 await updateBudgetDataInFirebase(itemId, updateData);
+                 
+                 // 성공시 UI 업데이트
+                 currentEditingCell.classList.remove('editing');
+                 currentEditingCell = null;
+                 
+                 // 테이블 다시 렌더링 (전체 데이터 다시 로드하지 않고 로컬 업데이트)
+                 renderStats();
+                 renderTable();
+                 
+             } catch (error) {
+                 console.error('가계부 수정 실패:', error);
+                 
+                 // 오프라인 지원 - 실패한 작업을 대기 큐에 추가
+                 const operationId = addPendingOperation({
+                   type: OPERATION_TYPES.BUDGET_UPDATE,
+                   oldData: item,
+                   newData: { ...item, ...updateData }
+                 });
+                 
+                 // 임시로 로컬 데이터 수정 (UI 반영)
+                 Object.assign(item, updateData);
+                 
+                 // UI 업데이트
+                 currentEditingCell.classList.remove('editing');
+                 currentEditingCell = null;
+                 renderStats();
+                 renderTable();
+                 
+                 console.log(`가계부 수정 오프라인 저장 완료 (작업 ID: ${operationId})`);
+                 alert('항목이 임시 수정되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
+             }
+         }
         
         function cancelEdit(originalContent = '') {
             if (!currentEditingCell) return;
