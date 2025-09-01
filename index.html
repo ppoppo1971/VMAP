@@ -5560,17 +5560,17 @@
             </div>
             <div style="margin-bottom: 24px;">
               <div style="margin-bottom: 8px; color: #333; font-size: 14px; font-weight: 500;">경로 색상</div>
-              <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+              <div style="display: flex; gap: ${isMobileView ? '4px' : '8px'}; flex-wrap: ${isMobileView ? 'nowrap' : 'wrap'}; justify-content: center;">
                 ${colorOptions.map(color => `
                   <button type="button" onclick="selectRouteColor('${routeId}', '${color.value}')" 
-                          style="width: 40px; height: 40px; border-radius: 8px; border: ${(current.color || '#3b82f6') === color.value ? '3px solid #000' : '2px solid rgba(255,255,255,0.3)'}; background: ${color.value}; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px;"
+                          style="width: ${isMobileView ? '32px' : '40px'}; height: ${isMobileView ? '32px' : '40px'}; border-radius: 8px; border: ${(current.color || '#3b82f6') === color.value ? '3px solid #000' : '2px solid rgba(255,255,255,0.3)'}; background: ${color.value}; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: ${isMobileView ? '10px' : '12px'}; flex-shrink: 0;"
                           title="${color.name}">
                     ${color.label}
                   </button>
                 `).join('')}
               </div>
             </div>
-            <div style="display:flex; gap:12px; ${isMobileView ? 'flex-direction:column;':''}">
+            <div style="display:flex; gap:12px; flex-direction: row;">
               <button onclick="saveRouteInfo('${routeId}', '${routeName}')" style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">저장</button>
               <button onclick="deleteRouteFromInfo('${routeId}', '${routeName}')" style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">삭제</button>
             </div>
@@ -5839,7 +5839,7 @@
                 <button type="button" onclick="selectEmoji('${markerId}', '🚌')" style="padding:8px 12px; background: ${currentEmoji === '🚌' ? 'rgba(100, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.12)'}; border: ${currentEmoji === '🚌' ? '2px solid rgba(50, 50, 50, 0.6)' : 'none'}; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🚌</button>
               </div>
             </div>
-            <div style="display: flex; gap: 12px; ${isMobileView ? 'flex-direction: column;' : ''}">
+            <div style="display: flex; gap: 12px; flex-direction: row;">
               <button onclick="saveMarkerInfo('${markerGroupName}', ${index})" 
                       style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);"
                       onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'"
