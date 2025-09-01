@@ -1767,23 +1767,24 @@
              return select;
          }
          
-                                       // 금액 입력 필드 (통화 선택 기능 제거)
-          function createAmountInputWithCurrency(currentValue, currentCurrency) {
-              // 내용 수정과 동일한 방식으로 text 타입 사용
-              const amountInput = document.createElement('input');
-              amountInput.type = 'text'; // text 타입으로 변경하여 내용 수정과 동일하게
-              amountInput.value = currentValue;
-              amountInput.className = 'inline-input';
-              amountInput.style.width = '100%';
-              amountInput.style.fontSize = '16px'; // 모바일에서 확대 방지
-              amountInput.setAttribute('inputmode', 'numeric'); // 모바일에서 숫자 키보드
-              amountInput.setAttribute('autocomplete', 'off'); // 자동완성 비활성화
-              amountInput.setAttribute('autocorrect', 'off'); // 자동수정 비활성화
-              amountInput.setAttribute('autocapitalize', 'off'); // 자동대문자 비활성화
-              amountInput.setAttribute('spellcheck', 'false'); // 맞춤법 검사 비활성화
-              
-              return amountInput;
-          }
+                                                                               // 금액 입력 필드 (통화 선택 기능 제거)
+           function createAmountInputWithCurrency(currentValue, currentCurrency) {
+               // 내용 수정과 동일한 방식으로 text 타입 사용
+               const amountInput = document.createElement('input');
+               amountInput.type = 'text'; // text 타입으로 변경하여 내용 수정과 동일하게
+               amountInput.value = currentValue;
+               amountInput.className = 'inline-input';
+               amountInput.style.width = '100%';
+               amountInput.style.fontSize = '16px'; // 모바일에서 확대 방지
+               amountInput.setAttribute('inputmode', 'decimal'); // iOS에서 엔터 버튼이 있는 숫자 키보드
+               amountInput.setAttribute('pattern', '[0-9]*'); // iOS에서 숫자 키보드 강제
+               amountInput.setAttribute('autocomplete', 'off'); // 자동완성 비활성화
+               amountInput.setAttribute('autocorrect', 'off'); // 자동수정 비활성화
+               amountInput.setAttribute('autocapitalize', 'off'); // 자동대문자 비활성화
+               amountInput.setAttribute('spellcheck', 'false'); // 맞춤법 검사 비활성화
+               
+               return amountInput;
+           }
         
                  async function saveCurrentEdit() {
              if (!currentEditingCell) return;
