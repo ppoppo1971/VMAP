@@ -1931,7 +1931,7 @@
           geodesic: true,
           strokeColor: '#60a5fa',
           strokeOpacity: 0.6,
-          strokeWeight: isMobile ? 4 : 3,
+          strokeWeight: isMobile ? 2 : 1.5,
           zIndex: 10 // 라벨 아래에 표시
         });
         
@@ -2168,7 +2168,7 @@
             // 선형 지오메트리: 항로 스타일 적용
             return {
               strokeColor: '#60a5fa',
-              strokeWeight: 3,
+              strokeWeight: 1.5,
               strokeOpacity: 0.5,
               fillColor: 'transparent',
               fillOpacity: 0
@@ -2181,7 +2181,7 @@
                 fillColor: '#1d4ed8',
                 fillOpacity: 1,
                 strokeColor: '#ffffff',
-                strokeWeight: 2,
+                strokeWeight: 1,
                 scale: 6
               }
             };
@@ -2191,7 +2191,7 @@
               fillColor: '#1d4ed8',
               fillOpacity: 0.3,
               strokeColor: '#1d4ed8',
-              strokeWeight: 2,
+              strokeWeight: 1,
               strokeOpacity: 0.6
             };
           }
@@ -3912,7 +3912,7 @@
                 draggable: true,
                 strokeColor: '#ff6b35',
                 strokeOpacity: 0.1,
-                strokeWeight: 6
+                strokeWeight: 3
               });
               directionsRenderer.setMap(map);
               console.log('Directions 서비스 초기화 완료');
@@ -3969,7 +3969,7 @@
               fillColor: '#22c55e',
               fillOpacity: 1,
               strokeColor: '#ffffff',
-              strokeWeight: 3,
+              strokeWeight: 1.5,
               scale: 15
             },
             label: {
@@ -3993,7 +3993,7 @@
               fillColor: '#ef4444',
               fillOpacity: 1,
               strokeColor: '#ffffff',
-              strokeWeight: 3,
+              strokeWeight: 1.5,
               scale: 15
             },
             label: {
@@ -4025,7 +4025,7 @@
               fillColor: '#22c55e',
               fillOpacity: 1,
               strokeColor: '#ffffff',
-              strokeWeight: 3,
+              strokeWeight: 1.5,
               scale: 15
             },
             label: {
@@ -4590,7 +4590,7 @@
             geodesic: true,
             strokeColor: '#3b82f6',
             strokeOpacity: 0.1,
-            strokeWeight: 4,
+            strokeWeight: 2,
             zIndex: 10 // 라벨 아래에 표시
           });
           userRoutePath.setMap(map);
@@ -4627,7 +4627,7 @@
             geodesic: true,
             strokeColor: '#ffffff',
             strokeOpacity: 0.1,
-            strokeWeight: 2,
+            strokeWeight: 1,
             zIndex: 15, // 메인 경로보다는 위에, 라벨보다는 아래
             icons: [{
               icon: {
@@ -5193,7 +5193,7 @@
                     fillColor: '#8b5cf6',
                     fillOpacity: 1,
                     strokeColor: '#ffffff',
-                    strokeWeight: 2,
+                    strokeWeight: 1,
                     scale: 12
                   };
                   markerOptions.label = {
@@ -6089,7 +6089,7 @@
                   fillColor: '#8b5cf6',
                   fillOpacity: 1,
                   strokeColor: '#ffffff',
-                  strokeWeight: 2,
+                  strokeWeight: 1,
                   scale: 12
                 });
                 markerEl.setLabel({
@@ -6380,7 +6380,7 @@
               geodesic: true,
               strokeColor: routeColor,
               strokeOpacity: 0.1,
-              strokeWeight: 4,
+              strokeWeight: 2,
               zIndex: 10 // 라벨 아래에 표시
             });
             route.pathElement.setMap(map);
@@ -6410,7 +6410,7 @@
               geodesic: true,
               strokeColor: '#ffffff',
               strokeOpacity: 0.1,
-              strokeWeight: 2,
+              strokeWeight: 1,
               zIndex: 15, // 메인 경로보다는 위에, 라벨보다는 아래
               icons: [{
                 icon: {
