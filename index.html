@@ -1998,6 +1998,12 @@
             hideRightMenu();
           }
           
+          // 경로탐색 모드일 때는 위치만 사용
+          if (isRouteSearchMode) {
+            addRouteSearchPoint(planeMarker.getPosition());
+            return;
+          }
+          
           openPdfViewer();
         });
         
@@ -3372,6 +3378,12 @@
                   hideRightMenu();
                 }
                 
+                // 경로탐색 모드일 때는 위치만 사용
+                if (isRouteSearchMode) {
+                  addRouteSearchPoint(currentLocationMarker.getPosition());
+                  return;
+                }
+                
                 try {
                   map.setZoom(15);
                   map.panTo(currentLocation);
@@ -3754,6 +3766,12 @@
             hideRightMenu();
           }
           
+          // 경로탐색 모드일 때는 마커 정보창을 열지 않고 위치만 사용
+          if (isRouteSearchMode) {
+            addRouteSearchPoint(marker.getPosition());
+            return;
+          }
+          
           if (confirm('이 마커를 제거하시겠습니까?')) {
             removeCustomMarker(marker);
           }
@@ -4081,6 +4099,9 @@
               console.log('데스크탑에서 구글맵 웹으로 바로 이동:', webUrl);
               console.log(`검색된 경로: 거리 ${distance}, 소요시간 ${duration}`);
             }
+            
+            // 경로탐색 모드 자동 종료 (Google Maps 연결 후)
+            resetRouteSearchState();
             
           } else {
             console.error('경로 검색 실패:', status);
@@ -4587,6 +4608,12 @@
               hideRightMenu();
             }
             
+            // 경로탐색 모드일 때는 위치만 사용
+            if (isRouteSearchMode) {
+              addRouteSearchPoint(event.latLng);
+              return;
+            }
+            
             const tempRoute = {
               name: '생성 중인 경로',
               path: path
@@ -4628,6 +4655,12 @@
             }
             if (rightPanelOpen) {
               hideRightMenu();
+            }
+            
+            // 경로탐색 모드일 때는 위치만 사용
+            if (isRouteSearchMode) {
+              addRouteSearchPoint(event.latLng);
+              return;
             }
             
             const tempRoute = {
@@ -5187,6 +5220,7 @@
                   
                   if (isMarkerMode) { addCustomMarker(marker.getPosition()); return; }
                   if (isRouteMode) { addUserRoutePoint(marker.getPosition()); return; }
+                  if (isRouteSearchMode) { addRouteSearchPoint(marker.getPosition()); return; }
                   
                   // 사용자 마커 클릭 플래그 설정 (정보창이 닫히지 않도록)
                   window.searchMarkerClicked = true;
@@ -6363,6 +6397,7 @@
               
               if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
               if (isMarkerMode) { addCustomMarker(event.latLng); return; }
+              if (isRouteSearchMode) { addRouteSearchPoint(event.latLng); return; }
               showRouteInfo(route, event.latLng);
             });
             
@@ -6404,6 +6439,7 @@
               
               if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
               if (isMarkerMode) { addCustomMarker(event.latLng); return; }
+              if (isRouteSearchMode) { addRouteSearchPoint(event.latLng); return; }
               showRouteInfo(route, event.latLng);
             });
           }
@@ -7106,6 +7142,12 @@
                hideRightMenu();
              }
              
+             // 경로탐색 모드일 때는 위치만 사용
+             if (isRouteSearchMode) {
+               addRouteSearchPoint(addressMarker.getPosition());
+               return;
+             }
+             
              // 기존 정보창 닫기
              if (currentInfoWindow) {
                currentInfoWindow.close();
@@ -7320,6 +7362,12 @@
              }
              if (rightPanelOpen) {
                hideRightMenu();
+             }
+             
+             // 경로탐색 모드일 때는 위치만 사용
+             if (isRouteSearchMode) {
+               addRouteSearchPoint(marker.getPosition());
+               return;
              }
              
              // 검색 마커 클릭 플래그 설정 (정보창이 닫히지 않도록)
