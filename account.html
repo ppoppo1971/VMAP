@@ -285,18 +285,38 @@
              appearance: none;
          }
          
-         /* 모바일에서 입력 필드 확대 방지 */
-         @media (max-width: 768px) {
-             .inline-input {
-                 font-size: 16px;
-                 -webkit-text-size-adjust: 100%;
-             }
-             
-             .inline-select {
-                 font-size: 16px;
-                 -webkit-text-size-adjust: 100%;
-             }
-         }
+                   /* 모바일에서 입력 필드 확대 방지 */
+          @media (max-width: 768px) {
+              .inline-input {
+                  font-size: 16px;
+                  -webkit-text-size-adjust: 100%;
+                  -webkit-appearance: none;
+                  -moz-appearance: none;
+                  appearance: none;
+                  border-radius: 4px;
+              }
+              
+              .inline-select {
+                  font-size: 16px;
+                  -webkit-text-size-adjust: 100%;
+              }
+              
+              /* iOS 모바일에서 입력 필드 최적화 */
+              input[type="tel"] {
+                  -webkit-appearance: none;
+                  -moz-appearance: none;
+                  appearance: none;
+                  border-radius: 4px;
+                  background: white;
+              }
+              
+              /* iOS에서 입력 필드 포커스 시 확대 방지 */
+              input[type="tel"]:focus {
+                  font-size: 16px;
+                  -webkit-text-size-adjust: 100%;
+                  transform: none;
+              }
+          }
         
         .inline-select {
             width: 100%;
@@ -1672,18 +1692,24 @@
                   const currencyDialog = amountContainer.querySelector('[data-currency-dialog="true"]');
                   
                   if (amountInput) {
-                      // 금액 입력 필드에서 엔터 키 처리
-                      amountInput.addEventListener('keydown', function(e) {
-                          if (e.key === 'Enter') {
-                              e.preventDefault();
-                              
-                              // 금액이 유효한지 확인
-                              const amountValue = amountInput.value.trim();
-                              if (isNaN(amountValue) || Number(amountValue) <= 0) {
-                                  alert('올바른 금액을 입력해주세요.');
-                                  amountInput.focus();
-                                  return;
-                              }
+                                     // iOS 모바일에서 숫자만 입력되도록 제한
+               amountInput.addEventListener('input', function(e) {
+                   // 숫자가 아닌 문자 제거
+                   this.value = this.value.replace(/[^0-9]/g, '');
+               });
+               
+               // 금액 입력 필드에서 엔터 키 처리
+               amountInput.addEventListener('keydown', function(e) {
+                   if (e.key === 'Enter') {
+                       e.preventDefault();
+                       
+                       // 금액이 유효한지 확인
+                       const amountValue = amountInput.value.trim();
+                       if (isNaN(amountValue) || Number(amountValue) <= 0) {
+                           alert('올바른 금액을 입력해주세요.');
+                           amountInput.focus();
+                           return;
+                       }
                               
                               // 통화 선택 창 표시
                               if (currencyDialog) {
@@ -1812,16 +1838,20 @@
               container.style.gap = '8px';
               container.style.alignItems = 'center';
               
-              // 금액 입력 필드 (모바일 키보드용)
-              const amountInput = document.createElement('input');
-              amountInput.type = 'number';
-              amountInput.value = currentValue;
-              amountInput.className = 'inline-input';
-              amountInput.style.flex = '1';
-              amountInput.style.minWidth = '80px';
-              amountInput.style.fontSize = '16px'; // 모바일에서 확대 방지
-              amountInput.setAttribute('inputmode', 'numeric'); // 모바일에서 숫자 키보드
-              amountInput.setAttribute('pattern', '[0-9]*'); // iOS에서 숫자 키보드
+                             // 금액 입력 필드 (iOS 모바일 키보드용)
+               const amountInput = document.createElement('input');
+               amountInput.type = 'tel'; // iOS에서 숫자 키보드를 강제로 열기 위해 tel 사용
+               amountInput.value = currentValue;
+               amountInput.className = 'inline-input';
+               amountInput.style.flex = '1';
+               amountInput.style.minWidth = '80px';
+               amountInput.style.fontSize = '16px'; // 모바일에서 확대 방지
+               amountInput.setAttribute('inputmode', 'numeric'); // 모바일에서 숫자 키보드
+               amountInput.setAttribute('pattern', '[0-9]*'); // iOS에서 숫자 키보드
+               amountInput.setAttribute('autocomplete', 'off'); // 자동완성 비활성화
+               amountInput.setAttribute('autocorrect', 'off'); // 자동수정 비활성화
+               amountInput.setAttribute('autocapitalize', 'off'); // 자동대문자 비활성화
+               amountInput.setAttribute('spellcheck', 'false'); // 맞춤법 검사 비활성화
               
               // 통화 선택 창 (기본적으로 숨김)
               const currencyDialog = document.createElement('div');
