@@ -1387,7 +1387,7 @@
                         
                         <div style="margin-bottom: 20px;">
                             <label style="display: block; margin-bottom: 5px; font-weight: 600;">금액</label>
-                            <input type="number" id="dialogAmount" placeholder="금액 입력" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
+                            <input type="text" id="dialogAmount" placeholder="금액 입력" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
                         </div>
                         
                         <div style="display: flex; gap: 10px;">
@@ -1674,6 +1674,17 @@
                         cancelEdit(originalContent);
                     }
                 });
+                
+                // blur 이벤트로 입력 완료 체크 (터치 후 다른 곳 터치 시)
+                editElement.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        const value = this.value.trim();
+                        if (value && !isNaN(value) && Number(value) > 0) {
+                            // 금액 저장 후 통화 선택 드롭다운 표시
+                            saveAmountAndShowCurrencySelect(Number(value), itemId, cell);
+                        }
+                    }, 200);
+                });
             } else {
                 // 다른 필드들의 키보드 이벤트
                 editElement.addEventListener('keydown', function(e) {
@@ -1728,72 +1739,154 @@
             return input;
         }
         
-        // 금액 저장 후 통화 선택 드롭다운 표시
+        // 금액 저장 후 통화 선택 드롭다운 표시 (결제방법 드롭다운 방식으로 변경)
         function saveAmountAndShowCurrencySelect(amount, itemId, cell) {
-            // 통화 선택 드롭다운 생성
-            const currencyDropdown = document.createElement('select');
-            currencyDropdown.className = 'inline-select';
-            currencyDropdown.style.width = '100%';
-            
-            const krwOption = document.createElement('option');
-            krwOption.value = '원화';
-            krwOption.textContent = '원화 (₩)';
-            const jpyOption = document.createElement('option');
-            jpyOption.value = '엔화';
-            jpyOption.textContent = '엔화 (¥)';
-            
-            currencyDropdown.appendChild(krwOption);
-            currencyDropdown.appendChild(jpyOption);
-            
-            // 현재 통화 설정 (기본값: 원화)
+            // 먼저 금액을 임시로 저장
             const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
-            currencyDropdown.value = item.currency || '원화';
+            if (!item) return;
             
-            // 통화 선택 시 저장
-            currencyDropdown.addEventListener('change', function(e) {
-                const selectedCurrency = this.value;
-                const updateData = {
-                    amount: amount,
-                    currency: selectedCurrency
-                };
+            // 금액만 먼저 업데이트
+            const tempUpdateData = { amount: amount };
+            
+            // Firebase에 금액만 먼저 저장
+            updateBudgetDataInFirebase(itemId, tempUpdateData).then(() => {
+                // 금액 저장 성공 후 통화 선택 드롭다운 표시
+                showCurrencySelectDropdown(amount, itemId, cell);
+            }).catch(error => {
+                console.error('금액 저장 실패:', error);
                 
-                // Firebase 업데이트
-                updateBudgetDataInFirebase(itemId, updateData).then(() => {
-                    currentEditingCell.classList.remove('editing');
-                    currentEditingCell = null;
-                    renderStats();
-                    renderTable();
-                }).catch(error => {
-                    console.error('가계부 수정 실패:', error);
-                    
-                    // 오프라인 지원
-                    if (item) {
-                        const operationId = addPendingOperation({
-                            type: OPERATION_TYPES.BUDGET_UPDATE,
-                            oldData: item,
-                            newData: { ...item, ...updateData }
-                        });
-                        
-                        Object.assign(item, updateData);
-                        currentEditingCell.classList.remove('editing');
-                        currentEditingCell = null;
-                        renderStats();
-                        renderTable();
-                        
-                        console.log(`가계부 수정 오프라인 저장 완료 (작업 ID: ${operationId})`);
-                        alert('항목이 임시 수정되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
-                    }
+                // 오프라인 지원 - 금액만 임시 저장
+                const operationId = addPendingOperation({
+                    type: OPERATION_TYPES.BUDGET_UPDATE,
+                    oldData: item,
+                    newData: { ...item, ...tempUpdateData }
                 });
+                
+                Object.assign(item, tempUpdateData);
+                showCurrencySelectDropdown(amount, itemId, cell);
+                
+                console.log(`금액 오프라인 저장 완료 (작업 ID: ${operationId})`);
+            });
+        }
+        
+        // 통화 선택 드롭다운 표시 (결제방법 드롭다운 방식)
+        function showCurrencySelectDropdown(amount, itemId, cell) {
+            const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
+            if (!item) return;
+            
+            // 통화 선택 버튼들 생성 (결제방법 드롭다운 방식)
+            const currencyContainer = document.createElement('div');
+            currencyContainer.style.cssText = 'display: flex; gap: 8px; width: 100%;';
+            
+            const krwBtn = document.createElement('button');
+            krwBtn.textContent = '원화 (₩)';
+            krwBtn.style.cssText = 'flex: 1; padding: 10px 12px; background: #f3f4f6; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s ease; min-height: 40px;';
+            
+            const jpyBtn = document.createElement('button');
+            jpyBtn.textContent = '엔화 (¥)';
+            jpyBtn.style.cssText = 'flex: 1; padding: 10px 12px; background: #f3f4f6; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s ease; min-height: 40px;';
+            
+            // 현재 통화에 따라 버튼 스타일 설정
+            const currentCurrency = item.currency || '원화';
+            if (currentCurrency === '원화') {
+                krwBtn.style.background = '#4f46e5';
+                krwBtn.style.color = 'white';
+            } else {
+                jpyBtn.style.background = '#4f46e5';
+                jpyBtn.style.color = 'white';
+            }
+            
+            // 원화 버튼 클릭 이벤트
+            krwBtn.addEventListener('click', function() {
+                selectCurrencyAndSave(amount, '원화', itemId, cell);
             });
             
-            // 셀 내용을 통화 드롭다운으로 교체
-            cell.innerHTML = '';
-            cell.appendChild(currencyDropdown);
+            // 엔화 버튼 클릭 이벤트
+            jpyBtn.addEventListener('click', function() {
+                selectCurrencyAndSave(amount, '엔화', itemId, cell);
+            });
             
-            // 드롭다운에 포커스
-            setTimeout(() => {
-                currencyDropdown.focus();
-            }, 50);
+            // hover 효과 추가
+            krwBtn.addEventListener('mouseenter', function() {
+                if (this.style.background !== '#4f46e5') {
+                    this.style.background = '#e5e7eb';
+                }
+            });
+            
+            krwBtn.addEventListener('mouseleave', function() {
+                if (this.style.background !== '#4f46e5') {
+                    this.style.background = '#f3f4f6';
+                }
+            });
+            
+            jpyBtn.addEventListener('mouseenter', function() {
+                if (this.style.background !== '#4f46e5') {
+                    this.style.background = '#e5e7eb';
+                }
+            });
+            
+            jpyBtn.addEventListener('mouseleave', function() {
+                if (this.style.background !== '#4f46e5') {
+                    this.style.background = '#f3f4f6';
+                }
+            });
+            
+            // 모바일 터치 최적화
+            krwBtn.addEventListener('touchstart', function() {
+                if (this.style.background !== '#4f46e5') {
+                    this.style.background = '#e5e7eb';
+                }
+            }, { passive: true });
+            
+            jpyBtn.addEventListener('touchstart', function() {
+                if (this.style.background !== '#4f46e5') {
+                    this.style.background = '#e5e7eb';
+                }
+            }, { passive: true });
+            
+            currencyContainer.appendChild(krwBtn);
+            currencyContainer.appendChild(jpyBtn);
+            
+            // 셀 내용을 통화 선택 버튼들로 교체
+            cell.innerHTML = '';
+            cell.appendChild(currencyContainer);
+        }
+        
+        // 통화 선택 및 저장
+        function selectCurrencyAndSave(amount, currency, itemId, cell) {
+            const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
+            if (!item) return;
+            
+            const updateData = {
+                amount: amount,
+                currency: currency
+            };
+            
+            // Firebase 업데이트
+            updateBudgetDataInFirebase(itemId, updateData).then(() => {
+                currentEditingCell.classList.remove('editing');
+                currentEditingCell = null;
+                renderStats();
+                renderTable();
+            }).catch(error => {
+                console.error('통화 저장 실패:', error);
+                
+                // 오프라인 지원
+                const operationId = addPendingOperation({
+                    type: OPERATION_TYPES.BUDGET_UPDATE,
+                    oldData: item,
+                    newData: { ...item, ...updateData }
+                });
+                
+                Object.assign(item, updateData);
+                currentEditingCell.classList.remove('editing');
+                currentEditingCell = null;
+                renderStats();
+                renderTable();
+                
+                console.log(`통화 오프라인 저장 완료 (작업 ID: ${operationId})`);
+                alert('통화가 임시 저장되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
+            });
         }
         
         function createCategorySelect(currentValue) {
