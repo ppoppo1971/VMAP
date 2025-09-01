@@ -1633,19 +1633,23 @@
                  editElement.className = 'inline-input';
              }
             
-                         // 이벤트 리스너 추가
-             editElement.addEventListener('blur', function(e) {
-                 // 날짜 필드, select 필드, 금액 필드의 경우 blur 이벤트 무시 (change 이벤트로 처리)
-                 if (type === 'date' || type === 'select' || type === 'number') {
-                     return;
-                 }
-                 // blur 이벤트에서는 취소만 수행 (저장하지 않음)
-                 setTimeout(() => {
-                     if (currentEditingCell === cell) {
-                         cancelEditWithoutWarning();
-                     }
-                 }, 100);
-             });
+                                       // 이벤트 리스너 추가
+              editElement.addEventListener('blur', function(e) {
+                  // 날짜 필드, select 필드의 경우 blur 이벤트 무시 (change 이벤트로 처리)
+                  if (type === 'date' || type === 'select') {
+                      return;
+                  }
+                  // 금액 필드의 경우 blur 이벤트 무시 (내부에서 처리)
+                  if (type === 'number') {
+                      return;
+                  }
+                  // blur 이벤트에서는 취소만 수행 (저장하지 않음)
+                  setTimeout(() => {
+                      if (currentEditingCell === cell) {
+                          cancelEditWithoutWarning();
+                      }
+                  }, 100);
+              });
              
              // 날짜 필드의 경우 change 이벤트로 자동 저장
              if (type === 'date') {
@@ -1669,7 +1673,7 @@
                   const currencySelect = amountContainer.querySelector('select');
                   
                   if (amountInput) {
-                      // 금액 입력 필드에서 엔터 키 처리
+                      // 금액 입력 필드에서 엔터 키 처리 (내용 입력과 동일한 방식)
                       amountInput.addEventListener('keydown', function(e) {
                           if (e.key === 'Enter') {
                               e.preventDefault();
@@ -1702,15 +1706,22 @@
                           }
                       });
                       
-                      // 모바일에서 입력 완료 시 자동으로 통화 선택으로 넘어가기
-                      amountInput.addEventListener('input', function(e) {
-                          const amountValue = amountInput.value.trim();
-                          if (amountValue && !isNaN(amountValue) && Number(amountValue) > 0) {
-                              // 입력이 완료되면 통화 선택 버튼 표시 준비
-                              if (currencyButton) {
-                                  currencyButton.style.display = 'block';
+                      // blur 이벤트로 입력 완료 체크 (내용 입력과 동일한 방식)
+                      amountInput.addEventListener('blur', function() {
+                          setTimeout(() => {
+                              const amountValue = amountInput.value.trim();
+                              if (amountValue && !isNaN(amountValue) && Number(amountValue) > 0) {
+                                  // 통화 선택 창 표시
+                                  if (currencyButton && currencySelect) {
+                                      amountInput.style.display = 'none';
+                                      currencyButton.style.display = 'block';
+                                      currencySelect.style.display = 'block';
+                                      currencySelect.focus();
+                                  } else {
+                                      saveCurrentEdit();
+                                  }
                               }
-                          }
+                          }, 200);
                       });
                   }
                   
