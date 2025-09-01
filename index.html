@@ -5849,19 +5849,6 @@
               <button type="button" onclick="cancelMarkerEdit('${markerGroupName}', ${index})" style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 20px; color: #666; cursor: pointer; padding: 5px; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(0,0,0,0.1)'" onmouseout="this.style.background='none'" title="취소">×</button>
             </div>
             <div style="margin-bottom: 16px;">
-              <input type="text" id="edit-title-${markerId}" value="${currentInfo.title}" placeholder="제목을 입력하세요"
-                     style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);"
-                     onfocus="this.style.background='rgba(255, 255, 255, 0.18)'"
-                     onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
-            </div>
-
-            <div style="margin-bottom: 16px;">
-              <input type="text" id="edit-link-${markerId}" value="${currentInfo.link}" placeholder="링크를 입력하세요 (https://...)"
-                     style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);"
-                     onfocus="this.style.background='rgba(255, 255, 255, 0.18)'"
-                     onblur="this.style.background='rgba(255, 255, 255, 0.12)'">
-            </div>
-            <div style="margin-bottom: 24px;">
               <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center;">
                 <button type="button" onclick="selectEmoji('${markerId}', '')" style="padding:8px 12px; background: ${!currentEmoji ? 'rgba(100, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.12)'}; border: ${!currentEmoji ? '2px solid rgba(50, 50, 50, 0.6)' : 'none'}; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 14px; color:#000;">번호</button>
                 <button type="button" onclick="selectEmoji('${markerId}', '🛏️')" style="padding:8px 12px; background: ${currentEmoji === '🛏️' ? 'rgba(100, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.12)'}; border: ${currentEmoji === '🛏️' ? '2px solid rgba(50, 50, 50, 0.6)' : 'none'}; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🛏️</button>
@@ -5872,6 +5859,22 @@
                 <button type="button" onclick="selectEmoji('${markerId}', '🌳')" style="padding:8px 12px; background: ${currentEmoji === '🌳' ? 'rgba(100, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.12)'}; border: ${currentEmoji === '🌳' ? '2px solid rgba(50, 50, 50, 0.6)' : 'none'}; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🌳</button>
                 <button type="button" onclick="selectEmoji('${markerId}', '🚌')" style="padding:8px 12px; background: ${currentEmoji === '🚌' ? 'rgba(100, 100, 100, 0.4)' : 'rgba(255, 255, 255, 0.12)'}; border: ${currentEmoji === '🚌' ? '2px solid rgba(50, 50, 50, 0.6)' : 'none'}; border-radius:8px; cursor:pointer; transition: all 0.2s ease; font-size: 18px;">🚌</button>
               </div>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+              <input type="text" id="edit-title-${markerId}" value="${currentInfo.title}" placeholder="제목을 입력하세요"
+                     style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);"
+                     onfocus="this.style.background='rgba(255, 255, 255, 0.18)'"
+                     onblur="this.style.background='rgba(255, 255, 255, 0.12)'"
+                     onkeydown="if(event.key === 'Enter') { event.preventDefault(); saveMarkerInfo('${markerGroupName}', ${index}); }">
+            </div>
+
+            <div style="margin-bottom: 16px;">
+              <input type="text" id="edit-link-${markerId}" value="${currentInfo.link}" placeholder="링크를 입력하세요 (https://...)"
+                     style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);"
+                     onfocus="this.style.background='rgba(255, 255, 255, 0.18)'"
+                     onblur="this.style.background='rgba(255, 255, 255, 0.12)'"
+                     onkeydown="if(event.key === 'Enter') { event.preventDefault(); saveMarkerInfo('${markerGroupName}', ${index}); }">
             </div>
             <div style="display: flex; gap: 12px; flex-direction: row;">
               <button onclick="saveMarkerInfo('${markerGroupName}', ${index})" 
