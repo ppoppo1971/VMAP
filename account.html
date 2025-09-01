@@ -807,7 +807,7 @@
             '기타': '💡'
         };
         
-        // Firebase에서 가계부 데이터 로드 (기존 방식 사용)
+        // Firebase에서 가계부 데이터 로드 (개선된 방식)
         async function loadBudgetDataFromFirebase() {
             try {
                 if (!window.db || !window.firestore) {
@@ -821,6 +821,18 @@
                 
                 if (docSnap.exists() && docSnap.data().budgetItems) {
                     budgetData = docSnap.data().budgetItems || [];
+                    
+                    // 데이터 일관성 검사 및 수정
+                    budgetData = budgetData.map(item => {
+                        // ID가 없는 항목에 ID 추가
+                        if (!item.id && item.timestamp) {
+                            item.id = item.timestamp.toString();
+                        } else if (!item.id) {
+                            item.id = Date.now().toString();
+                        }
+                        return item;
+                    });
+                    
                     // 날짜 기준 최신순 정렬 (날짜가 같으면 timestamp 기준)
                     budgetData.sort((a, b) => {
                         const dateA = new Date(a.date);
@@ -830,13 +842,19 @@
                         }
                         return (b.timestamp || 0) - (a.timestamp || 0); // 같은 날짜면 입력시간 내림차순
                     });
+                    
+                    // 수정된 데이터를 Firebase에 다시 저장 (일관성 유지)
+                    if (budgetData.length > 0) {
+                        await window.firestore.updateDoc(userDocRef, {
+                            budgetItems: budgetData,
+                            lastUpdated: window.firestore.serverTimestamp()
+                        });
+                    }
                 } else {
                     budgetData = [];
                 }
                 
                 filteredData = [...budgetData];
-                
-                // localStorage 마이그레이션 로직 제거 (모든 데이터가 Firebase에 직접 저장됨)
                 
                 renderStats();
                 renderTable();
@@ -850,16 +868,22 @@
         
         // localStorage 마이그레이션 함수 제거됨 (Firebase 직접 저장으로 변경)
         
-        // Firebase에 가계부 데이터 저장 (기존 방식 사용)
+        // Firebase에 가계부 데이터 저장 (개선된 방식)
         async function saveBudgetDataToFirebase(budgetItem) {
             try {
                 if (!window.db || !window.firestore) {
                     throw new Error('Firebase가 초기화되지 않았습니다.');
                 }
                 
+                // 로컬 데이터에 추가
+                budgetData.push(budgetItem);
+                filteredData = [...budgetData];
+                
                 const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+                
+                // 전체 배열을 한 번에 업데이트 (더 안정적)
                 await window.firestore.updateDoc(userDocRef, {
-                    budgetItems: window.firestore.arrayUnion(budgetItem),
+                    budgetItems: budgetData,
                     lastUpdated: window.firestore.serverTimestamp()
                 });
                 
@@ -871,7 +895,7 @@
             }
         }
         
-        // Firebase에서 가계부 데이터 삭제 (기존 방식 사용)
+        // Firebase에서 가계부 데이터 삭제 (개선된 방식)
         async function deleteBudgetDataFromFirebase(itemId) {
             try {
                 if (!window.db || !window.firestore) {
@@ -879,14 +903,20 @@
                 }
                 
                 // 삭제할 항목 찾기 (id 또는 timestamp로)
-                const itemToDelete = budgetData.find(item => (item.id || item.timestamp) === itemId);
-                if (!itemToDelete) {
+                const itemIndex = budgetData.findIndex(item => (item.id || item.timestamp) === itemId);
+                if (itemIndex === -1) {
                     throw new Error('삭제할 항목을 찾을 수 없습니다.');
                 }
                 
+                // 로컬 데이터에서 제거
+                budgetData.splice(itemIndex, 1);
+                filteredData = [...budgetData];
+                
                 const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+                
+                // 전체 배열을 한 번에 업데이트 (더 안정적)
                 await window.firestore.updateDoc(userDocRef, {
-                    budgetItems: window.firestore.arrayRemove(itemToDelete),
+                    budgetItems: budgetData,
                     lastUpdated: window.firestore.serverTimestamp()
                 });
                 
@@ -897,7 +927,7 @@
             }
         }
         
-        // Firebase에서 가계부 데이터 수정 (기존 방식 사용)
+        // Firebase에서 가계부 데이터 수정 (개선된 방식)
         async function updateBudgetDataInFirebase(itemId, updatedData) {
             try {
                 if (!window.db || !window.firestore) {
@@ -905,23 +935,27 @@
                 }
                 
                 // 기존 항목 찾기 (id 또는 timestamp로)
-                const oldItem = budgetData.find(item => (item.id || item.timestamp) === itemId);
-                if (!oldItem) {
+                const oldItemIndex = budgetData.findIndex(item => (item.id || item.timestamp) === itemId);
+                if (oldItemIndex === -1) {
                     throw new Error('수정할 항목을 찾을 수 없습니다.');
                 }
                 
-                // 새 항목 생성
-                const updatedItem = { ...oldItem, ...updatedData };
+                // 새 항목 생성 (기존 ID 유지)
+                const updatedItem = { 
+                    ...budgetData[oldItemIndex], 
+                    ...updatedData,
+                    id: budgetData[oldItemIndex].id || budgetData[oldItemIndex].timestamp // ID 유지
+                };
+                
+                // 로컬 데이터 업데이트
+                budgetData[oldItemIndex] = updatedItem;
+                filteredData = [...budgetData];
                 
                 const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
                 
-                // 기존 항목 제거 후 새 항목 추가
+                // 전체 배열을 한 번에 업데이트 (더 안정적)
                 await window.firestore.updateDoc(userDocRef, {
-                    budgetItems: window.firestore.arrayRemove(oldItem)
-                });
-                
-                await window.firestore.updateDoc(userDocRef, {
-                    budgetItems: window.firestore.arrayUnion(updatedItem),
+                    budgetItems: budgetData,
                     lastUpdated: window.firestore.serverTimestamp()
                 });
                 
