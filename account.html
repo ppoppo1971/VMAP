@@ -1621,6 +1621,10 @@
             
             // 이벤트 리스너 추가
             editElement.addEventListener('blur', function(e) {
+                // 날짜 필드의 경우 blur 이벤트 무시 (change 이벤트로 처리)
+                if (type === 'date') {
+                    return;
+                }
                 // blur 이벤트에서는 취소만 수행 (저장하지 않음)
                 setTimeout(() => {
                     if (currentEditingCell === cell) {
@@ -1628,6 +1632,14 @@
                     }
                 }, 100);
             });
+            
+            // 날짜 필드의 경우 change 이벤트로 자동 저장
+            if (type === 'date') {
+                editElement.addEventListener('change', function(e) {
+                    saveCurrentEdit();
+                });
+            }
+            
             editElement.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     saveCurrentEdit();
@@ -1724,8 +1736,9 @@
                 currentEditingCell.classList.remove('editing');
                 currentEditingCell = null;
                 
-                // 테이블 다시 렌더링
-                await loadBudgetDataFromFirebase();
+                // 테이블 다시 렌더링 (전체 데이터 다시 로드하지 않고 로컬 업데이트)
+                renderStats();
+                renderTable();
                 
             } catch (error) {
                 console.error('가계부 수정 실패:', error);
