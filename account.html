@@ -1776,24 +1776,54 @@
             
             // 통화 선택 버튼들 생성 (결제방법 드롭다운 방식)
             const currencyContainer = document.createElement('div');
-            currencyContainer.style.cssText = 'display: flex; gap: 8px; width: 100%;';
+            currencyContainer.style.cssText = 'display: flex; gap: 8px; width: 100%; position: relative;';
             
             const krwBtn = document.createElement('button');
-            krwBtn.textContent = '원화 (₩)';
-            krwBtn.style.cssText = 'flex: 1; padding: 10px 12px; background: #f3f4f6; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s ease; min-height: 40px;';
+            krwBtn.innerHTML = '<span style="display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600;">₩</span>';
+            krwBtn.style.cssText = `
+                flex: 1;
+                padding: 12px 16px;
+                background: transparent;
+                border: 1px solid rgba(209, 213, 219, 0.3);
+                border-radius: 12px;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                color: #6b7280;
+                font-size: 14px;
+                font-weight: 500;
+                position: relative;
+                overflow: hidden;
+                min-height: 44px;
+            `;
             
             const jpyBtn = document.createElement('button');
-            jpyBtn.textContent = '엔화 (¥)';
-            jpyBtn.style.cssText = 'flex: 1; padding: 10px 12px; background: #f3f4f6; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s ease; min-height: 40px;';
+            jpyBtn.innerHTML = '<span style="display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600;">¥</span>';
+            jpyBtn.style.cssText = `
+                flex: 1;
+                padding: 12px 16px;
+                background: transparent;
+                border: 1px solid rgba(209, 213, 219, 0.3);
+                border-radius: 12px;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                color: #6b7280;
+                font-size: 14px;
+                font-weight: 500;
+                position: relative;
+                overflow: hidden;
+                min-height: 44px;
+            `;
             
             // 현재 통화에 따라 버튼 스타일 설정
             const currentCurrency = item.currency || '원화';
             if (currentCurrency === '원화') {
-                krwBtn.style.background = '#4f46e5';
-                krwBtn.style.color = 'white';
+                krwBtn.style.background = 'rgba(102, 126, 234, 0.1)';
+                krwBtn.style.color = '#667eea';
+                krwBtn.style.border = '1px solid rgba(102, 126, 234, 0.3)';
             } else {
-                jpyBtn.style.background = '#4f46e5';
-                jpyBtn.style.color = 'white';
+                jpyBtn.style.background = 'rgba(102, 126, 234, 0.1)';
+                jpyBtn.style.color = '#667eea';
+                jpyBtn.style.border = '1px solid rgba(102, 126, 234, 0.3)';
             }
             
             // 원화 버튼 클릭 이벤트
@@ -1808,39 +1838,45 @@
             
             // hover 효과 추가
             krwBtn.addEventListener('mouseenter', function() {
-                if (this.style.background !== '#4f46e5') {
-                    this.style.background = '#e5e7eb';
+                if (this.style.background !== 'rgba(102, 126, 234, 0.1)') {
+                    this.style.background = 'rgba(102, 126, 234, 0.05)';
+                    this.style.border = '1px solid rgba(102, 126, 234, 0.2)';
                 }
             });
             
             krwBtn.addEventListener('mouseleave', function() {
-                if (this.style.background !== '#4f46e5') {
-                    this.style.background = '#f3f4f6';
+                if (this.style.background !== 'rgba(102, 126, 234, 0.1)') {
+                    this.style.background = 'transparent';
+                    this.style.border = '1px solid rgba(209, 213, 219, 0.3)';
                 }
             });
             
             jpyBtn.addEventListener('mouseenter', function() {
-                if (this.style.background !== '#4f46e5') {
-                    this.style.background = '#e5e7eb';
+                if (this.style.background !== 'rgba(102, 126, 234, 0.1)') {
+                    this.style.background = 'rgba(102, 126, 234, 0.05)';
+                    this.style.border = '1px solid rgba(102, 126, 234, 0.2)';
                 }
             });
             
             jpyBtn.addEventListener('mouseleave', function() {
-                if (this.style.background !== '#4f46e5') {
-                    this.style.background = '#f3f4f6';
+                if (this.style.background !== 'rgba(102, 126, 234, 0.1)') {
+                    this.style.background = 'transparent';
+                    this.style.border = '1px solid rgba(209, 213, 219, 0.3)';
                 }
             });
             
             // 모바일 터치 최적화
             krwBtn.addEventListener('touchstart', function() {
-                if (this.style.background !== '#4f46e5') {
-                    this.style.background = '#e5e7eb';
+                if (this.style.background !== 'rgba(102, 126, 234, 0.1)') {
+                    this.style.background = 'rgba(102, 126, 234, 0.05)';
+                    this.style.border = '1px solid rgba(102, 126, 234, 0.2)';
                 }
             }, { passive: true });
             
             jpyBtn.addEventListener('touchstart', function() {
-                if (this.style.background !== '#4f46e5') {
-                    this.style.background = '#e5e7eb';
+                if (this.style.background !== 'rgba(102, 126, 234, 0.1)') {
+                    this.style.background = 'rgba(102, 126, 234, 0.05)';
+                    this.style.border = '1px solid rgba(102, 126, 234, 0.2)';
                 }
             }, { passive: true });
             
