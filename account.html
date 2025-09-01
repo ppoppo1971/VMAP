@@ -1649,6 +1649,7 @@
              if (type === 'number') {
                  const amountContainer = editElement;
                  const amountInput = amountContainer.querySelector('input[type="number"]');
+                 const currencyButton = amountContainer.querySelector('button');
                  const currencySelect = amountContainer.querySelector('select');
                  
                  if (amountInput) {
@@ -1656,10 +1657,37 @@
                      amountInput.addEventListener('keydown', function(e) {
                          if (e.key === 'Enter') {
                              e.preventDefault();
-                             saveCurrentEdit();
+                             
+                             // 금액이 유효한지 확인
+                             const amountValue = amountInput.value.trim();
+                             if (isNaN(amountValue) || Number(amountValue) <= 0) {
+                                 alert('올바른 금액을 입력해주세요.');
+                                 amountInput.focus();
+                                 return;
+                             }
+                             
+                             // 통화 선택 창 표시
+                             if (currencyButton && currencySelect) {
+                                 amountInput.style.display = 'none';
+                                 currencyButton.style.display = 'block';
+                                 currencySelect.style.display = 'block';
+                                 currencySelect.focus();
+                             } else {
+                                 // 통화 선택 창이 없으면 바로 저장
+                                 saveCurrentEdit();
+                             }
                          } else if (e.key === 'Escape') {
                              cancelEdit(originalContent);
                          }
+                     });
+                 }
+                 
+                 if (currencyButton) {
+                     // 통화 선택 버튼 클릭 시 드롭다운 표시
+                     currencyButton.addEventListener('click', function(e) {
+                         e.preventDefault();
+                         currencySelect.style.display = 'block';
+                         currencySelect.focus();
                      });
                  }
                  
@@ -1667,6 +1695,20 @@
                      // 통화 선택에서 change 이벤트로 자동 저장
                      currencySelect.addEventListener('change', function(e) {
                          saveCurrentEdit();
+                     });
+                     
+                     // 통화 선택에서 엔터 키 처리
+                     currencySelect.addEventListener('keydown', function(e) {
+                         if (e.key === 'Enter') {
+                             e.preventDefault();
+                             saveCurrentEdit();
+                         } else if (e.key === 'Escape') {
+                             // 통화 선택 취소하고 금액 입력으로 돌아가기
+                             currencySelect.style.display = 'none';
+                             currencyButton.style.display = 'none';
+                             amountInput.style.display = 'block';
+                             amountInput.focus();
+                         }
                      });
                  }
              } else {
@@ -1734,11 +1776,28 @@
              amountInput.style.flex = '1';
              amountInput.style.minWidth = '80px';
              
-             // 통화 선택 드롭다운
+             // 통화 선택 버튼 (기본적으로 숨김)
+             const currencyButton = document.createElement('button');
+             currencyButton.type = 'button';
+             currencyButton.textContent = currentCurrency === '원화' ? '원' : '¥';
+             currencyButton.className = 'inline-select';
+             currencyButton.style.width = '60px';
+             currencyButton.style.flexShrink = '0';
+             currencyButton.style.display = 'none'; // 기본적으로 숨김
+             currencyButton.style.cursor = 'pointer';
+             currencyButton.style.backgroundColor = '#f3f4f6';
+             currencyButton.style.border = '2px solid #4f46e5';
+             currencyButton.style.borderRadius = '4px';
+             currencyButton.style.padding = '4px 8px';
+             currencyButton.style.fontSize = '14px';
+             currencyButton.style.outline = 'none';
+             
+             // 통화 선택 드롭다운 (기본적으로 숨김)
              const currencySelect = document.createElement('select');
              currencySelect.className = 'inline-select';
              currencySelect.style.width = '60px';
              currencySelect.style.flexShrink = '0';
+             currencySelect.style.display = 'none'; // 기본적으로 숨김
              
              const currencies = ['원화', '엔화'];
              currencies.forEach(currency => {
@@ -1750,11 +1809,13 @@
              });
              
              container.appendChild(amountInput);
+             container.appendChild(currencyButton);
              container.appendChild(currencySelect);
              
              // 데이터 속성 추가 (saveCurrentEdit에서 사용)
              container.dataset.amountInput = 'true';
              container.dataset.currencySelect = 'true';
+             container.dataset.currentCurrency = currentCurrency;
              
              return container;
          }
@@ -1788,6 +1849,7 @@
                  if (amountContainer) {
                      const amountInput = amountContainer.querySelector('input[type="number"]');
                      const currencySelect = amountContainer.querySelector('select');
+                     const currencyButton = amountContainer.querySelector('button');
                      
                      if (amountInput && currencySelect) {
                          const amountValue = amountInput.value.trim();
@@ -1804,6 +1866,11 @@
                              amount: Number(amountValue),
                              currency: currencyValue
                          };
+                         
+                         // 통화 선택 버튼 텍스트 업데이트
+                         if (currencyButton) {
+                             currencyButton.textContent = currencyValue === '원화' ? '원' : '¥';
+                         }
                      }
                  } else {
                      // 기존 방식 (단순 input)
