@@ -1987,6 +1987,17 @@
         
         // 비행기 마커 클릭 시 PDF 뷰어 열기
         planeMarker.addListener('click', function() {
+          // 메뉴창 닫기
+          const customMapMenu = getElement('customMapMenu');
+          const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+          
+          if (!customMapMenu.classList.contains('hide')) {
+            hideMenu();
+          }
+          if (rightPanelOpen) {
+            hideRightMenu();
+          }
+          
           openPdfViewer();
         });
         
@@ -3350,6 +3361,17 @@
 
               // 현재 위치 마커 클릭 시 정보창 표시 및 줌 레벨 15로 조정
               currentLocationMarker.addListener('click', function() {
+                // 메뉴창 닫기
+                const customMapMenu = getElement('customMapMenu');
+                const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+                
+                if (!customMapMenu.classList.contains('hide')) {
+                  hideMenu();
+                }
+                if (rightPanelOpen) {
+                  hideRightMenu();
+                }
+                
                 try {
                   map.setZoom(15);
                   map.panTo(currentLocation);
@@ -3721,6 +3743,17 @@
         
         // 마커 클릭 시 제거 기능
         marker.addListener('click', function() {
+          // 메뉴창 닫기
+          const customMapMenu = getElement('customMapMenu');
+          const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+          
+          if (!customMapMenu.classList.contains('hide')) {
+            hideMenu();
+          }
+          if (rightPanelOpen) {
+            hideRightMenu();
+          }
+          
           if (confirm('이 마커를 제거하시겠습니까?')) {
             removeCustomMarker(marker);
           }
@@ -4543,6 +4576,17 @@
           
           // 임시 경로 클릭 이벤트 추가
           userRoutePath.addListener('click', function(event) {
+            // 메뉴창 닫기
+            const customMapMenu = getElement('customMapMenu');
+            const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+            
+            if (!customMapMenu.classList.contains('hide')) {
+              hideMenu();
+            }
+            if (rightPanelOpen) {
+              hideRightMenu();
+            }
+            
             const tempRoute = {
               name: '생성 중인 경로',
               path: path
@@ -4575,6 +4619,17 @@
           
           // 점선 경로에도 클릭 이벤트 추가
           userRouteDottedPath.addListener('click', function(event) {
+            // 메뉴창 닫기
+            const customMapMenu = getElement('customMapMenu');
+            const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+            
+            if (!customMapMenu.classList.contains('hide')) {
+              hideMenu();
+            }
+            if (rightPanelOpen) {
+              hideRightMenu();
+            }
+            
             const tempRoute = {
               name: '생성 중인 경로',
               path: path
@@ -5119,6 +5174,17 @@
                 
                 // 마커 클릭 시 정보 표시 및 줌 15로 중심 이동
                 marker.addListener('click', function() {
+                  // 메뉴창 닫기
+                  const customMapMenu = getElement('customMapMenu');
+                  const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+                  
+                  if (!customMapMenu.classList.contains('hide')) {
+                    hideMenu();
+                  }
+                  if (rightPanelOpen) {
+                    hideRightMenu();
+                  }
+                  
                   if (isMarkerMode) { addCustomMarker(marker.getPosition()); return; }
                   if (isRouteMode) { addUserRoutePoint(marker.getPosition()); return; }
                   
@@ -6284,6 +6350,17 @@
             
             // 경로 클릭 이벤트 추가
             route.pathElement.addListener('click', function(event) {
+              // 메뉴창 닫기
+              const customMapMenu = getElement('customMapMenu');
+              const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+              
+              if (!customMapMenu.classList.contains('hide')) {
+                hideMenu();
+              }
+              if (rightPanelOpen) {
+                hideRightMenu();
+              }
+              
               if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
               if (isMarkerMode) { addCustomMarker(event.latLng); return; }
               showRouteInfo(route, event.latLng);
@@ -6314,6 +6391,17 @@
             
             // 점선 경로에도 클릭 이벤트 추가
             route.dottedPathElement.addListener('click', function(event) {
+              // 메뉴창 닫기
+              const customMapMenu = getElement('customMapMenu');
+              const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+              
+              if (!customMapMenu.classList.contains('hide')) {
+                hideMenu();
+              }
+              if (rightPanelOpen) {
+                hideRightMenu();
+              }
+              
               if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
               if (isMarkerMode) { addCustomMarker(event.latLng); return; }
               showRouteInfo(route, event.latLng);
@@ -7007,6 +7095,17 @@
          });
          
            addressMarker.addListener('click', function() {
+             // 메뉴창 닫기
+             const customMapMenu = getElement('customMapMenu');
+             const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+             
+             if (!customMapMenu.classList.contains('hide')) {
+               hideMenu();
+             }
+             if (rightPanelOpen) {
+               hideRightMenu();
+             }
+             
              // 기존 정보창 닫기
              if (currentInfoWindow) {
                currentInfoWindow.close();
@@ -7212,6 +7311,17 @@
            
            // 마커 클릭 이벤트
            marker.addListener('click', function() {
+             // 메뉴창 닫기
+             const customMapMenu = getElement('customMapMenu');
+             const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+             
+             if (!customMapMenu.classList.contains('hide')) {
+               hideMenu();
+             }
+             if (rightPanelOpen) {
+               hideRightMenu();
+             }
+             
              // 검색 마커 클릭 플래그 설정 (정보창이 닫히지 않도록)
              window.searchMarkerClicked = true;
              
