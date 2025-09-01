@@ -1681,29 +1681,52 @@
                  });
              }
              
-                                                                                                               // 금액 필드의 경우 특별 처리
-                              if (type === 'number') {
-                    const amountInput = editElement;
-                   
-                                      if (amountInput) {
-                        // iOS 모바일에서 숫자만 입력되도록 제한
-                        amountInput.addEventListener('input', function(e) {
-                            // 숫자가 아닌 문자 제거 (소수점 제거)
-                            this.value = this.value.replace(/[^0-9]/g, '');
-                        });
-                    }
-                   
-                   
-               } else {
-                 // 다른 필드들의 키보드 이벤트
-                 editElement.addEventListener('keydown', function(e) {
-                     if (e.key === 'Enter') {
-                         saveCurrentEdit();
-                     } else if (e.key === 'Escape') {
-                         cancelEdit(originalContent);
+                                                                                                                                                                                                                               // 금액 필드의 경우 특별 처리
+                               if (type === 'number') {
+                     const amountInput = editElement;
+                    
+                                       if (amountInput) {
+                         // iOS 모바일에서 숫자만 입력되도록 제한
+                         amountInput.addEventListener('input', function(e) {
+                             // 숫자가 아닌 문자 제거 (소수점 제거)
+                             this.value = this.value.replace(/[^0-9]/g, '');
+                         });
+                         
+                         // 금액 필드의 키보드 이벤트
+                         amountInput.addEventListener('keydown', function(e) {
+                             if (e.key === 'Enter') {
+                                 saveCurrentEdit();
+                             } else if (e.key === 'Escape') {
+                                 cancelEdit(originalContent);
+                             }
+                         });
+                         
+                         // 금액 필드의 blur 이벤트 (포커스 아웃 시 저장)
+                         amountInput.addEventListener('blur', function(e) {
+                             setTimeout(() => {
+                                 if (currentEditingCell === cell) {
+                                     const value = this.value.trim();
+                                     if (value && !isNaN(value) && Number(value) > 0) {
+                                         saveCurrentEdit();
+                                     } else {
+                                         cancelEditWithoutWarning();
+                                     }
+                                 }
+                             }, 100);
+                         });
                      }
-                 });
-             }
+                    
+                    
+                } else {
+                  // 다른 필드들의 키보드 이벤트
+                  editElement.addEventListener('keydown', function(e) {
+                      if (e.key === 'Enter') {
+                          saveCurrentEdit();
+                      } else if (e.key === 'Escape') {
+                          cancelEdit(originalContent);
+                      }
+                  });
+              }
             
             // 셀 내용 교체 및 포커스
             cell.innerHTML = '';
