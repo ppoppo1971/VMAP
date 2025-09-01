@@ -302,7 +302,7 @@
               }
               
               /* iOS 모바일에서 입력 필드 최적화 */
-              input[type="tel"] {
+              input[type="number"] {
                   -webkit-appearance: none;
                   -moz-appearance: none;
                   appearance: none;
@@ -311,7 +311,7 @@
               }
               
               /* iOS에서 입력 필드 포커스 시 확대 방지 */
-              input[type="tel"]:focus {
+              input[type="number"]:focus {
                   font-size: 16px;
                   -webkit-text-size-adjust: 100%;
                   transform: none;
@@ -1694,7 +1694,7 @@
                   if (amountInput) {
                                      // iOS 모바일에서 숫자만 입력되도록 제한
                amountInput.addEventListener('input', function(e) {
-                   // 숫자가 아닌 문자 제거
+                   // 숫자가 아닌 문자 제거 (소수점 제거)
                    this.value = this.value.replace(/[^0-9]/g, '');
                });
                
@@ -1840,7 +1840,7 @@
               
                              // 금액 입력 필드 (iOS 모바일 키보드용)
                const amountInput = document.createElement('input');
-               amountInput.type = 'tel'; // iOS에서 숫자 키보드를 강제로 열기 위해 tel 사용
+               amountInput.type = 'number'; // number 타입으로 변경하여 숫자 키보드 강제
                amountInput.value = currentValue;
                amountInput.className = 'inline-input';
                amountInput.style.flex = '1';
@@ -1852,6 +1852,25 @@
                amountInput.setAttribute('autocorrect', 'off'); // 자동수정 비활성화
                amountInput.setAttribute('autocapitalize', 'off'); // 자동대문자 비활성화
                amountInput.setAttribute('spellcheck', 'false'); // 맞춤법 검사 비활성화
+               amountInput.setAttribute('step', '1'); // 정수만 입력
+               amountInput.setAttribute('min', '0'); // 최소값 설정
+               amountInput.setAttribute('readonly', 'false'); // 읽기 전용 해제
+               amountInput.setAttribute('tabindex', '0'); // 탭 인덱스 설정
+               
+               // iOS 모바일에서 키보드 강제 열기
+               amountInput.addEventListener('focus', function() {
+                   // 약간의 지연 후 포커스 재설정
+                   setTimeout(() => {
+                       this.focus();
+                       this.click();
+                   }, 100);
+               });
+               
+               // 클릭 시에도 키보드 열기
+               amountInput.addEventListener('click', function() {
+                   this.focus();
+                   this.select();
+               });
               
               // 통화 선택 창 (기본적으로 숨김)
               const currencyDialog = document.createElement('div');
