@@ -328,6 +328,14 @@
             background: white;
         }
         
+        /* 금액 편집 컨테이너 스타일 */
+        .amount-edit-container {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 120px;
+        }
+        
         .no-data {
             text-align: center;
             padding: 60px 20px;
@@ -356,6 +364,17 @@
             .container {
                 margin: 5px;
                 border-radius: 15px;
+            }
+            
+            .amount-edit-container {
+                min-width: 100px;
+                gap: 3px;
+            }
+            
+            .amount-edit-container .inline-select,
+            .amount-edit-container .inline-input {
+                font-size: 12px;
+                padding: 3px 6px;
             }
             
             .header {
@@ -1683,13 +1702,22 @@
              
                                                                                                                                                                                                                                // 금액 필드의 경우 특별 처리
                                if (type === 'number') {
-                     const amountInput = editElement;
+                     const amountInput = editElement.querySelector('input');
+                     const currencySelect = editElement.querySelector('select');
                     
-                                       if (amountInput) {
+                                       if (amountInput && currencySelect) {
                          // iOS 모바일에서 숫자만 입력되도록 제한
                          amountInput.addEventListener('input', function(e) {
                              // 숫자가 아닌 문자 제거 (소수점 제거)
                              this.value = this.value.replace(/[^0-9]/g, '');
+                         });
+                         
+                         // 통화 선택 시 자동으로 금액 입력 필드에 포커스
+                         currencySelect.addEventListener('change', function(e) {
+                             setTimeout(() => {
+                                 amountInput.focus();
+                                 amountInput.select();
+                             }, 100);
                          });
                          
                          // 금액 필드의 키보드 이벤트
@@ -1736,6 +1764,11 @@
                                   }, 100);
                               }
                           });
+                          
+                          // 초기 포커스를 통화 드롭다운에 설정
+                          setTimeout(() => {
+                              currencySelect.focus();
+                          }, 50);
                      }
                     
                     
@@ -1789,23 +1822,46 @@
              return select;
          }
          
-                                                                               // 금액 입력 필드 (통화 선택 기능 제거)
-                       function createAmountInputWithCurrency(currentValue, currentCurrency) {
-                // 내용 수정과 동일한 방식으로 text 타입 사용
-                const amountInput = document.createElement('input');
-                amountInput.type = 'text'; // text 타입으로 변경하여 내용 수정과 동일하게
-                amountInput.value = currentValue;
-                amountInput.className = 'inline-input';
-                amountInput.style.width = '100%';
-                amountInput.style.fontSize = '16px'; // 모바일에서 확대 방지
-                amountInput.setAttribute('inputmode', 'text'); // 일반 키보드 사용
-                amountInput.setAttribute('autocomplete', 'off'); // 자동완성 비활성화
-                amountInput.setAttribute('autocorrect', 'off'); // 자동수정 비활성화
-                amountInput.setAttribute('autocapitalize', 'off'); // 자동대문자 비활성화
-                amountInput.setAttribute('spellcheck', 'false'); // 맞춤법 검사 비활성화
-                
-                return amountInput;
-            }
+                                                                               // 금액 입력 필드 (통화 선택 드롭다운 먼저 표시)
+        function createAmountInputWithCurrency(currentValue, currentCurrency) {
+            // 통화 선택 드롭다운 먼저 표시
+            const currencyDropdown = document.createElement('select');
+            currencyDropdown.className = 'inline-select';
+            currencyDropdown.style.width = '100%';
+            currencyDropdown.style.marginBottom = '5px';
+            
+            const krwOption = document.createElement('option');
+            krwOption.value = '원화';
+            krwOption.textContent = '원화 (₩)';
+            const jpyOption = document.createElement('option');
+            jpyOption.value = '엔화';
+            jpyOption.textContent = '엔화 (¥)';
+            
+            currencyDropdown.appendChild(krwOption);
+            currencyDropdown.appendChild(jpyOption);
+            currencyDropdown.value = currentCurrency;
+            
+            // 금액 입력 필드
+            const amountInput = document.createElement('input');
+            amountInput.type = 'text';
+            amountInput.value = currentValue;
+            amountInput.className = 'inline-input';
+            amountInput.style.width = '100%';
+            amountInput.style.fontSize = '16px';
+            amountInput.setAttribute('inputmode', 'numeric');
+            amountInput.setAttribute('autocomplete', 'off');
+            amountInput.setAttribute('autocorrect', 'off');
+            amountInput.setAttribute('autocapitalize', 'off');
+            amountInput.setAttribute('spellcheck', 'false');
+            
+            // 컨테이너 생성
+            const container = document.createElement('div');
+            container.className = 'amount-edit-container';
+            container.appendChild(currencyDropdown);
+            container.appendChild(amountInput);
+            
+            return container;
+        }
         
                  async function saveCurrentEdit() {
              if (!currentEditingCell) return;
@@ -1832,13 +1888,28 @@
              
                                                        // 금액 필드의 경우 특별 처리
               if (field === 'amount') {
-                  newValue = editElement.value.trim();
-                  if (isNaN(newValue) || Number(newValue) <= 0) {
-                      alert('올바른 금액을 입력해주세요.');
-                      editElement.focus();
+                  // 통화 드롭다운과 금액 입력 필드 모두 찾기
+                  const currencySelect = cell.querySelector('select');
+                  const amountInput = cell.querySelector('input');
+                  
+                  if (!currencySelect || !amountInput) {
+                      alert('통화와 금액을 모두 입력해주세요.');
                       return;
                   }
-                  updateData = { amount: Number(newValue) };
+                  
+                  const selectedCurrency = currencySelect.value;
+                  newValue = amountInput.value.trim();
+                  
+                  if (isNaN(newValue) || Number(newValue) <= 0) {
+                      alert('올바른 금액을 입력해주세요.');
+                      amountInput.focus();
+                      return;
+                  }
+                  
+                  updateData = { 
+                      amount: Number(newValue),
+                      currency: selectedCurrency
+                  };
               } else {
                  // 다른 필드들
                  newValue = editElement.value.trim();
