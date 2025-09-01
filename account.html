@@ -1659,10 +1659,6 @@
                   if (type === 'date' || type === 'select') {
                       return;
                   }
-                  // 금액 필드의 경우 blur 이벤트 무시 (내부에서 처리)
-                  if (type === 'number') {
-                      return;
-                  }
                   // blur 이벤트에서는 취소만 수행 (저장하지 않음)
                   setTimeout(() => {
                       if (currentEditingCell === cell) {
@@ -1685,7 +1681,7 @@
                  });
              }
              
-                                                       // 금액 필드의 경우 특별 처리
+                                                                                                               // 금액 필드의 경우 특별 처리
                               if (type === 'number') {
                     const amountInput = editElement;
                    
@@ -1694,39 +1690,6 @@
                         amountInput.addEventListener('input', function(e) {
                             // 숫자가 아닌 문자 제거 (소수점 제거)
                             this.value = this.value.replace(/[^0-9]/g, '');
-                        });
-                        
-                        // 금액 입력 필드에서 엔터 키 처리
-                        amountInput.addEventListener('keydown', function(e) {
-                            if (e.key === 'Enter') {
-                                e.preventDefault();
-                                
-                                // 금액이 유효한지 확인
-                                const amountValue = amountInput.value.trim();
-                                if (isNaN(amountValue) || Number(amountValue) <= 0) {
-                                    alert('올바른 금액을 입력해주세요.');
-                                    amountInput.focus();
-                                    return;
-                                }
-                                
-                                // 바로 저장
-                                saveCurrentEdit();
-                            } else if (e.key === 'Escape') {
-                                cancelEdit(originalContent);
-                            }
-                        });
-                        
-                        // blur 이벤트로 입력 완료 체크 (내용 수정과 동일한 방식)
-                        amountInput.addEventListener('blur', function() {
-                            setTimeout(() => {
-                                const amountValue = amountInput.value.trim();
-                                if (amountValue && !isNaN(amountValue) && Number(amountValue) > 0) {
-                                    saveCurrentEdit();
-                                } else {
-                                    // 유효하지 않은 값이면 편집 취소
-                                    cancelEditWithoutWarning();
-                                }
-                            }, 200);
                         });
                     }
                    
@@ -1783,38 +1746,18 @@
          
                                        // 금액 입력 필드 (통화 선택 기능 제거)
           function createAmountInputWithCurrency(currentValue, currentCurrency) {
-              // 단순한 input 요소만 생성
+              // 내용 수정과 동일한 방식으로 text 타입 사용
               const amountInput = document.createElement('input');
-              amountInput.type = 'number'; // number 타입으로 변경하여 숫자 키보드 강제
+              amountInput.type = 'text'; // text 타입으로 변경하여 내용 수정과 동일하게
               amountInput.value = currentValue;
               amountInput.className = 'inline-input';
               amountInput.style.width = '100%';
               amountInput.style.fontSize = '16px'; // 모바일에서 확대 방지
               amountInput.setAttribute('inputmode', 'numeric'); // 모바일에서 숫자 키보드
-              amountInput.setAttribute('pattern', '[0-9]*'); // iOS에서 숫자 키보드
               amountInput.setAttribute('autocomplete', 'off'); // 자동완성 비활성화
               amountInput.setAttribute('autocorrect', 'off'); // 자동수정 비활성화
               amountInput.setAttribute('autocapitalize', 'off'); // 자동대문자 비활성화
               amountInput.setAttribute('spellcheck', 'false'); // 맞춤법 검사 비활성화
-              amountInput.setAttribute('step', '1'); // 정수만 입력
-              amountInput.setAttribute('min', '0'); // 최소값 설정
-              amountInput.setAttribute('readonly', 'false'); // 읽기 전용 해제
-              amountInput.setAttribute('tabindex', '0'); // 탭 인덱스 설정
-              
-              // iOS 모바일에서 키보드 강제 열기
-              amountInput.addEventListener('focus', function() {
-                   // 약간의 지연 후 포커스 재설정
-                   setTimeout(() => {
-                       this.focus();
-                       this.click();
-                   }, 100);
-               });
-               
-               // 클릭 시에도 키보드 열기
-               amountInput.addEventListener('click', function() {
-                   this.focus();
-                   this.select();
-               });
               
               return amountInput;
           }
