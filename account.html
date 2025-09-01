@@ -1685,50 +1685,53 @@
                  });
              }
              
-                           // 금액 필드의 경우 특별 처리
-                             if (type === 'number') {
-                   const amountInput = editElement;
-                  
-                                     if (amountInput) {
-                       // iOS 모바일에서 숫자만 입력되도록 제한
-                       amountInput.addEventListener('input', function(e) {
-                           // 숫자가 아닌 문자 제거 (소수점 제거)
-                           this.value = this.value.replace(/[^0-9]/g, '');
-                       });
-                       
-                       // 금액 입력 필드에서 엔터 키 처리
-                       amountInput.addEventListener('keydown', function(e) {
-                           if (e.key === 'Enter') {
-                               e.preventDefault();
-                               
-                               // 금액이 유효한지 확인
-                               const amountValue = amountInput.value.trim();
-                               if (isNaN(amountValue) || Number(amountValue) <= 0) {
-                                   alert('올바른 금액을 입력해주세요.');
-                                   amountInput.focus();
-                                   return;
-                               }
-                               
-                               // 바로 저장
-                               saveCurrentEdit();
-                           } else if (e.key === 'Escape') {
-                               cancelEdit(originalContent);
-                           }
-                       });
-                       
-                       // blur 이벤트로 입력 완료 체크
-                       amountInput.addEventListener('blur', function() {
-                           setTimeout(() => {
-                               const amountValue = amountInput.value.trim();
-                               if (amountValue && !isNaN(amountValue) && Number(amountValue) > 0) {
-                                   saveCurrentEdit();
-                               }
-                           }, 200);
-                       });
-                   }
-                  
-                  
-              } else {
+                                                       // 금액 필드의 경우 특별 처리
+                              if (type === 'number') {
+                    const amountInput = editElement;
+                   
+                                      if (amountInput) {
+                        // iOS 모바일에서 숫자만 입력되도록 제한
+                        amountInput.addEventListener('input', function(e) {
+                            // 숫자가 아닌 문자 제거 (소수점 제거)
+                            this.value = this.value.replace(/[^0-9]/g, '');
+                        });
+                        
+                        // 금액 입력 필드에서 엔터 키 처리
+                        amountInput.addEventListener('keydown', function(e) {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                
+                                // 금액이 유효한지 확인
+                                const amountValue = amountInput.value.trim();
+                                if (isNaN(amountValue) || Number(amountValue) <= 0) {
+                                    alert('올바른 금액을 입력해주세요.');
+                                    amountInput.focus();
+                                    return;
+                                }
+                                
+                                // 바로 저장
+                                saveCurrentEdit();
+                            } else if (e.key === 'Escape') {
+                                cancelEdit(originalContent);
+                            }
+                        });
+                        
+                        // blur 이벤트로 입력 완료 체크 (내용 수정과 동일한 방식)
+                        amountInput.addEventListener('blur', function() {
+                            setTimeout(() => {
+                                const amountValue = amountInput.value.trim();
+                                if (amountValue && !isNaN(amountValue) && Number(amountValue) > 0) {
+                                    saveCurrentEdit();
+                                } else {
+                                    // 유효하지 않은 값이면 편집 취소
+                                    cancelEditWithoutWarning();
+                                }
+                            }, 200);
+                        });
+                    }
+                   
+                   
+               } else {
                  // 다른 필드들의 키보드 이벤트
                  editElement.addEventListener('keydown', function(e) {
                      if (e.key === 'Enter') {
