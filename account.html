@@ -840,10 +840,10 @@
         
         // 카테고리별 이모지 매핑
         const categoryEmojis = {
-            '식비': '🍽️',
+            '식비': '🥣',
             '교통비': '🚌',
             '숙박비': '🏨',
-            '쇼핑': '🛒',
+            '쇼핑': '🎁',
             '기타': '💡'
         };
         
@@ -1594,141 +1594,206 @@
         // 인라인 편집 기능
         let currentEditingCell = null;
         
-                 function editCell(cell, itemId) {
-             // 이미 편집 중인 셀이 있으면 취소
-             if (currentEditingCell && currentEditingCell !== cell) {
-                 cancelEditWithoutWarning();
-             }
-             
-             // 같은 셀을 다시 클릭하면 편집 종료
-             if (currentEditingCell === cell) {
-                 cancelEditWithoutWarning();
-                 return;
-             }
-             
-             const field = cell.dataset.field;
-             const type = cell.dataset.type;
-             const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
-             if (!item) return;
-             
-             currentEditingCell = cell;
-             cell.classList.add('editing');
-             
-             const originalContent = cell.innerHTML;
-             let currentValue = '';
-             
-             // 현재 값 추출
-             switch (field) {
-                 case 'date':
-                     currentValue = item.date;
-                     break;
-                 case 'category':
-                     currentValue = item.category;
-                     break;
-                 case 'content':
-                     currentValue = item.content;
-                     break;
-                 case 'payment':
-                     currentValue = item.payment;
-                     break;
-                 case 'amount':
-                     currentValue = item.amount;
-                     break;
-             }
-             
-             // 편집 요소 생성
-             let editElement;
-             if (type === 'select' && field === 'category') {
-                 editElement = createCategorySelect(currentValue);
-             } else if (type === 'select' && field === 'payment') {
-                 editElement = createPaymentSelect(currentValue);
-             } else if (type === 'date') {
-                 editElement = document.createElement('input');
-                 editElement.type = 'date';
-                 editElement.value = currentValue;
-                 editElement.className = 'inline-input';
-             } else if (type === 'number') {
-                 // 금액 필드의 경우 통화 선택 기능 추가
-                 editElement = createAmountInputWithCurrency(currentValue, item.currency);
-             } else {
-                 editElement = document.createElement('input');
-                 editElement.type = 'text';
-                 editElement.value = currentValue;
-                 editElement.className = 'inline-input';
-             }
+        function editCell(cell, itemId) {
+            // 이미 편집 중인 셀이 있으면 취소
+            if (currentEditingCell && currentEditingCell !== cell) {
+                cancelEditWithoutWarning();
+            }
             
-                                       // 이벤트 리스너 추가
-              editElement.addEventListener('blur', function(e) {
-                  // 날짜 필드, select 필드의 경우 blur 이벤트 무시 (change 이벤트로 처리)
-                  if (type === 'date' || type === 'select') {
-                      return;
-                  }
-                  // blur 이벤트에서는 취소만 수행 (저장하지 않음)
-                  setTimeout(() => {
-                      if (currentEditingCell === cell) {
-                          cancelEditWithoutWarning();
-                      }
-                  }, 100);
-              });
-             
-             // 날짜 필드의 경우 change 이벤트로 자동 저장
-             if (type === 'date') {
-                 editElement.addEventListener('change', function(e) {
-                     saveCurrentEdit();
-                 });
-             }
-             
-             // select 필드의 경우 change 이벤트로 자동 저장
-             if (type === 'select') {
-                 editElement.addEventListener('change', function(e) {
-                     saveCurrentEdit();
-                 });
-             }
-             
-                                                                                                                                                                                                                               // 금액 필드의 경우 특별 처리
-                               if (type === 'number') {
-                     const currencySelect = editElement;
-                    
-                                       if (currencySelect) {
-                         // 통화 선택 시 금액 입력창 표시
-                         currencySelect.addEventListener('change', function(e) {
-                             const selectedCurrency = this.value;
-                             // 모바일에서 드롭다운 닫힘을 기다린 후 금액 입력창 표시
-                             setTimeout(() => {
-                                 showAmountInputAfterCurrency(selectedCurrency, currentValue, cell, itemId);
-                             }, 200);
-                         });
-                         
-                         // ESC 키로 편집 취소
-                         currencySelect.addEventListener('keydown', function(e) {
-                             if (e.key === 'Escape') {
-                                 cancelEdit(originalContent);
-                             }
-                         });
-                         
-                         // 초기 포커스를 통화 드롭다운에 설정
-                         setTimeout(() => {
-                             currencySelect.focus();
-                         }, 50);
-                     }
-                    
-                    
-                } else {
-                  // 다른 필드들의 키보드 이벤트
-                  editElement.addEventListener('keydown', function(e) {
-                      if (e.key === 'Enter') {
-                          saveCurrentEdit();
-                      } else if (e.key === 'Escape') {
-                          cancelEdit(originalContent);
-                      }
-                  });
-              }
+            // 같은 셀을 다시 클릭하면 편집 종료
+            if (currentEditingCell === cell) {
+                cancelEditWithoutWarning();
+                return;
+            }
+            
+            const field = cell.dataset.field;
+            const type = cell.dataset.type;
+            const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
+            if (!item) return;
+            
+            currentEditingCell = cell;
+            cell.classList.add('editing');
+            
+            const originalContent = cell.innerHTML;
+            let currentValue = '';
+            
+            // 현재 값 추출
+            switch (field) {
+                case 'date':
+                    currentValue = item.date;
+                    break;
+                case 'category':
+                    currentValue = item.category;
+                    break;
+                case 'content':
+                    currentValue = item.content;
+                    break;
+                case 'payment':
+                    currentValue = item.payment;
+                    break;
+                case 'amount':
+                    currentValue = item.amount;
+                    break;
+            }
+            
+            // 편집 요소 생성
+            let editElement;
+            if (type === 'select' && field === 'category') {
+                editElement = createCategorySelect(currentValue);
+            } else if (type === 'select' && field === 'payment') {
+                editElement = createPaymentSelect(currentValue);
+            } else if (type === 'date') {
+                editElement = document.createElement('input');
+                editElement.type = 'date';
+                editElement.value = currentValue;
+                editElement.className = 'inline-input';
+            } else if (type === 'number') {
+                // 금액 필드의 경우 간단한 숫자 입력창만 표시
+                editElement = createSimpleAmountInput(currentValue);
+            } else {
+                editElement = document.createElement('input');
+                editElement.type = 'text';
+                editElement.value = currentValue;
+                editElement.className = 'inline-input';
+            }
+            
+            // 이벤트 리스너 추가
+            if (type === 'number') {
+                // 금액 필드의 경우 특별 처리
+                editElement.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        const value = this.value.trim();
+                        if (value && !isNaN(value) && Number(value) > 0) {
+                            // 금액 저장 후 통화 선택 드롭다운 표시
+                            saveAmountAndShowCurrencySelect(Number(value), itemId, cell);
+                        } else {
+                            alert('올바른 금액을 입력해주세요.');
+                            this.focus();
+                        }
+                    } else if (e.key === 'Escape') {
+                        cancelEdit(originalContent);
+                    }
+                });
+            } else {
+                // 다른 필드들의 키보드 이벤트
+                editElement.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        saveCurrentEdit();
+                    } else if (e.key === 'Escape') {
+                        cancelEdit(originalContent);
+                    }
+                });
+                
+                // 날짜 필드의 경우 change 이벤트로 자동 저장
+                if (type === 'date') {
+                    editElement.addEventListener('change', function(e) {
+                        saveCurrentEdit();
+                    });
+                }
+                
+                // select 필드의 경우 change 이벤트로 자동 저장
+                if (type === 'select') {
+                    editElement.addEventListener('change', function(e) {
+                        saveCurrentEdit();
+                    });
+                }
+            }
             
             // 셀 내용 교체 및 포커스
             cell.innerHTML = '';
             cell.appendChild(editElement);
             editElement.focus();
             if (editElement.select) editElement.select();
+        }
+        
+        // 간단한 금액 입력창 생성
+        function createSimpleAmountInput(currentValue) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentValue;
+            input.className = 'inline-input';
+            input.style.width = '100%';
+            input.style.fontSize = '16px';
+            input.setAttribute('inputmode', 'numeric');
+            input.setAttribute('autocomplete', 'off');
+            input.setAttribute('autocorrect', 'off');
+            input.setAttribute('autocapitalize', 'off');
+            input.setAttribute('spellcheck', 'false');
+            
+            // iOS 모바일에서 숫자만 입력되도록 제한
+            input.addEventListener('input', function(e) {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+            
+            return input;
+        }
+        
+        // 금액 저장 후 통화 선택 드롭다운 표시
+        function saveAmountAndShowCurrencySelect(amount, itemId, cell) {
+            // 통화 선택 드롭다운 생성
+            const currencyDropdown = document.createElement('select');
+            currencyDropdown.className = 'inline-select';
+            currencyDropdown.style.width = '100%';
+            
+            const krwOption = document.createElement('option');
+            krwOption.value = '원화';
+            krwOption.textContent = '원화 (₩)';
+            const jpyOption = document.createElement('option');
+            jpyOption.value = '엔화';
+            jpyOption.textContent = '엔화 (¥)';
+            
+            currencyDropdown.appendChild(krwOption);
+            currencyDropdown.appendChild(jpyOption);
+            
+            // 현재 통화 설정 (기본값: 원화)
+            const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
+            currencyDropdown.value = item.currency || '원화';
+            
+            // 통화 선택 시 저장
+            currencyDropdown.addEventListener('change', function(e) {
+                const selectedCurrency = this.value;
+                const updateData = {
+                    amount: amount,
+                    currency: selectedCurrency
+                };
+                
+                // Firebase 업데이트
+                updateBudgetDataInFirebase(itemId, updateData).then(() => {
+                    currentEditingCell.classList.remove('editing');
+                    currentEditingCell = null;
+                    renderStats();
+                    renderTable();
+                }).catch(error => {
+                    console.error('가계부 수정 실패:', error);
+                    
+                    // 오프라인 지원
+                    if (item) {
+                        const operationId = addPendingOperation({
+                            type: OPERATION_TYPES.BUDGET_UPDATE,
+                            oldData: item,
+                            newData: { ...item, ...updateData }
+                        });
+                        
+                        Object.assign(item, updateData);
+                        currentEditingCell.classList.remove('editing');
+                        currentEditingCell = null;
+                        renderStats();
+                        renderTable();
+                        
+                        console.log(`가계부 수정 오프라인 저장 완료 (작업 ID: ${operationId})`);
+                        alert('항목이 임시 수정되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
+                    }
+                });
+            });
+            
+            // 셀 내용을 통화 드롭다운으로 교체
+            cell.innerHTML = '';
+            cell.appendChild(currencyDropdown);
+            
+            // 드롭다운에 포커스
+            setTimeout(() => {
+                currencyDropdown.focus();
+            }, 50);
         }
         
         function createCategorySelect(currentValue) {
@@ -1763,161 +1828,7 @@
             return select;
         }
         
-        // 통화 선택 후 금액 입력창 표시
-        function showAmountInputAfterCurrency(selectedCurrency, currentValue, cell, itemId) {
-            const amountInput = document.createElement('input');
-            amountInput.type = 'text';
-            amountInput.value = currentValue;
-            amountInput.className = 'inline-input';
-            amountInput.style.width = '100%';
-            amountInput.style.fontSize = '16px';
-            amountInput.setAttribute('inputmode', 'numeric');
-            amountInput.setAttribute('autocomplete', 'off');
-            amountInput.setAttribute('autocorrect', 'off');
-            amountInput.setAttribute('autocapitalize', 'off');
-            amountInput.setAttribute('spellcheck', 'false');
-            
-            // 선택된 통화 정보를 데이터 속성으로 저장
-            amountInput.setAttribute('data-selected-currency', selectedCurrency);
-            
-            // 셀 내용 교체
-            cell.innerHTML = '';
-            cell.appendChild(amountInput);
-            
-            // 모바일에서 키보드가 바로 닫히지 않도록 지연 포커스
-            setTimeout(() => {
-                amountInput.focus();
-                amountInput.select();
-                // 모바일에서 키보드 강제 활성화
-                amountInput.click();
-            }, 300);
-            
-            // iOS 모바일에서 숫자만 입력되도록 제한
-            amountInput.addEventListener('input', function(e) {
-                this.value = this.value.replace(/[^0-9]/g, '');
-            });
-            
-            // 키보드 이벤트
-            amountInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    saveAmountWithCurrency();
-                } else if (e.key === 'Escape') {
-                    cancelEditWithoutWarning();
-                }
-            });
-            
-            // blur 이벤트 - 모바일에서 키보드 숨김 시에만 처리
-            let blurTimeout;
-            amountInput.addEventListener('blur', function(e) {
-                // 모바일에서 키보드 숨김 감지를 위한 지연
-                blurTimeout = setTimeout(() => {
-                    if (currentEditingCell === cell) {
-                        const value = this.value.trim();
-                        if (value && !isNaN(value) && Number(value) > 0) {
-                            saveAmountWithCurrency();
-                        } else {
-                            cancelEditWithoutWarning();
-                        }
-                    }
-                }, 500); // 더 긴 지연 시간
-            });
-            
-            // 포커스 시 blur 타이머 취소
-            amountInput.addEventListener('focus', function(e) {
-                if (blurTimeout) {
-                    clearTimeout(blurTimeout);
-                }
-            });
-            
-            // iOS 모바일에서 키보드 숨김 감지
-            document.addEventListener('visibilitychange', function() {
-                if (document.hidden && currentEditingCell === cell) {
-                    const value = amountInput.value.trim();
-                    if (value && !isNaN(value) && Number(value) > 0) {
-                        saveAmountWithCurrency();
-                    }
-                }
-            });
-            
-            // 페이지 포커스 아웃 시 저장 - 모바일에서 키보드 숨김과 함께 발생
-            window.addEventListener('blur', function() {
-                if (currentEditingCell === cell) {
-                    setTimeout(() => {
-                        const value = amountInput.value.trim();
-                        if (value && !isNaN(value) && Number(value) > 0) {
-                            saveAmountWithCurrency();
-                        }
-                    }, 500); // 더 긴 지연 시간
-                }
-            });
-            
-            // 통화와 금액을 함께 저장하는 함수
-            function saveAmountWithCurrency() {
-                const value = amountInput.value.trim();
-                const currency = amountInput.getAttribute('data-selected-currency');
-                
-                if (isNaN(value) || Number(value) <= 0) {
-                    alert('올바른 금액을 입력해주세요.');
-                    amountInput.focus();
-                    return;
-                }
-                
-                const updateData = {
-                    amount: Number(value),
-                    currency: currency
-                };
-                
-                // Firebase 업데이트
-                updateBudgetDataInFirebase(itemId, updateData).then(() => {
-                    currentEditingCell.classList.remove('editing');
-                    currentEditingCell = null;
-                    renderStats();
-                    renderTable();
-                }).catch(error => {
-                    console.error('가계부 수정 실패:', error);
-                    
-                    // 오프라인 지원
-                    const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
-                    if (item) {
-                        const operationId = addPendingOperation({
-                            type: OPERATION_TYPES.BUDGET_UPDATE,
-                            oldData: item,
-                            newData: { ...item, ...updateData }
-                        });
-                        
-                        Object.assign(item, updateData);
-                        currentEditingCell.classList.remove('editing');
-                        currentEditingCell = null;
-                        renderStats();
-                        renderTable();
-                        
-                        console.log(`가계부 수정 오프라인 저장 완료 (작업 ID: ${operationId})`);
-                        alert('항목이 임시 수정되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
-                    }
-                });
-            }
-        }
-         
-                                                                               // 금액 입력 필드 (통화 선택 드롭다운 먼저 표시)
-        function createAmountInputWithCurrency(currentValue, currentCurrency) {
-            // 통화 선택 드롭다운만 먼저 표시
-            const currencyDropdown = document.createElement('select');
-            currencyDropdown.className = 'inline-select';
-            currencyDropdown.style.width = '100%';
-            
-            const krwOption = document.createElement('option');
-            krwOption.value = '원화';
-            krwOption.textContent = '원화 (₩)';
-            const jpyOption = document.createElement('option');
-            jpyOption.value = '엔화';
-            jpyOption.textContent = '엔화 (¥)';
-            
-            currencyDropdown.appendChild(krwOption);
-            currencyDropdown.appendChild(jpyOption);
-            currencyDropdown.value = currentCurrency;
-            
-            return currencyDropdown;
-        }
+
         
                  async function saveCurrentEdit() {
              if (!currentEditingCell) return;
@@ -1946,18 +1857,18 @@
               if (field === 'amount') {
                   // 금액 필드의 경우 별도 처리 함수에서 처리되므로 여기서는 건너뜀
                   return;
-              } else {
-                 // 다른 필드들
-                 newValue = editElement.value.trim();
-                 
-                 if (!newValue && field !== 'content') {
-                     alert('값을 입력해주세요.');
-                     editElement.focus();
-                     return;
-                 }
-                 
-                 updateData[field] = newValue;
+              }
+              
+             // 다른 필드들
+             newValue = editElement.value.trim();
+             
+             if (!newValue && field !== 'content') {
+                 alert('값을 입력해주세요.');
+                 editElement.focus();
+                 return;
              }
+             
+             updateData[field] = newValue;
              
              try {
                  // Firebase 업데이트
