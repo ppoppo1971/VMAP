@@ -1701,19 +1701,41 @@
                              }
                          });
                          
-                         // 금액 필드의 blur 이벤트 (포커스 아웃 시 저장)
-                         amountInput.addEventListener('blur', function(e) {
-                             setTimeout(() => {
-                                 if (currentEditingCell === cell) {
-                                     const value = this.value.trim();
-                                     if (value && !isNaN(value) && Number(value) > 0) {
-                                         saveCurrentEdit();
-                                     } else {
-                                         cancelEditWithoutWarning();
-                                     }
-                                 }
-                             }, 100);
-                         });
+                                                   // 금액 필드의 blur 이벤트 (포커스 아웃 시 저장)
+                          amountInput.addEventListener('blur', function(e) {
+                              setTimeout(() => {
+                                  if (currentEditingCell === cell) {
+                                      const value = this.value.trim();
+                                      if (value && !isNaN(value) && Number(value) > 0) {
+                                          saveCurrentEdit();
+                                      } else {
+                                          cancelEditWithoutWarning();
+                                      }
+                                  }
+                              }, 100);
+                          });
+                          
+                          // iOS 모바일에서 키보드 숨김 감지 (visibilitychange 이벤트)
+                          document.addEventListener('visibilitychange', function() {
+                              if (document.hidden && currentEditingCell === cell) {
+                                  const value = amountInput.value.trim();
+                                  if (value && !isNaN(value) && Number(value) > 0) {
+                                      saveCurrentEdit();
+                                  }
+                              }
+                          });
+                          
+                          // 페이지 포커스 아웃 시 저장 (키보드 숨김과 함께 발생)
+                          window.addEventListener('blur', function() {
+                              if (currentEditingCell === cell) {
+                                  setTimeout(() => {
+                                      const value = amountInput.value.trim();
+                                      if (value && !isNaN(value) && Number(value) > 0) {
+                                          saveCurrentEdit();
+                                      }
+                                  }, 100);
+                              }
+                          });
                      }
                     
                     
