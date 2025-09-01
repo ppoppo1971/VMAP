@@ -107,6 +107,17 @@
             margin-top: 3px;
         }
         
+        /* 마커 타이틀 라벨 스타일 */
+        .marker-title-label {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 3px 8px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            white-space: nowrap;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
         /* 사이드 패널 토글 버튼 - 모바일 최적화 */
         #menuToggleBtn {
             position: absolute;
@@ -2100,8 +2111,9 @@
             // 디바운싱으로 성능 최적화
             clearTimeout(zoomTimeout);
             zoomTimeout = setTimeout(function() {
-
-                toggleFlightElements(map.getZoom()); // 줌 레벨에 따라 항로와 마커 표시/숨김
+                const currentZoom = map.getZoom();
+                toggleFlightElements(currentZoom); // 줌 레벨에 따라 항로와 마커 표시/숨김
+                toggleMarkerTitleVisibility(currentZoom); // 줌 레벨에 따라 마커 타이틀 표시/숨김
             }, 100);
         });
         
@@ -2129,8 +2141,9 @@
         });
         
         // 초기 줌 레벨 표시
-
-        toggleFlightElements(map.getZoom()); // 초기 줌 레벨에 따라 항로와 마커 표시/숨김
+        const initialZoom = map.getZoom();
+        toggleFlightElements(initialZoom); // 초기 줌 레벨에 따라 항로와 마커 표시/숨김
+        toggleMarkerTitleVisibility(initialZoom); // 초기 줌 레벨에 따라 마커 타이틀 표시/숨김
         
         // Firebase 초기화 완료 후 동기화 시작
         waitForFirebaseAndStartSync();
@@ -3752,6 +3765,47 @@
             color: '#ffffff'
           }
         });
+
+        // 마커 타이틀 라벨 생성 (줌 레벨 18 이상일 때만 표시)
+        const titleLabel = new google.maps.Marker({
+          position: new google.maps.LatLng(
+            latLng.lat() + 0.0001, // 마커 위에 표시
+            latLng.lng()
+          ),
+          map: null, // 초기에는 숨김
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: 'transparent',
+            fillOpacity: 0,
+            strokeColor: 'transparent',
+            strokeWeight: 0,
+            scale: 0
+          },
+          label: {
+            text: '새 마커', // 초기 텍스트 (사용자가 수정하면 업데이트됨)
+            fontSize: '12px',
+            fontWeight: 'bold',
+            color: '#374151',
+            className: 'marker-title-label'
+          },
+          zIndex: 999
+        });
+
+        // 마커 객체에 타이틀 라벨 참조 저장
+        marker.titleLabel = titleLabel;
+        
+        // 마커 정보가 업데이트될 때 타이틀 라벨도 함께 업데이트하는 함수
+        marker.updateTitleLabel = function(title) {
+          if (this.titleLabel) {
+            this.titleLabel.setLabel({
+              text: title || '새 마커',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              color: '#374151',
+              className: 'marker-title-label'
+            });
+          }
+        };
         
         // 마커 클릭 시 제거 기능
         marker.addListener('click', function() {
@@ -3791,6 +3845,9 @@
         
         // 성공 메시지
         console.log(`마커 ${customMarkers.length}이 생성되었습니다.`);
+        
+        // 현재 줌 레벨에 따라 타이틀 표시/숨김
+        toggleMarkerTitleVisibility(map.getZoom());
       }
       
       // 사용자 정의 마커 제거 함수
@@ -3798,6 +3855,11 @@
         console.log('removeCustomMarker 호출됨, 현재 customMarkers.length:', customMarkers.length);
         const index = customMarkers.indexOf(marker);
         if (index > -1) {
+          // 타이틀 라벨도 함께 제거
+          if (marker.titleLabel) {
+            marker.titleLabel.setMap(null);
+          }
+          
           marker.setMap(null);
           customMarkers.splice(index, 1);
           console.log('마커 제거됨, 현재 customMarkers.length:', customMarkers.length);
@@ -3811,6 +3873,14 @@
               fontWeight: 'bold',
               color: '#ffffff'
             });
+            
+                                   // 타이틀 라벨도 업데이트
+                       if (m.updateTitleLabel) {
+                         // 마커 정보에서 실제 타이틀 가져오기
+                         const markerId = `${markerGroup.name}-${i}`;
+                         const markerInfo = markerInfoData[markerId];
+                         m.updateTitleLabel(markerInfo && markerInfo.title);
+                       }
           });
           
           // 마커가 모두 제거되면 버튼을 "마커생성 중..."으로 변경
@@ -3823,6 +3893,39 @@
           }
           
           console.log(`마커가 제거되었습니다. 남은 마커: ${customMarkers.length}개`);
+        }
+      }
+      
+      // 마커 타이틀 표시/숨김 토글 함수
+      function toggleMarkerTitleVisibility(zoomLevel) {
+        const shouldShow = zoomLevel >= 18;
+        
+        // 사용자 생성 마커들의 타이틀 표시/숨김
+        customMarkers.forEach(marker => {
+          if (marker.titleLabel) {
+            if (shouldShow) {
+              marker.titleLabel.setMap(map);
+            } else {
+              marker.titleLabel.setMap(null);
+            }
+          }
+        });
+        
+        // 저장된 사용자 마커들의 타이틀 표시/숨김
+        if (window.savedUserMarkers) {
+          window.savedUserMarkers.forEach(markerGroup => {
+            if (markerGroup.markerElements) {
+              markerGroup.markerElements.forEach(marker => {
+                if (marker.titleLabel) {
+                  if (shouldShow) {
+                    marker.titleLabel.setMap(map);
+                  } else {
+                    marker.titleLabel.setMap(null);
+                  }
+                }
+              });
+            }
+          });
         }
       }
       
@@ -5205,6 +5308,47 @@
                 }
                 const marker = new google.maps.Marker(markerOptions);
                 
+                // 마커 타이틀 라벨 생성 (줌 레벨 18 이상일 때만 표시)
+                const titleLabel = new google.maps.Marker({
+                  position: new google.maps.LatLng(
+                    markerData.lat + 0.0001, // 마커 위에 표시
+                    markerData.lng
+                  ),
+                  map: null, // 초기에는 숨김
+                  icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    fillColor: 'transparent',
+                    fillOpacity: 0,
+                    strokeColor: 'transparent',
+                    strokeWeight: 0,
+                    scale: 0
+                  },
+                  label: {
+                    text: (infoForMarker && infoForMarker.title) || markerData.title || markerGroup.location || `${markerGroup.name} ${index + 1}`,
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    color: '#374151',
+                    className: 'marker-title-label'
+                  },
+                  zIndex: 999
+                });
+
+                // 마커 객체에 타이틀 라벨 참조 저장
+                marker.titleLabel = titleLabel;
+                
+                // 마커 정보가 업데이트될 때 타이틀 라벨도 함께 업데이트하는 함수
+                marker.updateTitleLabel = function(title) {
+                  if (this.titleLabel) {
+                    this.titleLabel.setLabel({
+                      text: title || `마커 ${index + 1}`,
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      color: '#374151',
+                      className: 'marker-title-label'
+                    });
+                  }
+                };
+                
                 // 마커 클릭 시 정보 표시 및 줌 15로 중심 이동
                 marker.addListener('click', function() {
                   // 메뉴창 닫기
@@ -6069,6 +6213,12 @@
             const group = savedMarkers.find(g => g && (g.id === markerGroupName || g.name === markerGroupName));
             if (group && group.markerElements && group.markerElements[index]) {
               const markerEl = group.markerElements[index];
+              
+              // 마커 타이틀 라벨 업데이트
+              if (markerEl.updateTitleLabel) {
+                markerEl.updateTitleLabel(newInfo.title);
+              }
+              
               if (newInfo.emoji) {
                 markerEl.setIcon({
                   path: google.maps.SymbolPath.CIRCLE,
