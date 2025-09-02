@@ -5569,7 +5569,7 @@
          const distance = calculateRouteDistance(path);
          const formattedDistance = formatDistance(distance);
          
-         // 경로 전체가 보이도록 지도 이동
+         // 경로 전체가 보이도록 지도 이동 (필요한 경우에만)
          if (path && path.length >= 2) {
            const bounds = new google.maps.LatLngBounds();
            path.forEach(point => {
@@ -5579,15 +5579,35 @@
                bounds.extend(new google.maps.LatLng(point.lat, point.lng));
              }
            });
-           map.fitBounds(bounds);
            
-           // 여백을 위해 약간 줌 아웃
-           setTimeout(() => {
-             const currentZoom = map.getZoom();
-             if (currentZoom > 2) {
-               map.setZoom(currentZoom - 1);
-             }
-           }, 100);
+           // 경로의 크기에 따라 동적으로 여백 조정
+           const routeSize = calculateRouteDistance(path);
+           
+           // 경로 크기에 따른 여백 계산 (작은 경로일수록 더 많은 여백)
+           let padding;
+           if (routeSize < 500) {
+             // 500m 미만: 100px 여백 (매우 작은 경로)
+             padding = 100;
+           } else if (routeSize < 1000) {
+             // 500m-1km: 80px 여백 (작은 경로)
+             padding = 80;
+           } else if (routeSize < 2000) {
+             // 1-2km: 60px 여백 (중간 경로)
+             padding = 60;
+           } else {
+             // 2km 이상: 40px 여백 (큰 경로)
+             padding = 40;
+           }
+           
+           const paddingOptions = {
+             top: padding,
+             bottom: padding,
+             left: padding,
+             right: padding
+           };
+           
+           // 경로를 클릭했을 때는 항상 해당 경로에 맞춰 확대
+           map.fitBounds(bounds, paddingOptions);
          }
          
          // 생성 중인 경로인지 확인 (삭제 버튼을 표시하지 않음)
