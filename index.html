@@ -2023,7 +2023,7 @@
           openPdfViewer();
         });
         
-        // 지도 클릭 시 사이드패널 토글 기능 추가 - 모바일 최적화
+        // 지도 클릭 시 모든 창들 닫기 기능 - 모바일 최적화
         map.addListener('click', function(event) {
           // 모바일에서 터치 이벤트 최적화
           if (isMobile && event.placeId) {
@@ -2048,63 +2048,8 @@
             return;
           }
           
-          // 검색 마커 클릭이 아닌 경우만 정보창 닫기
-          if (!window.searchMarkerClicked && currentInfoWindow) {
-            currentInfoWindow.close();
-            currentInfoWindow = null;
-            // 추적 변수 초기화
-            window.currentOpenMarkerGroup = null;
-            window.currentOpenMarkerIndex = null;
-            window.currentOpenRouteId = null;
-          }
-          
-                  // 사용자 생성 마커 정보창 닫기
-        if (window.currentInfoWindow) {
-          window.currentInfoWindow.close();
-          window.currentInfoWindow = null;
-          // 추적 변수 초기화
-          window.currentOpenMarkerGroup = null;
-          window.currentOpenMarkerIndex = null;
-          window.currentOpenRouteId = null;
-        }
-        
-        // 사이드패널 터치 이벤트 설정
-        setupSidePanelTouchEvents();
-          
-          // 스와이프 상태 해제, 일정창 닫기 (사이드패널은 유지)
-          clearAllSwipeStates();
-          closeScheduleInfo();
-          
-          // 정보창 닫기 (X 버튼이 제거되었으므로 지도 클릭으로 닫기)
-          if (currentInfoWindow) {
-            currentInfoWindow.close();
-            currentInfoWindow = null;
-            // 추적 변수 초기화
-            window.currentOpenMarkerGroup = null;
-            window.currentOpenMarkerIndex = null;
-            window.currentOpenRouteId = null;
-          }
-          
-          // 사이드패널은 유지: 일정창이 열려 있으면 일정창만 닫음
-          // 단, 일정창이 없고 왼쪽/오른쪽 패널만 열려있는 상태에서는 기존 동작 유지
-          const customMapMenu = getElement('customMapMenu');
-          const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
-          const preparationInfo = document.getElementById('preparationInfo');
-          
-          if (!preparationInfo) {
-            // 일정창이 없을 때만 패널 토글 처리
-            if (!customMapMenu.classList.contains('hide')) {
-              hideMenu();
-            }
-            if (rightPanelOpen) {
-              hideRightMenu();
-            }
-          }
-          if (!getElement('mapTypeSelector').classList.contains('hide')) {
-            hideRightMenu();
-          }
-          // 사전준비 정보창도 닫기
-          closePreparationInfo();
+          // 모든 창들 닫기
+          closeAllDialogsAndMenus();
         });
         
         // 오른쪽 상단 버튼 초기 상태 설정
@@ -2540,6 +2485,107 @@
         const infoDiv = document.getElementById('preparationInfo');
         if (infoDiv) {
           infoDiv.remove();
+        }
+      }
+      
+      // 모든 창들 닫기 함수
+      function closeAllDialogsAndMenus() {
+        // 1. 정보창 닫기
+        if (currentInfoWindow) {
+          currentInfoWindow.close();
+          currentInfoWindow = null;
+          // 추적 변수 초기화
+          window.currentOpenMarkerGroup = null;
+          window.currentOpenMarkerIndex = null;
+          window.currentOpenRouteId = null;
+        }
+        
+        // 2. 스와이프 상태 해제, 일정창 닫기
+        clearAllSwipeStates();
+        closeScheduleInfo();
+        
+        // 3. 메뉴창들 닫기
+        const customMapMenu = getElement('customMapMenu');
+        const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+        
+        if (!customMapMenu.classList.contains('hide')) {
+          hideMenu();
+        }
+        if (rightPanelOpen) {
+          hideRightMenu();
+        }
+        
+        // 4. 사전준비 정보창 닫기
+        closePreparationInfo();
+        
+        // 5. 수정창 닫기
+        closeEditForm();
+        
+        // 6. 다이얼로그들 닫기
+        closeRouteSaveDialog();
+        closeMarkerSaveDialog();
+        closeAddScheduleDialog();
+        closeBudgetDialog();
+        closeEditScheduleDialog();
+        closeAddressSelection();
+        
+        // 7. 기타 다이얼로그들 닫기
+        const editItemForm = document.getElementById('editItemForm');
+        if (editItemForm) {
+          editItemForm.remove();
+        }
+        
+        const addScheduleDialog = document.getElementById('addScheduleDialog');
+        if (addScheduleDialog) {
+          addScheduleDialog.remove();
+        }
+        
+        const budgetDialog = document.getElementById('budgetDialog');
+        if (budgetDialog) {
+          budgetDialog.remove();
+        }
+        
+        const editScheduleDialog = document.getElementById('editScheduleDialog');
+        if (editScheduleDialog) {
+          editScheduleDialog.remove();
+        }
+        
+        const addressSelectDialog = document.getElementById('addressSelectDialog');
+        if (addressSelectDialog) {
+          addressSelectDialog.remove();
+        }
+        
+        const dialogOverlay = document.getElementById('dialogOverlay');
+        if (dialogOverlay) {
+          dialogOverlay.remove();
+        }
+        
+        const budgetOverlay = document.getElementById('budgetOverlay');
+        if (budgetOverlay) {
+          budgetOverlay.remove();
+        }
+        
+        // 8. 컨텍스트 메뉴 닫기
+        const scheduleContextMenu = document.getElementById('scheduleContextMenu');
+        if (scheduleContextMenu) {
+          scheduleContextMenu.remove();
+        }
+        
+        // 9. 편집 다이얼로그들 닫기
+        const routeEditDialog = document.getElementById('routeEditDialog');
+        if (routeEditDialog) {
+          routeEditDialog.remove();
+        }
+        
+        const markerEditDialog = document.getElementById('markerEditDialog');
+        if (markerEditDialog) {
+          markerEditDialog.remove();
+        }
+        
+        // 10. 기타 폼들 닫기
+        const addItemForm = document.getElementById('addItemForm');
+        if (addItemForm) {
+          addItemForm.remove();
         }
       }
       
