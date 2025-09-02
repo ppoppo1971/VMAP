@@ -2030,6 +2030,12 @@
             return; // 장소 클릭 시 무시
           }
           
+          // 정보창이 열려있으면 우선 정보창 닫기
+          if (currentInfoWindow) {
+            closeAllDialogsAndMenus();
+            return;
+          }
+          
           // 마커생성 모드일 때는 마커 생성
           if (isMarkerMode) {
             addCustomMarker(event.latLng);
@@ -5500,7 +5506,7 @@
           }
         });
         
-        // 마커 위치에 정보창 표시
+        // 마커 위치에 정보창 표시 (마커 상단에 표시)
         const marker = markerGroup.markerElements[index];
         window.currentInfoWindow.open(map, marker);
         try {
@@ -5614,7 +5620,8 @@
            content: info,
            position: clickPosition,
            disableAutoPan: false,
-           maxWidth: 200
+           maxWidth: 200,
+           pixelOffset: new google.maps.Size(0, -30) // 마커 상단에 더 명확하게 표시
          });
          
          // X 버튼 제거
@@ -6550,7 +6557,7 @@
             content: info,
             disableAutoPan: false,
             maxWidth: 300,
-            pixelOffset: new google.maps.Size(0, -10)
+            pixelOffset: new google.maps.Size(0, -30) // 마커 상단에 더 명확하게 표시
           });
         }
       }
