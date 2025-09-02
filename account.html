@@ -96,20 +96,9 @@
             gap: 15px;
         }
         
-        .search-box { display: none; }
+
         
-        .search-box:focus-within {
-            border-color: #4f46e5;
-            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.1);
-        }
-        
-        .search-box input {
-            border: none;
-            outline: none;
-            font-size: 14px;
-            padding: 5px;
-            width: 200px;
-        }
+
         
         .filter-buttons {
             display: flex;
@@ -213,7 +202,7 @@
         
         
         
-        .category-emoji { display: none; }
+
         
         .amount-cell {
             font-weight: 600;
@@ -336,7 +325,7 @@
             color: #6b7280;
         }
         
-        .no-data .emoji { display: none; }
+
         
         .export-btn {
             background: linear-gradient(135deg, #10b981, #059669);
@@ -370,11 +359,7 @@
                 font-size: 1.8rem;
             }
             
-            .stats {
-                grid-template-columns: repeat(2, 1fr);
-                padding: 15px;
-                gap: 10px;
-            }
+
             
             .table-container {
                 padding: 10px;
@@ -508,10 +493,7 @@
                 font-size: 1.5rem;
             }
             
-            .stats {
-                grid-template-columns: 1fr;
-                padding: 10px;
-            }
+
             
             .table-container {
                 padding: 5px;
@@ -1287,8 +1269,7 @@
             if (footer) footer.innerHTML = '';
         }
         
-        // 검색 기능
-        function setupSearch() { /* 검색 기능 제거 */ }
+
         
         // 필터 기능 (드롭다운 외부 클릭시 닫기)
         function setupFilters() {
@@ -2116,7 +2097,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Firebase에서 데이터 로드 (우선순위)
             loadBudgetDataFromFirebase();
-            setupSearch();
             setupFilters();
         });
     </script>
