@@ -2118,14 +2118,14 @@
         // Firebase 초기화 완료 후 동기화 시작
         waitForFirebaseAndStartSync();
         
-        // 페이지 로드 시 대기 작업 처리 (네트워크 연결 시)
-        if (navigator.onLine) {
-          setTimeout(() => {
-            processPendingOperations().catch(error => {
-              // console.error('초기 대기 작업 처리 실패:', error);
-            });
-          }, 2000); // Firebase 초기화 대기
-        }
+        // 페이지 로드 시 대기 작업 처리 비활성화 - 기존 데이터 보호
+        // if (navigator.onLine) {
+        //   setTimeout(() => {
+        //     processPendingOperations().catch(error => {
+        //       console.error('초기 대기 작업 처리 실패:', error);
+        //     });
+        //   }, 2000); // Firebase 초기화 대기
+        // }
         
         // 저장된 사용자 경로들 복원
         restoreSavedUserRoutes().then(() => {
@@ -2347,7 +2347,7 @@
        async function saveCheckboxStates() {
          // 동기화 중이면 무시 (무한 루프 방지)
          if (isSyncing) {
-           // console.log('동기화 중이므로 체크박스 저장 건너뜀');
+           console.log('동기화 중이므로 체크박스 저장 건너뜀');
            return;
          }
          
@@ -2363,7 +2363,7 @@
            updateSyncStatus('체크박스 저장 중...', 'info');
            
            // Firebase에 저장
-           await window.firestore.setDoc(window.userDocRef, {
+           await window.firestore.setDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
              preparationCheckboxes: states,
              lastUpdated: window.firestore.serverTimestamp()
            }, { merge: true });
@@ -2371,7 +2371,7 @@
            // 사용자 추가 항목의 체크박스 상태도 업데이트
            updateUserItemsCheckboxStates();
            
-                     // console.log('Firebase에 체크박스 상태 저장 완료');
+                     console.log('Firebase에 체크박스 상태 저장 완료');
           onFirebaseUploadSuccess('체크박스');
            
          } catch (error) {
@@ -2402,7 +2402,7 @@
              if (checkbox && item.checked !== checkbox.checked) {
                item.checked = checkbox.checked;
                hasChanges = true;
-               // console.log(`체크박스 상태 변경: ${item.id} -> ${checkbox.checked}`);
+               console.log(`체크박스 상태 변경: ${item.id} -> ${checkbox.checked}`);
              }
            }
            return item;
@@ -2411,12 +2411,12 @@
          // 변경사항이 있으면 Firebase에 저장
          if (hasChanges) {
            try {
-             await window.firestore.setDoc(window.userDocRef, {
+             await window.firestore.setDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
                userAddedItems: updatedItems,
                lastUpdated: window.firestore.serverTimestamp()
              }, { merge: true });
              
-             // console.log('사용자 항목 체크박스 상태 Firebase 저장 완료');
+             console.log('사용자 항목 체크박스 상태 Firebase 저장 완료');
            } catch (error) {
              console.error('사용자 항목 체크박스 상태 저장 실패:', error);
            }
@@ -2429,7 +2429,7 @@
       // 체크박스 상태 복원 함수
       async function restoreCheckboxStates() {
         try {
-          const docSnap = await window.firestore.getDoc(window.userDocRef);
+          const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
           if (docSnap.exists()) {
             const data = docSnap.data();
             
@@ -2467,7 +2467,7 @@
             // 마커제거 버튼 상태 업데이트
             updateMarkerRemoveButtons();
             
-            // console.log('Firebase에서 상태 복원 완료');
+            console.log('Firebase에서 상태 복원 완료');
             // 기존 항목 숨김/오버라이드 상태 복원 (없을 경우 기본값)
             window.hiddenExistingItems = data.hiddenExistingItems || [];
             window.existingItemOverrides = data.existingItemOverrides || {};
@@ -2476,7 +2476,7 @@
             }
           } else {
             // Firebase 문서가 존재하지 않는 경우
-            // console.log('Firebase 문서가 존재하지 않음');
+            console.log('Firebase 문서가 존재하지 않음');
             
             // UI 초기화
             window.firebaseUserItems = [];
@@ -2489,14 +2489,18 @@
           console.error('Firebase 로드 실패:', error);
           updateSyncStatus('Firebase 로드 실패', 'error');
           
-          // UI 초기화
-          window.firebaseUserItems = [];
-          displayUserAddedItemsFromFirebase([]);
-          updateRouteRemoveButtons();
-          updateMarkerRemoveButtons();
+          // UI 초기화 비활성화 - 기존 데이터 보호
+          // window.firebaseUserItems = [];
+          // displayUserAddedItemsFromFirebase([]);
+          // updateRouteRemoveButtons();
+          // updateMarkerRemoveButtons();
+          
+          console.log('Firebase 로드 실패 - 기존 데이터 보존');
         }
       }
        
+
+      
       // 사전준비 정보창 닫기 함수
       function closePreparationInfo() {
         const infoDiv = document.getElementById('preparationInfo');
@@ -2606,18 +2610,23 @@
         }
       }
       
+
       
+
+      
+
+
       // 기존 항목 숨김/오버라이드 적용 함수
       function applyOverridesAndHides() {
         try {
           const hidden = Array.isArray(window.hiddenExistingItems) ? window.hiddenExistingItems : [];
           const overrides = window.existingItemOverrides || {};
           
-          // console.log('applyOverridesAndHides 실행:', {
-          //   숨김항목수: hidden.length,
-          //   오버라이드수: Object.keys(overrides).length,
-          //   현재섹션: window.currentActiveSection || ''
-          // });
+          console.log('applyOverridesAndHides 실행:', {
+            숨김항목수: hidden.length,
+            오버라이드수: Object.keys(overrides).length,
+            현재섹션: window.currentActiveSection || ''
+          });
           
           document.querySelectorAll('.checklist-item[data-item-type="existing"]').forEach(el => {
             const id = el.getAttribute('data-item-id');
@@ -2663,7 +2672,7 @@
             }
           });
           
-          // console.log('applyOverridesAndHides 완료');
+          console.log('applyOverridesAndHides 완료');
         } catch (e) {
           console.error('applyOverridesAndHides 실패:', e);
         }
@@ -2769,7 +2778,7 @@
            updateSyncStatus('새 항목 저장 중...', 'info');
            
            // Firebase에 저장
-           await window.firestore.updateDoc(window.userDocRef, {
+           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
              userAddedItems: window.firestore.arrayUnion(newItem)
            });
            
@@ -2785,7 +2794,7 @@
            // 항목 추가 후 폼 자동 숨기기
            hideAddForm();
            
-           // console.log('Firebase에 새 항목 저장 완료 - 실시간 동기화로 UI 업데이트');
+           console.log('Firebase에 새 항목 저장 완료 - 실시간 동기화로 UI 업데이트');
            
          } catch (error) {
            console.error('Firebase 저장 실패:', error);
@@ -2809,7 +2818,7 @@
            }
            
            updateSyncStatus(errorMessage, 'warning');
-           // console.log(`사용자 항목 오프라인 저장 완료 (작업 ID: ${operationId})`);
+           console.log(`사용자 항목 오프라인 저장 완료 (작업 ID: ${operationId})`);
            
          } finally {
            // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
@@ -2877,7 +2886,7 @@
       
       // 전체 지도를 모든 마커와 경로가 보이도록 조정하는 함수
       function resetMapToShowAllItems() {
-        // console.log('전체 지도로 돌아가기');
+        console.log('전체 지도로 돌아가기');
         
         const bounds = new google.maps.LatLngBounds();
         let hasItems = false;
@@ -2904,7 +2913,7 @@
         
         // 3. 마커나 경로가 있으면 화면에 맞추기, 없으면 기본 홋카이도 지역으로
         if (hasItems) {
-          // console.log('모든 마커/경로를 포함하여 화면 맞추기');
+          console.log('모든 마커/경로를 포함하여 화면 맞추기');
           
           const paddingOptions = {
             top: isMobile ? 80 : 60,
@@ -2923,7 +2932,7 @@
             }
           }, 100);
         } else {
-          // console.log('마커/경로가 없어 기본 홋카이도 지역으로 이동');
+          console.log('마커/경로가 없어 기본 홋카이도 지역으로 이동');
           // 기본 홋카이도 지역으로 설정
           map.setCenter({ lat: 43.2203, lng: 142.8635 });
           map.setZoom(7);
@@ -2987,17 +2996,17 @@
           const updatedUserItems = currentItems.filter(item => item.id !== itemId);
           
           // Firebase에서 항목 제거
-          await window.firestore.updateDoc(window.userDocRef, {
+          await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
             userAddedItems: updatedUserItems,
             lastUpdated: window.firestore.serverTimestamp()
           });
           
           // Firebase에서 해당 항목의 체크박스 상태도 제거
-          const docSnap = await window.firestore.getDoc(window.userDocRef);
+          const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
           if (docSnap.exists() && docSnap.data().preparationCheckboxes) {
             const currentCheckboxStates = { ...docSnap.data().preparationCheckboxes };
             delete currentCheckboxStates[itemId];
-            await window.firestore.updateDoc(window.userDocRef, {
+            await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
               preparationCheckboxes: currentCheckboxStates,
               lastUpdated: window.firestore.serverTimestamp()
             });
@@ -3013,7 +3022,7 @@
           updateRouteRemoveButtons();
           
           onFirebaseUploadSuccess('항목 삭제');
-          // console.log('Firebase에서 항목 삭제 완료');
+          console.log('Firebase에서 항목 삭제 완료');
           
                  } catch (error) {
            console.error('Firebase 삭제 실패:', error);
@@ -3098,7 +3107,7 @@
             saveCheckboxStates();
             // Firebase 저장
             await window.firestore.setDoc(
-              window.userDocRef,
+              window.firestore.doc(window.db, 'users', 'currentUser'),
               { hiddenExistingItems: window.firestore.arrayUnion(itemId), lastUpdated: window.firestore.serverTimestamp() },
               { merge: true }
             );
@@ -3210,13 +3219,13 @@
               applyOverridesAndHides();
             }
             await window.firestore.setDoc(
-              window.userDocRef,
+              window.firestore.doc(window.db, 'users', 'currentUser'),
               { existingItemOverrides: { [itemId]: { title, link } }, lastUpdated: window.firestore.serverTimestamp() },
               { merge: true }
             );
             
             // 실시간 동기화를 위한 강제 업데이트 트리거
-            // console.log('세부항목 수정 완료 - 실시간 동기화 트리거');
+            console.log('세부항목 수정 완료 - 실시간 동기화 트리거');
             onFirebaseUploadSuccess('세부항목 수정');
           } catch (e) {
             console.error('오버라이드 저장 실패:', e);
@@ -3264,19 +3273,19 @@
           currentItems[itemIndex] = updatedItem;
           
           // Firebase에 저장
-          // console.log('사용자 항목 수정 - Firebase 저장 시도:', {
-          //   itemId,
-          //   title,
-          //   link,
-          //   updatedItem
-          // });
+          console.log('사용자 항목 수정 - Firebase 저장 시도:', {
+            itemId,
+            title,
+            link,
+            updatedItem
+          });
           
-          await window.firestore.updateDoc(window.userDocRef, {
+          await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
             userAddedItems: currentItems,
             lastUpdated: window.firestore.serverTimestamp()
           });
           
-          // console.log('사용자 항목 수정 - Firebase 저장 완료');
+          console.log('사용자 항목 수정 - Firebase 저장 완료');
           
           // 전역 변수 업데이트
           window.firebaseUserItems = currentItems;
@@ -3318,7 +3327,7 @@
           window.existingItemOverrides[itemId] = { title, link };
           
           // 실시간 동기화를 위한 강제 업데이트
-          // console.log('기존 항목 수정 완료 - 실시간 동기화 강제 트리거');
+          console.log('기존 항목 수정 완료 - 실시간 동기화 강제 트리거');
           
           // 즉시 UI에 반영
           if (typeof applyOverridesAndHides === 'function') {
@@ -3583,10 +3592,10 @@
       
       // 동기화 시스템 초기화
       function initializeSyncSystem() {
-        // 네트워크 상태 모니터링
+        // 네트워크 상태 모니터링 (통합)
         window.addEventListener('online', function() {
           console.log('네트워크 연결됨 - 동기화 재시도');
-          updateSyncStatus('네트워크 연결됨 - 동기화 재시도', 'info');
+          updateSyncStatus('네트워크 연결됨', 'success');
           
           // Firebase 동기화 재설정
           if (window.unsubscribeFirebase) {
@@ -3594,17 +3603,21 @@
           }
           setTimeout(() => {
             setupFirebaseSync();
+            // 대기 작업 처리 비활성화 - 기존 데이터 보호
+            // processPendingOperations().catch(error => {
+            //   console.error('온라인 전환 시 대기 작업 처리 실패:', error);
+            // });
           }, 1000);
+        });
+        
+        window.addEventListener('offline', function() {
+          console.log('네트워크 연결 끊김 - 오프라인 모드');
+          updateSyncStatus('오프라인 모드', 'warning');
+          enableOfflineMode();
         });
         
         // 페이지 복귀 감지 설정
         setupPageVisibilityListener();
-        
-        window.addEventListener('offline', function() {
-          console.log('네트워크 연결 끊김 - 오프라인 모드');
-          updateSyncStatus('네트워크 연결 끊김 - 오프라인 모드', 'warning');
-          enableOfflineMode();
-        });
         
         // 페이지 가시성 변경 시 동기화 상태 확인
         document.addEventListener('visibilitychange', function() {
@@ -3617,33 +3630,15 @@
               if (window.db) {
                 updateSyncStatus('동기화 연결됨', 'success');
                 
-                // 대기 작업 처리
-                processPendingOperations().catch(error => {
-                  console.error('가시성 변경 시 대기 작업 처리 실패:', error);
-                });
+                // 대기 작업 처리 비활성화 - 기존 데이터 보호
+                // processPendingOperations().catch(error => {
+                //   console.error('가시성 변경 시 대기 작업 처리 실패:', error);
+                // });
               } else {
                 updateSyncStatus('동기화 연결 실패', 'error');
               }
             }, 1000);
           }
-        });
-        
-        // 네트워크 상태 변경 감지
-        window.addEventListener('online', function() {
-          console.log('네트워크 연결됨 - 대기 작업 처리 시작');
-          updateSyncStatus('네트워크 연결됨', 'success');
-          
-          // 연결 시 대기 작업 즉시 처리
-          setTimeout(() => {
-            processPendingOperations().catch(error => {
-              console.error('온라인 전환 시 대기 작업 처리 실패:', error);
-            });
-          }, 1000);
-        });
-        
-        window.addEventListener('offline', function() {
-          console.log('네트워크 연결 끊김 - 오프라인 모드');
-          updateSyncStatus('오프라인 모드', 'warning');
         });
         
         // 주기적 동기화 상태 확인 (5분마다)
@@ -3653,14 +3648,14 @@
             updateSyncStatus('동기화 상태 확인 중...', 'info');
             
             // 간단한 연결 테스트
-            window.firestore.getDoc(window.userDocRef)
+            window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'))
               .then(() => {
                 updateSyncStatus('동기화 정상', 'success');
                 
-                // 대기 중인 작업 처리
-                processPendingOperations().catch(error => {
-                  console.error('대기 작업 처리 실패:', error);
-                });
+                // 대기 중인 작업 처리 비활성화 - 기존 데이터 보호
+                // processPendingOperations().catch(error => {
+                //   console.error('대기 작업 처리 실패:', error);
+                // });
               })
               .catch(() => {
                 updateSyncStatus('동기화 연결 실패', 'error');
@@ -3694,7 +3689,7 @@
             } catch (error) {
               console.error('showMarkerSaveDialog 호출 실패:', error);
               // 대안: 직접 다이얼로그 생성
-              createMarkerSaveDialogDirectly();
+              showMarkerSaveDialog();
             }
             
             // 마커 모드 비활성화하여 더 이상 마커 생성 방지
@@ -4576,7 +4571,7 @@
 
       
       // 검색된 경로용 저장 다이얼로그
-      function showRouteSaveDialogForSearched(routeData) {
+      function showRouteSaveDialog(routeData = null) {
         // 기존 다이얼로그가 있으면 제거
         const existingDialog = document.getElementById('routeSaveDialog');
         if (existingDialog) {
@@ -4592,7 +4587,13 @@
           scheduleButtons = '<p style="text-align: center; color: #666; margin: 20px 0;">먼저 일정을 추가해주세요.</p>';
         } else {
           scheduleItems.forEach(item => {
-            scheduleButtons += `<button class="route-save-btn" onclick="saveSearchedRouteToLocation('${item.title}', '${routeData.id}')">${item.title}</button>`;
+            if (routeData) {
+              // 검색된 경로인 경우
+              scheduleButtons += `<button class="route-save-btn" onclick="saveSearchedRouteToLocation('${item.title}', '${routeData.id}')">${item.title}</button>`;
+            } else {
+              // 일반 경로인 경우
+              scheduleButtons += `<button class="route-save-btn" onclick="saveRouteToLocation('${item.title}')">${item.title}</button>`;
+            }
           });
         }
         
@@ -4603,9 +4604,7 @@
           <div style="padding: 28px 24px 24px 24px;">
             <div style="text-align: center; margin-bottom: 24px;">
               <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">경로 저장 위치 선택</h3>
-              <p style="color: #000; font-size: 0.9rem; margin-top: 8px; margin-bottom: 0; opacity: 0.7;">
-                거리: ${routeData.distance} | 소요시간: ${routeData.duration}
-              </p>
+              ${routeData ? `<p style="color: #000; font-size: 0.9rem; margin-top: 8px; margin-bottom: 0; opacity: 0.7;">거리: ${routeData.distance} | 소요시간: ${routeData.duration}</p>` : ''}
             </div>
             <div class="route-save-options">
               ${scheduleButtons}
@@ -4613,11 +4612,30 @@
           </div>
         `;
         
-        // 임시로 routeData를 전역에 저장
-        window.tempSearchedRoute = routeData;
+        // 검색된 경로인 경우 임시로 routeData를 전역에 저장
+        if (routeData) {
+          window.tempSearchedRoute = routeData;
+        }
         
         // 다이얼로그를 지도 위에 표시
         document.body.appendChild(dialogDiv);
+        
+        // 다이얼로그 위치 조정 - 모바일 최적화
+        setTimeout(() => {
+          const mapElement = document.getElementById('map');
+          const mapRect = mapElement.getBoundingClientRect();
+          
+          if (isMobile) {
+            // 모바일: 화면 중앙에 표시
+            dialogDiv.style.left = '50%';
+            dialogDiv.style.transform = 'translateX(-50%)';
+            dialogDiv.style.top = '80px';
+          } else {
+            // 데스크톱: 지도 중앙에 표시
+            dialogDiv.style.left = (mapRect.width / 2 - 200) + 'px';
+            dialogDiv.style.top = (mapRect.height / 2 - 150) + 'px';
+          }
+        }, 10);
       }
       
       // 검색된 경로를 특정 위치에 저장
@@ -4911,62 +4929,7 @@
         return scheduleItems;
       }
 
-      // 경로 저장 위치 선택 다이얼로그 표시
-      function showRouteSaveDialog() {
-        // 기존 다이얼로그가 있으면 제거
-        const existingDialog = document.getElementById('routeSaveDialog');
-        if (existingDialog) {
-          existingDialog.remove();
-        }
-        
-        // 현재 활성화된 일정 항목들 가져오기
-        const scheduleItems = getActiveScheduleItems();
-        
-        // 일정 항목 버튼들 생성
-        let scheduleButtons = '';
-        if (scheduleItems.length === 0) {
-          scheduleButtons = '<p style="text-align: center; color: #666; margin: 20px 0;">먼저 일정을 추가해주세요.</p>';
-        } else {
-          scheduleItems.forEach(item => {
-            scheduleButtons += `<button class="route-save-btn" onclick="saveRouteToLocation('${item.title}')">${item.title}</button>`;
-          });
-        }
-        
-        // 다이얼로그 생성
-        const dialogDiv = document.createElement('div');
-        dialogDiv.id = 'routeSaveDialog';
-        dialogDiv.innerHTML = `
-          <div style="padding: 28px 24px 24px 24px;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">경로 저장 위치 선택</h3>
-            </div>
-            <div class="route-save-options">
-              ${scheduleButtons}
-            </div>
-          </div>
-        `;
-        
-        // 다이얼로그를 지도 위에 표시
-        document.body.appendChild(dialogDiv);
-        
-        // 다이얼로그 위치 조정 - 모바일 최적화
-        setTimeout(() => {
-          const mapElement = document.getElementById('map');
-          const mapRect = mapElement.getBoundingClientRect();
-          
-          if (isMobile) {
-            // 모바일: 화면 중앙에 표시
-            dialogDiv.style.left = '50%';
-            dialogDiv.style.transform = 'translateX(-50%)';
-            dialogDiv.style.top = '80px';
-          } else {
-            // 데스크톱: 지도 중앙에 표시
-            dialogDiv.style.left = (mapRect.width / 2 - 200) + 'px';
-            dialogDiv.style.top = (mapRect.height / 2 - 150) + 'px';
-            dialogDiv.style.transform = 'none';
-          }
-        }, 100);
-      }
+
       
       // 경로 저장 위치 선택 다이얼로그 닫기
       function closeRouteSaveDialog() {
@@ -5008,7 +4971,7 @@
           updateSyncStatus('경로 저장 중...', 'info');
           
           // Firebase에 저장
-          await window.firestore.updateDoc(window.userDocRef, {
+          await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
             savedUserRoutes: window.firestore.arrayUnion(routeData),
             lastUpdated: window.firestore.serverTimestamp()
           });
@@ -5071,64 +5034,7 @@
         // 마커제거 버튼 상태 업데이트
         updateMarkerRemoveButtons();
       }
-      // 마커 저장 위치 선택 다이얼로그 직접 생성 (대안 함수)
-      function createMarkerSaveDialogDirectly() {
-        console.log('createMarkerSaveDialogDirectly 함수 호출됨');
-        
-        // 기존 다이얼로그가 있으면 제거
-        const existingDialog = document.getElementById('markerSaveDialog');
-        if (existingDialog) {
-          existingDialog.remove();
-        }
-        
-        // 다이얼로그 생성
-        const dialogDiv = document.createElement('div');
-        dialogDiv.id = 'markerSaveDialog';
-        dialogDiv.style.cssText = `
-          position: fixed;
-          z-index: 1000;
-          width: 400px;
-          max-width: 90vw;
-          background: rgba(255, 255, 255, 0.95);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 16px;
-          box-shadow: 0 12px 32px rgba(0,0,0,0.15);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          overflow: hidden;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-        `;
-        
-        // 현재 활성화된 일정 항목들 가져오기
-        const scheduleItems = getActiveScheduleItems();
-        
-        // 일정 항목 버튼들 생성
-        let scheduleButtons = '';
-        if (scheduleItems.length === 0) {
-          scheduleButtons = '<p style="text-align: center; color: #666; margin: 20px 0;">먼저 일정을 추가해주세요.</p>';
-        } else {
-          scheduleItems.forEach(item => {
-            scheduleButtons += `<button onclick="saveMarkersToLocation('${item.title}')" style="background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 32px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px); width: 100%; margin-bottom: 8px; min-width: 120px;" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">${item.title}</button>`;
-          });
-        }
-        
-        dialogDiv.innerHTML = `
-          <div style="padding: 28px 24px 24px 24px;">
-            <div style="text-align: center; margin-bottom: 24px;">
-              <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">마커 저장 위치 선택</h3>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-              ${scheduleButtons}
-            </div>
-          </div>
-        `;
-        
-        console.log('대안 다이얼로그 생성 완료');
-        document.body.appendChild(dialogDiv);
-      }
+
       
       // 마커 저장 위치 선택 다이얼로그 표시
       function showMarkerSaveDialog() {
@@ -5243,7 +5149,7 @@
           updateSyncStatus('마커 저장 중...', 'info');
           
           // Firebase에 저장
-          await window.firestore.updateDoc(window.userDocRef, {
+          await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
             savedUserMarkers: window.firestore.arrayUnion(markerData),
             lastUpdated: window.firestore.serverTimestamp()
           });
@@ -5740,7 +5646,7 @@
               저장할경로수: updatedRoutes.length
             });
             
-            const userDocRef = window.userDocRef;
+            const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
             const sanitizedRoutes = sanitizeRoutesForFirestore(updatedRoutes);
             await window.firestore.updateDoc(userDocRef, {
               savedUserRoutes: sanitizedRoutes,
@@ -5775,7 +5681,7 @@
           console.log('window.firestore:', !!window.firestore);
           
           if (window.db && window.firestore) {
-            const testDoc = window.userDocRef;
+            const testDoc = window.firestore.doc(window.db, 'users', 'currentUser');
             const docSnap = await window.firestore.getDoc(testDoc);
             console.log('Firebase 연결 성공, 문서 존재:', docSnap.exists());
             return true;
@@ -5965,7 +5871,7 @@
             [routeId]: { content: newContent, link: newLink, color: selectedColor }
           };
           
-          const userDocRef = window.userDocRef;
+          const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
           await window.firestore.updateDoc(userDocRef, {
             routeInfoData: updatedRouteInfoData,
             lastUpdated: window.firestore.serverTimestamp()
@@ -6268,7 +6174,7 @@
           const updatedMarkerInfoData = { ...markerInfoData, [markerId]: newInfo };
           
           console.log('Firebase 저장 시도 중...', { markerId, newInfo });
-          const userDocRef = window.userDocRef;
+          const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
           await window.firestore.updateDoc(userDocRef, {
             markerInfoData: updatedMarkerInfoData,
             lastUpdated: window.firestore.serverTimestamp()
@@ -6510,7 +6416,7 @@
                 updatedMarkerInfoData
               });
               
-              const userDocRef = window.userDocRef;
+              const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
               const sanitizedSavedUserMarkers = sanitizeSavedUserMarkersForFirestore(updatedMarkers);
               await window.firestore.updateDoc(userDocRef, {
                 savedUserMarkers: sanitizedSavedUserMarkers,
@@ -6719,7 +6625,7 @@
        async function restoreSavedUserRoutes() {
          try {
            // Firebase에서 복원 시도
-           const docSnap = await window.firestore.getDoc(window.userDocRef);
+           const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
            if (docSnap.exists()) {
              const data = docSnap.data();
              if (data.savedUserRoutes && data.savedUserRoutes.length > 0) {
@@ -6742,7 +6648,7 @@
        async function restoreSavedUserMarkers() {
          try {
            // Firebase에서 복원 시도
-           const docSnap = await window.firestore.getDoc(window.userDocRef);
+           const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
            if (docSnap.exists()) {
              const data = docSnap.data();
              // 마커 정보 데이터(이모지 포함)를 먼저 복원한 뒤 마커를 그린다
@@ -6808,7 +6714,7 @@
            const sanitizedRoutes = sanitizeRoutesForFirestore(updatedRoutes);
            
            // Firebase에서 해당 위치 경로들 제거
-           await window.firestore.updateDoc(window.userDocRef, {
+           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
              savedUserRoutes: sanitizedRoutes,
              lastUpdated: window.firestore.serverTimestamp()
            });
@@ -6903,7 +6809,7 @@
            
            // Firebase에서 해당 위치 마커들 제거 (직렬화 가능한 데이터만 전송)
            const sanitizedForDeleteByLocation = sanitizeSavedUserMarkersForFirestore(updatedMarkers);
-           await window.firestore.updateDoc(window.userDocRef, {
+           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
              savedUserMarkers: sanitizedForDeleteByLocation,
              markerInfoData: updatedMarkerInfoData,
              lastUpdated: window.firestore.serverTimestamp()
@@ -8615,7 +8521,7 @@
           });
           
           // Firebase에 저장
-          await window.firestore.setDoc(window.userDocRef, {
+          await window.firestore.setDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
             userAddedItems: currentItems,
             lastUpdated: window.firestore.serverTimestamp()
           }, { merge: true });
@@ -8643,7 +8549,7 @@
           }
           
           // Firebase에서 현재 일정들을 가져오기
-          const docSnap = await window.firestore.getDoc(window.userDocRef);
+          const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
           if (docSnap.exists() && docSnap.data().customSchedules) {
             const customSchedules = docSnap.data().customSchedules;
             
@@ -8661,7 +8567,7 @@
             
             // Firebase에 저장
             await window.firestore.updateDoc(
-              window.userDocRef,
+              window.firestore.doc(window.db, 'users', 'currentUser'),
               {
                 customSchedules: reorderedSchedules,
                 lastUpdated: window.firestore.serverTimestamp()
@@ -8805,7 +8711,7 @@
         }
       }
       
-      // 대기 작업 자동 재시도 시스템
+      // 대기 작업 자동 재시도 시스템 (안전 장치 추가)
       async function processPendingOperations() {
         if (!navigator.onLine || !window.db || !window.firestore) {
           console.log('오프라인 상태 또는 Firebase 미초기화로 대기 작업 처리 건너뜀');
@@ -8814,6 +8720,15 @@
         
         const pending = getPendingOperations();
         if (pending.length === 0) return;
+        
+        // 안전 장치: 기존 데이터 보호를 위한 확인
+        console.log(`대기 중인 작업 ${pending.length}개 발견 - 사용자 확인 필요`);
+        
+        // 사용자 확인 없이는 자동 실행하지 않음
+        if (!confirm(`대기 중인 작업 ${pending.length}개가 있습니다.\n이 작업들을 처리하시겠습니까?\n\n주의: 기존 데이터에 영향을 줄 수 있습니다.`)) {
+          console.log('사용자가 대기 작업 처리를 취소했습니다.');
+          return;
+        }
         
         console.log(`대기 중인 작업 ${pending.length}개 처리 시작`);
         
@@ -8845,7 +8760,7 @@
       }
       
       async function retryPendingOperation(operation) {
-        const userDocRef = window.userDocRef;
+        const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
         
         switch (operation.type) {
           case OPERATION_TYPES.MARKER_INFO:
@@ -9033,7 +8948,7 @@
           addSyncStatusIndicator();
           
           const unsubscribe = window.firestore.onSnapshot(
-            window.userDocRef, 
+            window.firestore.doc(window.db, 'users', 'currentUser'), 
             (doc) => {
               if (doc.exists()) {
                 const data = doc.data();
@@ -9286,10 +9201,10 @@
                 updateSyncStatus('동기화 완료', 'success');
                 
               } else {
-                // 문서가 존재하지 않는 경우
-                console.log('Firebase 문서가 존재하지 않음 - 데이터 초기화');
-                clearAllData();
-                updateSyncStatus('데이터 초기화 완료', 'warning');
+                // 문서가 존재하지 않는 경우 - 기존 데이터 보존
+                console.log('Firebase 문서가 존재하지 않음 - 기존 데이터 보존');
+                // clearAllData(); // 자동 초기화 비활성화 - 기존 데이터 보호
+                updateSyncStatus('새 사용자 - 데이터 준비 완료', 'info');
               }
             }, 
             (error) => {
@@ -9324,8 +9239,22 @@
         }
       }
       
-      // Firebase 데이터 초기화 함수
+      // Firebase 데이터 초기화 함수 (안전 장치 추가)
       function clearAllData() {
+        // 안전 장치: 사용자 확인 없이는 실행하지 않음
+        if (!confirm('⚠️ 경고: 모든 데이터가 삭제됩니다.\n정말로 모든 데이터를 초기화하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
+          console.log('사용자가 데이터 초기화를 취소했습니다.');
+          return;
+        }
+        
+        // 이중 확인
+        if (!confirm('마지막 확인: 정말로 모든 데이터를 삭제하시겠습니까?')) {
+          console.log('사용자가 데이터 초기화를 최종 취소했습니다.');
+          return;
+        }
+        
+        console.log('사용자 확인 완료 - 데이터 초기화 시작');
+        
         // UI 초기화
         document.querySelectorAll('.prep-checkbox').forEach(cb => cb.checked = false);
         
@@ -9340,6 +9269,9 @@
         drawAllSavedRoutes();
         drawAllSavedMarkers();
         updateRouteRemoveButtons();
+        
+        console.log('데이터 초기화 완료');
+        alert('모든 데이터가 초기화되었습니다.');
       }
       
       // Firebase에서 사용자 항목 표시
@@ -9785,7 +9717,7 @@
             };
             
             await window.firestore.updateDoc(
-              window.userDocRef,
+              window.firestore.doc(window.db, 'users', 'currentUser'),
               {
                 customSchedules: window.firestore.arrayUnion(scheduleData),
                 lastUpdated: window.firestore.serverTimestamp()
@@ -10325,7 +10257,7 @@
           updateSyncStatus('가계부 저장 중...', 'info');
           
           // 기존 데이터 가져오기
-          const userDocRef = window.userDocRef;
+          const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
           const docSnap = await window.firestore.getDoc(userDocRef);
           let existingBudgetItems = [];
           
@@ -10604,7 +10536,7 @@
         try {
           if (!window.db || !window.firestore) return;
           
-          const docSnap = await window.firestore.getDoc(window.userDocRef);
+          const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
           if (docSnap.exists() && docSnap.data().customSchedules) {
             const customSchedules = docSnap.data().customSchedules;
             
@@ -10798,7 +10730,7 @@
         try {
           // Firebase에서 해당 일정 찾기 및 업데이트
           if (window.db && window.firestore) {
-            const docSnap = await window.firestore.getDoc(window.userDocRef);
+            const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
             if (docSnap.exists() && docSnap.data().customSchedules) {
               const customSchedules = docSnap.data().customSchedules;
               const scheduleIndex = customSchedules.findIndex(schedule => schedule.id === scheduleId);
@@ -10813,7 +10745,7 @@
                 
                 // Firebase에 저장 (1차: 일정 제목만 우선 저장)
                 await window.firestore.updateDoc(
-                  window.userDocRef,
+                  window.firestore.doc(window.db, 'users', 'currentUser'),
                   {
                     customSchedules: customSchedules,
                     lastUpdated: window.firestore.serverTimestamp()
@@ -10822,7 +10754,7 @@
                 
                 // 연관 데이터(userAddedItems, savedUserRoutes, savedUserMarkers)의 section/location을 새 제목으로 갱신
                 try {
-                  const userDocRef = window.userDocRef;
+                  const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
                   const currentDoc = await window.firestore.getDoc(userDocRef);
                   if (currentDoc.exists()) {
                     const data = currentDoc.data();
@@ -10937,14 +10869,14 @@
         try {
           // Firebase에서 해당 일정 제거
           if (window.db && window.firestore) {
-            const docSnap = await window.firestore.getDoc(window.userDocRef);
+            const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
             if (docSnap.exists() && docSnap.data().customSchedules) {
               const customSchedules = docSnap.data().customSchedules;
               const updatedSchedules = customSchedules.filter(schedule => schedule.id !== scheduleId);
               
               // Firebase에 저장
               await window.firestore.updateDoc(
-                window.userDocRef,
+                window.firestore.doc(window.db, 'users', 'currentUser'),
                 {
                   customSchedules: updatedSchedules,
                   lastUpdated: window.firestore.serverTimestamp()
@@ -10997,7 +10929,7 @@
        // Initialize Firestore
        const db = getFirestore(app);
        
-       // console.log('Firebase Firestore 연결 완료!');
+       console.log('Firebase Firestore 연결 완료!');
        
        // 전역 변수로 db를 사용할 수 있도록 설정
        window.db = db;
@@ -11011,9 +10943,6 @@
          onSnapshot,
          serverTimestamp
        };
-       
-       // Firebase 문서 참조 최적화 - 재사용을 위한 전역 변수
-       window.userDocRef = window.userDocRef;
        
        // 연결 테스트 후 초기화 완료 이벤트 발생
        try {
