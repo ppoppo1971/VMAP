@@ -663,7 +663,7 @@
             getDocs: getDocs
         };
         
-        console.log('가계부 Firebase 연결 완료!');
+
     </script>
     
     <script>
@@ -709,7 +709,7 @@
           pending.push(newOperation);
           savePendingOperations(pending);
           
-          console.log('오프라인 작업 추가됨:', newOperation);
+
           return newOperation.id;
         }
         
@@ -717,20 +717,20 @@
           const pending = getPendingOperations();
           const filtered = pending.filter(op => op.id !== operationId);
           savePendingOperations(filtered);
-          console.log('대기 작업 제거됨:', operationId);
+
         }
         
         // 자동 재시도 시스템
         async function processPendingOperations() {
           if (!navigator.onLine || !window.db || !window.firestore) {
-            console.log('오프라인 상태 또는 Firebase 미초기화로 대기 작업 처리 건너뜀');
+
             return;
           }
           
           const pending = getPendingOperations();
           if (pending.length === 0) return;
           
-          console.log(`대기 중인 가계부 작업 ${pending.length}개 처리 시작`);
+
           
           for (const operation of pending) {
             try {
@@ -764,7 +764,7 @@
                 budgetItems: window.firestore.arrayUnion(operation.data),
                 lastUpdated: window.firestore.serverTimestamp()
               });
-              console.log('가계부 추가 대기 작업 완료:', operation.id);
+
               break;
               
             case OPERATION_TYPES.BUDGET_UPDATE:
@@ -775,7 +775,7 @@
                 budgetItems: window.firestore.arrayUnion(operation.newData),
                 lastUpdated: window.firestore.serverTimestamp()
               });
-              console.log('가계부 수정 대기 작업 완료:', operation.id);
+
               break;
               
             case OPERATION_TYPES.BUDGET_DELETE:
@@ -783,7 +783,7 @@
                 budgetItems: window.firestore.arrayRemove(operation.data),
                 lastUpdated: window.firestore.serverTimestamp()
               });
-              console.log('가계부 삭제 대기 작업 완료:', operation.id);
+
               break;
               
             default:
@@ -793,7 +793,7 @@
         
         // 네트워크 상태 감지
         window.addEventListener('online', function() {
-          console.log('네트워크 연결됨 - 가계부 대기 작업 처리 시작');
+
           setTimeout(() => {
             processPendingOperations().catch(error => {
               console.error('온라인 전환 시 대기 작업 처리 실패:', error);
@@ -880,7 +880,7 @@
                 
                 renderStats();
                 renderTable();
-                console.log('Firebase에서 가계부 데이터 로드 완료:', budgetData.length + '개 항목');
+
             } catch (error) {
                 console.error('Firebase 데이터 로드 실패:', error);
                 // Firebase 로드 실패시 URL 파라미터에서 로드 시도
@@ -909,7 +909,7 @@
                     lastUpdated: window.firestore.serverTimestamp()
                 });
                 
-                console.log('Firebase에 가계부 데이터 저장 완료:', budgetItem.id);
+
                 return budgetItem.id;
             } catch (error) {
                 console.error('Firebase 저장 실패:', error);
@@ -942,7 +942,7 @@
                     lastUpdated: window.firestore.serverTimestamp()
                 });
                 
-                console.log('Firebase에서 가계부 데이터 삭제 완료:', itemId);
+
             } catch (error) {
                 console.error('Firebase 삭제 실패:', error);
                 throw error;
@@ -981,7 +981,7 @@
                     lastUpdated: window.firestore.serverTimestamp()
                 });
                 
-                console.log('Firebase에서 가계부 데이터 수정 완료:', itemId);
+
             } catch (error) {
                 console.error('Firebase 수정 실패:', error);
                 throw error;
@@ -1012,7 +1012,7 @@
                     
                     renderStats();
                     renderTable();
-                    console.log('URL에서 가계부 데이터 로드 완료:', budgetData.length + '개 항목');
+
                 } catch (error) {
                     console.error('URL 데이터 파싱 오류:', error);
                     showNoData();
@@ -1521,7 +1521,7 @@
                   errorMessage = '권한 문제로 임시 저장되었습니다. 로그인을 확인해주세요.';
                 }
                 
-                console.log(`가계부 오프라인 저장 완료 (작업 ID: ${operationId})`);
+
                 alert(errorMessage);
                 closeBudgetDialog();
                 
@@ -1564,7 +1564,7 @@
                   renderStats();
                   renderTable();
                   
-                  console.log(`가계부 삭제 오프라인 저장 완료 (작업 ID: ${operationId})`);
+
                   alert('항목이 임시 삭제되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
                 } else {
                   alert('삭제에 실패했습니다. 다시 시도해주세요.');
@@ -1746,7 +1746,7 @@
                 Object.assign(item, tempUpdateData);
                 showCurrencySelectDropdown(amount, itemId, cell);
                 
-                console.log(`금액 오프라인 저장 완료 (작업 ID: ${operationId})`);
+
             });
         }
         
@@ -1901,7 +1901,7 @@
                 renderStats();
                 renderTable();
                 
-                console.log(`통화 오프라인 저장 완료 (작업 ID: ${operationId})`);
+
                 alert('통화가 임시 저장되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
             });
         }
@@ -2011,7 +2011,7 @@
                  renderStats();
                  renderTable();
                  
-                 console.log(`가계부 수정 오프라인 저장 완료 (작업 ID: ${operationId})`);
+
                  alert('항목이 임시 수정되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
              }
          }
