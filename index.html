@@ -2118,14 +2118,14 @@
         // Firebase 초기화 완료 후 동기화 시작
         waitForFirebaseAndStartSync();
         
-        // 페이지 로드 시 대기 작업 처리 비활성화 - 기존 데이터 보호
-        // if (navigator.onLine) {
-        //   setTimeout(() => {
-        //     processPendingOperations().catch(error => {
-        //       console.error('초기 대기 작업 처리 실패:', error);
-        //     });
-        //   }, 2000); // Firebase 초기화 대기
-        // }
+        // 페이지 로드 시 대기 작업 자동 처리
+        if (navigator.onLine) {
+          setTimeout(() => {
+            processPendingOperations().catch(error => {
+              console.error('초기 대기 작업 처리 실패:', error);
+            });
+          }, 2000); // Firebase 초기화 대기
+        }
         
         // 저장된 사용자 경로들 복원
         restoreSavedUserRoutes().then(() => {
@@ -2347,7 +2347,7 @@
        async function saveCheckboxStates() {
          // 동기화 중이면 무시 (무한 루프 방지)
          if (isSyncing) {
-           console.log('동기화 중이므로 체크박스 저장 건너뜀');
+
            return;
          }
          
@@ -2371,7 +2371,7 @@
            // 사용자 추가 항목의 체크박스 상태도 업데이트
            updateUserItemsCheckboxStates();
            
-                     console.log('Firebase에 체크박스 상태 저장 완료');
+
           onFirebaseUploadSuccess('체크박스');
            
          } catch (error) {
@@ -2402,7 +2402,7 @@
              if (checkbox && item.checked !== checkbox.checked) {
                item.checked = checkbox.checked;
                hasChanges = true;
-               console.log(`체크박스 상태 변경: ${item.id} -> ${checkbox.checked}`);
+
              }
            }
            return item;
@@ -2416,7 +2416,7 @@
                lastUpdated: window.firestore.serverTimestamp()
              }, { merge: true });
              
-             console.log('사용자 항목 체크박스 상태 Firebase 저장 완료');
+
            } catch (error) {
              console.error('사용자 항목 체크박스 상태 저장 실패:', error);
            }
@@ -2467,7 +2467,7 @@
             // 마커제거 버튼 상태 업데이트
             updateMarkerRemoveButtons();
             
-            console.log('Firebase에서 상태 복원 완료');
+
             // 기존 항목 숨김/오버라이드 상태 복원 (없을 경우 기본값)
             window.hiddenExistingItems = data.hiddenExistingItems || [];
             window.existingItemOverrides = data.existingItemOverrides || {};
@@ -2476,7 +2476,7 @@
             }
           } else {
             // Firebase 문서가 존재하지 않는 경우
-            console.log('Firebase 문서가 존재하지 않음');
+
             
             // UI 초기화
             window.firebaseUserItems = [];
@@ -2495,7 +2495,7 @@
           // updateRouteRemoveButtons();
           // updateMarkerRemoveButtons();
           
-          console.log('Firebase 로드 실패 - 기존 데이터 보존');
+
         }
       }
        
@@ -2622,11 +2622,7 @@
           const hidden = Array.isArray(window.hiddenExistingItems) ? window.hiddenExistingItems : [];
           const overrides = window.existingItemOverrides || {};
           
-          console.log('applyOverridesAndHides 실행:', {
-            숨김항목수: hidden.length,
-            오버라이드수: Object.keys(overrides).length,
-            현재섹션: window.currentActiveSection || ''
-          });
+
           
           document.querySelectorAll('.checklist-item[data-item-type="existing"]').forEach(el => {
             const id = el.getAttribute('data-item-id');
@@ -2672,7 +2668,7 @@
             }
           });
           
-          console.log('applyOverridesAndHides 완료');
+
         } catch (e) {
           console.error('applyOverridesAndHides 실패:', e);
         }
@@ -2794,7 +2790,7 @@
            // 항목 추가 후 폼 자동 숨기기
            hideAddForm();
            
-           console.log('Firebase에 새 항목 저장 완료 - 실시간 동기화로 UI 업데이트');
+
            
          } catch (error) {
            console.error('Firebase 저장 실패:', error);
@@ -2818,7 +2814,7 @@
            }
            
            updateSyncStatus(errorMessage, 'warning');
-           console.log(`사용자 항목 오프라인 저장 완료 (작업 ID: ${operationId})`);
+
            
          } finally {
            // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
@@ -2886,7 +2882,7 @@
       
       // 전체 지도를 모든 마커와 경로가 보이도록 조정하는 함수
       function resetMapToShowAllItems() {
-        console.log('전체 지도로 돌아가기');
+
         
         const bounds = new google.maps.LatLngBounds();
         let hasItems = false;
@@ -2913,7 +2909,7 @@
         
         // 3. 마커나 경로가 있으면 화면에 맞추기, 없으면 기본 홋카이도 지역으로
         if (hasItems) {
-          console.log('모든 마커/경로를 포함하여 화면 맞추기');
+
           
           const paddingOptions = {
             top: isMobile ? 80 : 60,
@@ -2932,7 +2928,7 @@
             }
           }, 100);
         } else {
-          console.log('마커/경로가 없어 기본 홋카이도 지역으로 이동');
+
           // 기본 홋카이도 지역으로 설정
           map.setCenter({ lat: 43.2203, lng: 142.8635 });
           map.setZoom(7);
@@ -3022,7 +3018,7 @@
           updateRouteRemoveButtons();
           
           onFirebaseUploadSuccess('항목 삭제');
-          console.log('Firebase에서 항목 삭제 완료');
+
           
                  } catch (error) {
            console.error('Firebase 삭제 실패:', error);
@@ -3225,7 +3221,7 @@
             );
             
             // 실시간 동기화를 위한 강제 업데이트 트리거
-            console.log('세부항목 수정 완료 - 실시간 동기화 트리거');
+
             onFirebaseUploadSuccess('세부항목 수정');
           } catch (e) {
             console.error('오버라이드 저장 실패:', e);
@@ -3273,19 +3269,14 @@
           currentItems[itemIndex] = updatedItem;
           
           // Firebase에 저장
-          console.log('사용자 항목 수정 - Firebase 저장 시도:', {
-            itemId,
-            title,
-            link,
-            updatedItem
-          });
+
           
           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
             userAddedItems: currentItems,
             lastUpdated: window.firestore.serverTimestamp()
           });
           
-          console.log('사용자 항목 수정 - Firebase 저장 완료');
+
           
           // 전역 변수 업데이트
           window.firebaseUserItems = currentItems;
@@ -3327,7 +3318,7 @@
           window.existingItemOverrides[itemId] = { title, link };
           
           // 실시간 동기화를 위한 강제 업데이트
-          console.log('기존 항목 수정 완료 - 실시간 동기화 강제 트리거');
+
           
           // 즉시 UI에 반영
           if (typeof applyOverridesAndHides === 'function') {
@@ -3594,7 +3585,7 @@
       function initializeSyncSystem() {
         // 네트워크 상태 모니터링 (통합)
         window.addEventListener('online', function() {
-          console.log('네트워크 연결됨 - 동기화 재시도');
+
           updateSyncStatus('네트워크 연결됨', 'success');
           
           // Firebase 동기화 재설정
@@ -3603,15 +3594,15 @@
           }
           setTimeout(() => {
             setupFirebaseSync();
-            // 대기 작업 처리 비활성화 - 기존 데이터 보호
-            // processPendingOperations().catch(error => {
-            //   console.error('온라인 전환 시 대기 작업 처리 실패:', error);
-            // });
+            // 온라인 전환 시 대기 작업 자동 처리
+            processPendingOperations().catch(error => {
+              console.error('온라인 전환 시 대기 작업 처리 실패:', error);
+            });
           }, 1000);
         });
         
         window.addEventListener('offline', function() {
-          console.log('네트워크 연결 끊김 - 오프라인 모드');
+
           updateSyncStatus('오프라인 모드', 'warning');
           enableOfflineMode();
         });
@@ -3622,7 +3613,7 @@
         // 페이지 가시성 변경 시 동기화 상태 확인
         document.addEventListener('visibilitychange', function() {
           if (!document.hidden && navigator.onLine) {
-            console.log('페이지 가시성 변경 - 동기화 상태 확인');
+
             updateSyncStatus('동기화 상태 확인 중...', 'info');
             
             // Firebase 연결 상태 확인
@@ -3630,10 +3621,10 @@
               if (window.db) {
                 updateSyncStatus('동기화 연결됨', 'success');
                 
-                // 대기 작업 처리 비활성화 - 기존 데이터 보호
-                // processPendingOperations().catch(error => {
-                //   console.error('가시성 변경 시 대기 작업 처리 실패:', error);
-                // });
+                // 페이지 복귀 시 대기 작업 자동 처리
+                processPendingOperations().catch(error => {
+                  console.error('가시성 변경 시 대기 작업 처리 실패:', error);
+                });
               } else {
                 updateSyncStatus('동기화 연결 실패', 'error');
               }
@@ -3644,7 +3635,7 @@
         // 주기적 동기화 상태 확인 (5분마다)
         setInterval(() => {
           if (navigator.onLine && window.db && !isSyncing) {
-            console.log('주기적 동기화 상태 확인');
+
             updateSyncStatus('동기화 상태 확인 중...', 'info');
             
             // 간단한 연결 테스트
@@ -3652,10 +3643,10 @@
               .then(() => {
                 updateSyncStatus('동기화 정상', 'success');
                 
-                // 대기 중인 작업 처리 비활성화 - 기존 데이터 보호
-                // processPendingOperations().catch(error => {
-                //   console.error('대기 작업 처리 실패:', error);
-                // });
+                // 주기적 동기화 시 대기 작업 자동 처리
+                processPendingOperations().catch(error => {
+                  console.error('대기 작업 처리 실패:', error);
+                });
               })
               .catch(() => {
                 updateSyncStatus('동기화 연결 실패', 'error');
@@ -3667,25 +3658,23 @@
       
       // 마커생성 모드 토글 함수
       function toggleMarkerMode() {
-        console.log('toggleMarkerMode 호출됨, isMarkerMode:', isMarkerMode, 'customMarkers.length:', customMarkers.length);
+
         
         if (isMarkerMode) {
-          console.log('마커 모드가 활성화되어 있음');
-          console.log('customMarkers 배열:', customMarkers);
-          console.log('customMarkers.length:', customMarkers.length);
+
           
           // 버튼 텍스트 확인
           const markerBtn = document.getElementById('topMarkerBtn');
           const buttonText = markerBtn.textContent;
-          console.log('현재 버튼 텍스트:', buttonText);
+
           
           // 마커가 생성되어 있고 "마커완성" 상태라면 저장 다이얼로그 표시
           if (customMarkers.length > 0 || buttonText === '마커완성') {
-            console.log('마커완성 상태: showMarkerSaveDialog 호출');
+
             
             try {
               showMarkerSaveDialog();
-              console.log('showMarkerSaveDialog 호출 성공');
+
             } catch (error) {
               console.error('showMarkerSaveDialog 호출 실패:', error);
               // 대안: 직접 다이얼로그 생성
@@ -3712,7 +3701,7 @@
             window.markerModeMessage = null;
           }
           
-          console.log('마커생성 모드가 비활성화되었습니다.');
+
         } else {
           // 경로 생성 모드가 활성화되어 있으면 비활성화
           if (isRouteMode) {
@@ -3751,7 +3740,7 @@
           markerBtn.style.color = 'white';
           
           // 안내 메시지 없이 바로 시작
-          console.log('마커생성 모드가 활성화되었습니다. 지도를 클릭하여 마커를 생성하세요.');
+
         }
       }
       
@@ -3889,7 +3878,7 @@
         });
         
         customMarkers.push(marker);
-        console.log('마커 추가됨, 현재 customMarkers.length:', customMarkers.length);
+
         
         // 마커가 생성되면 버튼을 "마커완성"으로 변경
         if (customMarkers.length >= 1) {
@@ -3897,11 +3886,11 @@
           markerBtn.textContent = '마커완성';
           markerBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
           markerBtn.style.color = 'white';
-          console.log('버튼을 "마커완성"으로 변경');
+
         }
         
         // 성공 메시지
-        console.log(`마커 ${customMarkers.length}이 생성되었습니다.`);
+
         
         // 현재 줌 레벨에 따라 타이틀 표시/숨김
         toggleMarkerTitleVisibility(map.getZoom());
@@ -3909,7 +3898,7 @@
       
       // 사용자 정의 마커 제거 함수
       function removeCustomMarker(marker) {
-        console.log('removeCustomMarker 호출됨, 현재 customMarkers.length:', customMarkers.length);
+
         const index = customMarkers.indexOf(marker);
         if (index > -1) {
           // 타이틀 라벨도 함께 제거
@@ -3919,7 +3908,7 @@
           
           marker.setMap(null);
           customMarkers.splice(index, 1);
-          console.log('마커 제거됨, 현재 customMarkers.length:', customMarkers.length);
+
           
           // 마커 번호 재정렬
           customMarkers.forEach((m, i) => {
@@ -3946,10 +3935,10 @@
             markerBtn.textContent = '마커생성 중...';
             markerBtn.style.background = 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
             markerBtn.style.color = 'white';
-            console.log('버튼을 "마커생성 중..."으로 변경');
+
           }
           
-          console.log(`마커가 제거되었습니다. 남은 마커: ${customMarkers.length}개`);
+
         }
       }
       
@@ -4006,7 +3995,7 @@
           routeBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
           routeBtn.style.color = 'white';
           
-          console.log('경로생성 모드가 활성화되었습니다. 지도를 클릭하여 경로의 첫 번째 위치를 추가하세요.');
+
         } else if (userRouteMarkers.length >= 2) {
           // 마커가 2개 이상일 때: 경로완성 모드
           const routeBtn = document.getElementById('topRouteBtn');
@@ -4075,7 +4064,7 @@
                 strokeWeight: 3
               });
               directionsRenderer.setMap(map);
-              console.log('Directions 서비스 초기화 완료');
+
             } catch (error) {
               console.error('Directions 서비스 초기화 실패:', error);
               alert('경로탐색 기능을 사용할 수 없습니다. Directions API가 활성화되지 않았을 수 있습니다.');
@@ -4083,7 +4072,7 @@
             }
           }
           
-          console.log('경로탐색 모드가 활성화되었습니다. 출발지와 도착지를 클릭하세요.');
+
           
           // API 상태 확인
           checkDirectionsApiStatus();
@@ -4109,7 +4098,7 @@
             directionsRenderer.setMap(null);
           }
           
-          console.log('경로탐색 모드가 비활성화되었습니다.');
+
         }
       }
       
@@ -4140,7 +4129,7 @@
             }
           });
           
-          console.log('출발지가 설정되었습니다. 도착지를 클릭하세요.');
+
         } else if (!searchEndMarker) {
           // 도착지 설정
           searchEndMarker = new google.maps.Marker({
@@ -4197,7 +4186,7 @@
           });
           
           searchEndMarker = null;
-          console.log('새로운 출발지가 설정되었습니다. 도착지를 클릭하세요.');
+
         }
       }
       
@@ -4213,10 +4202,10 @@
           // region 제한 제거: 전 세계 경로탐색 가능
         };
         
-        console.log('경로를 검색하고 있습니다...');
+
         
         directionsService.route(request, (result, status) => {
-          console.log('경로 검색 응답:', { status, result });
+
           
           if (status === 'OK') {
             directionsRenderer.setDirections(result);
@@ -4227,7 +4216,7 @@
             const distance = leg.distance.text;
             const duration = leg.duration.text;
             
-            console.log(`경로 검색 완료: 거리 ${distance}, 소요시간 ${duration}`);
+
             
             // 기기별 처리 - 패널 없이 바로 연결
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -4250,14 +4239,12 @@
               
               // 즉시 앱 실행
               window.location.href = appUrl;
-              console.log(`${isIOS ? 'iOS' : isAndroid ? 'Android' : '기타 모바일'}에서 구글맵 앱 직접 실행:`, appUrl);
-              console.log(`검색된 경로: 거리 ${distance}, 소요시간 ${duration}`);
+
             } else {
               // 데스크탑: 바로 구글맵 웹페이지로 이동
               const webUrl = buildGoogleMapsUrlWithNames(searchStartMarker.getPosition(), searchEndMarker.getPosition(), 'driving');
               window.open(webUrl, '_blank');
-              console.log('데스크탑에서 구글맵 웹으로 바로 이동:', webUrl);
-              console.log(`검색된 경로: 거리 ${distance}, 소요시간 ${duration}`);
+
             }
             
             // 경로탐색 모드 자동 종료 (Google Maps 연결 후)
@@ -4297,10 +4284,10 @@
       }
       // Directions API 상태 확인 함수
       function checkDirectionsApiStatus() {
-        console.log('=== Directions API 상태 확인 ===');
+
         
         // 현재 사용 중인 API 키 표시
-        console.log('🔑 현재 API 키:', 'AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg');
+
         
         // 기본 확인사항
         if (typeof google === 'undefined') {
@@ -4323,21 +4310,18 @@
           return;
         }
         
-        console.log('✅ Directions API 기본 객체들이 정상적으로 로드되었습니다.');
-        console.log('✅ DirectionsService:', typeof google.maps.DirectionsService);
-        console.log('✅ DirectionsRenderer:', typeof google.maps.DirectionsRenderer);
-        console.log('✅ 현재 directionsService 인스턴스:', directionsService ? '생성됨' : '미생성');
-        console.log('✅ 현재 directionsRenderer 인스턴스:', directionsRenderer ? '생성됨' : '미생성');
+
+
         
         // API 권한 테스트를 위한 간단한 요청
-        console.log('🧪 API 권한 테스트 시작...');
+
         testDirectionsApiPermission();
       }
       
       // API 권한 테스트 함수
       function testDirectionsApiPermission() {
         if (!directionsService) {
-          console.log('DirectionsService 인스턴스가 없어 테스트를 건너뜁니다.');
+
           return;
         }
         
@@ -4348,13 +4332,13 @@
           travelMode: google.maps.TravelMode.DRIVING
         };
         
-        console.log('🧪 테스트 경로 요청:', testRequest);
+
         
         directionsService.route(testRequest, (result, status) => {
-          console.log('🧪 테스트 결과:', { status, result });
+
           
           if (status === 'OK') {
-            console.log('✅ Directions API 권한 테스트 성공! 경로탐색 기능을 사용할 수 있습니다.');
+
           } else if (status === 'REQUEST_DENIED') {
             console.error('❌ API 키에 Directions API 권한이 없습니다.');
             console.error('📋 해결 방법:');
@@ -4414,7 +4398,7 @@
       
       // 경로탐색 상태 초기화 함수
       function resetRouteSearchState() {
-        console.log('경로탐색 상태 초기화 중...');
+
         
         // 검색 마커들 제거
         if (searchStartMarker) {
@@ -4443,14 +4427,14 @@
         // 앱 실행 플래그 리셋
         window.routeSearchExecuted = false;
         
-        console.log('경로탐색 초기화 완료');
+
       }
       
       // 페이지 가시성 변경 감지 (앱에서 복귀 감지)
       function setupPageVisibilityListener() {
         document.addEventListener('visibilitychange', function() {
           if (document.visibilityState === 'visible' && window.routeSearchExecuted) {
-            console.log('앱에서 웹페이지로 복귀 감지됨');
+
             // 약간의 지연 후 초기화 (안내창 없이)
             setTimeout(() => {
               resetRouteSearchState();
@@ -4461,14 +4445,14 @@
         // 포커스 이벤트도 감지 (iOS Safari 호환성)
         window.addEventListener('focus', function() {
           if (window.routeSearchExecuted) {
-            console.log('앱에서 웹페이지로 포커스 복귀 감지됨');
+
             setTimeout(() => {
               resetRouteSearchState();
             }, 500);
           }
         });
         
-        console.log('페이지 복귀 감지 리스너 설정 완료');
+
       }
       
       // 모바일 구글맵 앱 직접 연결 URL 스킴 생성 함수
@@ -4506,19 +4490,19 @@
           // comgooglemaps:// 스킴으로 바로 앱 실행
           appUrl = `comgooglemaps://?saddr=${originStr}&daddr=${destinationStr}${modeParam}`;
           
-          console.log('iOS에서 구글맵 앱 직접 스킴:', appUrl);
+
           
         } else if (isAndroid) {
           // Android: 구글맵 앱 직접 인텐트 사용
           // google.navigation:// 스킴으로 바로 네비게이션 시작
           appUrl = `google.navigation:q=${destinationStr}&mode=${travelMode}`;
           
-          console.log('Android에서 구글맵 네비게이션 직접 스킴:', appUrl);
+
         } else {
           // 기타 모바일: 구글맵 앱 스킴 시도
           appUrl = `comgooglemaps://?saddr=${originStr}&daddr=${destinationStr}${modeParam}`;
           
-          console.log('기타 모바일에서 구글맵 앱 스킴:', appUrl);
+
         }
         
         return appUrl;
@@ -4666,7 +4650,7 @@
         delete window.tempSearchedRoute;
         
         alert(`검색된 경로가 "${location}"에 저장되었습니다.`);
-        console.log('검색된 경로 저장 완료:', routeData);
+
       }
       
       // 사용자 경로에 위치 추가 함수
@@ -4719,7 +4703,7 @@
         const message = userRouteMarkers.length === 1 ? 
           '첫 번째 위치가 추가되었습니다. 계속해서 다음 위치를 클릭하세요.' :
           `위치 ${userRouteMarkers.length}이 추가되었습니다.`;
-        console.log(message);
+
       }
       
       // 사용자 경로에서 위치 제거 함수
@@ -4981,7 +4965,7 @@
           
           onFirebaseUploadSuccess('경로 저장');
           
-          console.log('Firebase에 경로 저장 완료');
+
           
         } catch (error) {
           console.error('Firebase 저장 실패:', error);
@@ -5038,7 +5022,7 @@
       
       // 마커 저장 위치 선택 다이얼로그 표시
       function showMarkerSaveDialog() {
-        console.log('showMarkerSaveDialog 함수 호출됨');
+
         
         // 기존 다이얼로그가 있으면 제거
         const existingDialog = document.getElementById('markerSaveDialog');
@@ -5074,7 +5058,7 @@
         `;
         
         // 다이얼로그를 지도 위에 표시
-        console.log('다이얼로그 DOM에 추가:', dialogDiv);
+
         document.body.appendChild(dialogDiv);
         
         // 다이얼로그 위치 조정 - 모바일 최적화
@@ -5093,7 +5077,7 @@
             dialogDiv.style.top = (mapRect.height / 2 - 150) + 'px';
             dialogDiv.style.transform = 'none';
           }
-          console.log('다이얼로그 위치 설정 완료');
+
         }, 100);
       }
       
@@ -5162,7 +5146,7 @@
           
           onFirebaseUploadSuccess('마커 저장');
           
-          console.log('Firebase에 마커 저장 완료');
+
           
         } catch (error) {
           console.error('Firebase 저장 실패:', error);
@@ -5594,7 +5578,7 @@
           return;
         }
         
-        console.log('경로 삭제 시작 - isSyncing 플래그 무시하고 즉시 처리');
+
         
         try {
           // 정보창과 편집 다이얼로그 닫기
@@ -5618,7 +5602,7 @@
           
           const route = savedUserRoutes[routeIndex];
           
-          console.log('경로 삭제 시도:', { routeId, routeName, routeIndex });
+
           
           // 지도에서 경로 시각적 제거 (즉시 피드백을 위해)
           if (route.pathElement) {
@@ -5632,19 +5616,11 @@
           const updatedRoutes = [...savedUserRoutes];
           updatedRoutes.splice(routeIndex, 1);
           
-          console.log('로컬 배열 보존 - 실시간 동기화 감지를 위해:', {
-            로컬배열수: savedUserRoutes.length,
-            Firebase저장배열수: updatedRoutes.length
-          });
+
           
           // Firebase에 업데이트
           if (window.db && window.firestore) {
-            console.log('Firebase에 경로 삭제 저장 시도 중...', {
-              routeId,
-              routeName,
-              현재경로수: savedUserRoutes.length,
-              저장할경로수: updatedRoutes.length
-            });
+
             
             const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
             const sanitizedRoutes = sanitizeRoutesForFirestore(updatedRoutes);
@@ -5653,10 +5629,10 @@
               lastUpdated: window.firestore.serverTimestamp()
             });
             
-            console.log('Firebase 경로 삭제 저장 성공 - 실시간 동기화로 UI 업데이트 예정');
+
             
             // UI 업데이트는 실시간 동기화를 통해 처리되므로 여기서는 하지 않음
-            console.log('로컬 UI 업데이트 건너뜀 - Firebase 실시간 동기화 대기 중...');
+
           } else {
             console.warn('Firebase가 초기화되지 않았습니다 - 경로 삭제가 저장되지 않음');
             alert('Firebase 연결이 되지 않았습니다. 경로 삭제가 저장되지 않을 수 있습니다.');
@@ -5676,14 +5652,12 @@
       // Firebase 연결 상태 테스트 함수
       async function testFirebaseConnection() {
         try {
-          console.log('Firebase 연결 테스트 시작...');
-          console.log('window.db:', !!window.db);
-          console.log('window.firestore:', !!window.firestore);
+
           
           if (window.db && window.firestore) {
             const testDoc = window.firestore.doc(window.db, 'users', 'currentUser');
             const docSnap = await window.firestore.getDoc(testDoc);
-            console.log('Firebase 연결 성공, 문서 존재:', docSnap.exists());
+
             return true;
           } else {
             console.error('Firebase 객체가 초기화되지 않았습니다');
@@ -5806,12 +5780,12 @@
           }
         });
         
-        console.log('경로 색상 선택:', routeId, color);
+
       }
       
       // 경로 색상 업데이트 함수
       function updateRouteColor(routeId, color) {
-        console.log('경로 색상 업데이트:', routeId, color);
+
         
         // 해당 경로 찾기
         const route = savedUserRoutes.find(r => r.id === routeId);
@@ -5834,9 +5808,9 @@
             }
           }
           
-          console.log('경로 색상 업데이트 완료:', routeId, color);
+
         } else {
-          console.log('경로를 찾을 수 없음:', routeId);
+
         }
       }
       
@@ -5896,7 +5870,7 @@
           showRouteInfo(route, null);
           
           // 성공 알림
-          console.log('경로 정보가 성공적으로 저장되었습니다.');
+
           
         } catch (error) {
           console.error('경로 정보 저장 실패:', error);
@@ -5935,7 +5909,7 @@
           }
           
           // 성공적인 저장처럼 보이도록 처리
-          console.log(`경로 정보 오프라인 저장 완료 (작업 ID: ${operationId})`);
+
           alert(errorMessage);
           
         } finally {
@@ -6173,7 +6147,7 @@
           // 임시로 업데이트된 markerInfoData 생성 (원본 수정 없음)
           const updatedMarkerInfoData = { ...markerInfoData, [markerId]: newInfo };
           
-          console.log('Firebase 저장 시도 중...', { markerId, newInfo });
+
           const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
           await window.firestore.updateDoc(userDocRef, {
             markerInfoData: updatedMarkerInfoData,
@@ -6183,10 +6157,10 @@
           // Firebase 저장 성공 시에만 로컬 캐시 업데이트
           // (즉시 UI 반영용 - 실시간 동기화 보완)
           markerInfoData[markerId] = newInfo;
-          console.log('Firebase 저장 성공 - 로컬 캐시 업데이트 완료');
+
           
           // 성공 메시지
-          console.log('마커 정보가 저장되었습니다.');
+
           onFirebaseUploadSuccess('마커 정보');
           
           // 편집 다이얼로그 닫기
@@ -6427,7 +6401,7 @@
               console.log('Firebase 마커 삭제 저장 성공 - 실시간 동기화로 UI 업데이트 예정');
             
             // UI 업데이트는 실시간 동기화를 통해 처리되므로 여기서는 하지 않음
-            console.log('로컬 UI 업데이트 건너뜀 - Firebase 실시간 동기화 대기 중...');
+
             } else {
               console.warn('Firebase가 초기화되지 않았습니다 - 마커 삭제가 저장되지 않음');
               alert('Firebase 연결이 되지 않았습니다. 마커 삭제가 저장되지 않을 수 있습니다.');
@@ -8705,6 +8679,15 @@
           if (count > 0) {
             statusIndicator.textContent = `대기 중: ${count}`;
             statusIndicator.style.display = 'block';
+            
+            // 대기 작업이 많으면 경고 색상으로 변경
+            if (count > 5) {
+              statusIndicator.style.background = 'rgba(239, 68, 68, 0.9)';
+            } else if (count > 2) {
+              statusIndicator.style.background = 'rgba(245, 158, 11, 0.9)';
+            } else {
+              statusIndicator.style.background = 'rgba(59, 130, 246, 0.9)';
+            }
           } else {
             statusIndicator.style.display = 'none';
           }
@@ -8721,16 +8704,8 @@
         const pending = getPendingOperations();
         if (pending.length === 0) return;
         
-        // 안전 장치: 기존 데이터 보호를 위한 확인
-        console.log(`대기 중인 작업 ${pending.length}개 발견 - 사용자 확인 필요`);
-        
-        // 사용자 확인 없이는 자동 실행하지 않음
-        if (!confirm(`대기 중인 작업 ${pending.length}개가 있습니다.\n이 작업들을 처리하시겠습니까?\n\n주의: 기존 데이터에 영향을 줄 수 있습니다.`)) {
-          console.log('사용자가 대기 작업 처리를 취소했습니다.');
-          return;
-        }
-        
-        console.log(`대기 중인 작업 ${pending.length}개 처리 시작`);
+        // 대기 작업 자동 처리 (CRUD 작업이므로 안전함)
+        console.log(`대기 중인 작업 ${pending.length}개 자동 처리 시작`);
         
         for (const operation of pending) {
           try {
@@ -9478,8 +9453,7 @@
           `;
           
           pendingDiv.onclick = () => {
-            const count = getPendingOperations().length;
-            alert(`대기 중인 작업: ${count}개\n네트워크 연결 시 자동으로 동기화됩니다.`);
+            showPendingOperationsDialog();
           };
           
           document.body.appendChild(pendingDiv);
@@ -9555,6 +9529,238 @@
           const indicator = document.getElementById('syncStatusIndicator');
           console.log('배지 표시 상태:', indicator ? '표시됨' : '없음');
         }, 100);
+      }
+      
+      // 대기 작업 상세 다이얼로그 표시 함수
+      function showPendingOperationsDialog() {
+        const pendingOps = getPendingOperations();
+        if (pendingOps.length === 0) {
+          alert('대기 중인 작업이 없습니다.');
+          return;
+        }
+        
+        // 기존 다이얼로그가 있으면 제거
+        const existingDialog = document.getElementById('pendingOpsDialog');
+        const existingOverlay = document.getElementById('dialogOverlay');
+        if (existingDialog) existingDialog.remove();
+        if (existingOverlay) existingOverlay.remove();
+        
+        // 오버레이 생성
+        const overlay = document.createElement('div');
+        overlay.id = 'dialogOverlay';
+        overlay.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        `;
+        
+        // 다이얼로그 생성
+        const dialog = document.createElement('div');
+        dialog.id = 'pendingOpsDialog';
+        dialog.style.cssText = `
+          background: white;
+          border-radius: 16px;
+          padding: 0;
+          max-width: 90vw;
+          max-height: 80vh;
+          width: ${window.innerWidth < 768 ? '95vw' : '500px'};
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+          overflow: hidden;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+        
+        // 작업 타입별 한글 이름 매핑
+        const operationTypeNames = {
+          'USER_ITEM_ADD': '항목 추가',
+          'USER_ITEM_UPDATE': '항목 수정',
+          'USER_ITEM_DELETE': '항목 삭제',
+          'ROUTE_SAVE': '경로 저장',
+          'ROUTE_DELETE': '경로 삭제',
+          'ROUTE_INFO_UPDATE': '경로 정보 수정',
+          'MARKER_SAVE': '마커 저장',
+          'MARKER_DELETE': '마커 삭제',
+          'MARKER_INFO_UPDATE': '마커 정보 수정',
+          'CHECKBOX_STATE_SAVE': '체크박스 상태 저장',
+          'EXISTING_ITEM_OVERRIDE': '기존 항목 수정'
+        };
+        
+        // 작업 목록 HTML 생성
+        let operationsHtml = '';
+        pendingOps.forEach((op, index) => {
+          const typeName = operationTypeNames[op.type] || op.type;
+          const timestamp = new Date(op.timestamp).toLocaleString('ko-KR');
+          const retryCount = op.retryCount || 0;
+          
+          operationsHtml += `
+            <div style="
+              padding: 12px 16px;
+              border-bottom: 1px solid #f0f0f0;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            ">
+              <div style="flex: 1;">
+                <div style="font-weight: 600; color: #333; margin-bottom: 4px;">
+                  ${typeName}
+                </div>
+                <div style="font-size: 12px; color: #666;">
+                  ${op.data?.title || op.data?.name || '데이터 없음'}
+                </div>
+                <div style="font-size: 11px; color: #999; margin-top: 2px;">
+                  ${timestamp} ${retryCount > 0 ? `(재시도 ${retryCount}회)` : ''}
+                </div>
+              </div>
+              <div style="
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: ${retryCount > 2 ? '#ef4444' : retryCount > 0 ? '#f59e0b' : '#3b82f6'};
+                margin-left: 12px;
+              "></div>
+            </div>
+          `;
+        });
+        
+        dialog.innerHTML = `
+          <div style="
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          ">
+            <h3 style="margin: 0; font-size: 18px; font-weight: 600;">
+              대기 중인 작업 (${pendingOps.length}개)
+            </h3>
+            <button onclick="closePendingOperationsDialog()" style="
+              background: none;
+              border: none;
+              color: white;
+              font-size: 24px;
+              cursor: pointer;
+              padding: 0;
+              width: 30px;
+              height: 30px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 50%;
+              transition: background-color 0.2s;
+            " onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" 
+               onmouseout="this.style.backgroundColor='transparent'">
+              ×
+            </button>
+          </div>
+          <div style="max-height: 400px; overflow-y: auto;">
+            ${operationsHtml}
+          </div>
+          <div style="
+            padding: 16px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          ">
+            <div style="font-size: 12px; color: #666;">
+              네트워크 연결 시 자동으로 동기화됩니다
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button onclick="retryAllPendingOperations()" style="
+                background: #3b82f6;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 8px;
+                font-size: 12px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: background-color 0.2s;
+              " onmouseover="this.style.backgroundColor='#2563eb'" 
+                 onmouseout="this.style.backgroundColor='#3b82f6'">
+                지금 동기화
+              </button>
+              <button onclick="clearAllPendingOperations()" style="
+                background: #ef4444;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 8px;
+                font-size: 12px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: background-color 0.2s;
+              " onmouseover="this.style.backgroundColor='#dc2626'" 
+                 onmouseout="this.style.backgroundColor='#ef4444'">
+                모두 삭제
+              </button>
+            </div>
+          </div>
+        `;
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        
+        // 오버레이 클릭 시 닫기
+        overlay.onclick = (e) => {
+          if (e.target === overlay) {
+            closePendingOperationsDialog();
+          }
+        };
+        
+        // ESC 키로 닫기
+        const handleEsc = (e) => {
+          if (e.key === 'Escape') {
+            closePendingOperationsDialog();
+            document.removeEventListener('keydown', handleEsc);
+          }
+        };
+        document.addEventListener('keydown', handleEsc);
+      }
+      
+      // 대기 작업 다이얼로그 닫기
+      function closePendingOperationsDialog() {
+        const dialog = document.getElementById('pendingOpsDialog');
+        const overlay = document.getElementById('dialogOverlay');
+        if (dialog) dialog.remove();
+        if (overlay) overlay.remove();
+      }
+      
+      // 모든 대기 작업 재시도
+      async function retryAllPendingOperations() {
+        if (!navigator.onLine) {
+          alert('네트워크에 연결되어 있지 않습니다.');
+          return;
+        }
+        
+        try {
+          await processPendingOperations();
+          closePendingOperationsDialog();
+          alert('대기 작업 동기화를 시작했습니다.');
+        } catch (error) {
+          console.error('대기 작업 재시도 실패:', error);
+          alert('동기화 중 오류가 발생했습니다.');
+        }
+      }
+      
+      // 모든 대기 작업 삭제
+      function clearAllPendingOperations() {
+        if (!confirm('모든 대기 작업을 삭제하시겠습니까?\n삭제된 작업은 복구할 수 없습니다.')) {
+          return;
+        }
+        
+        localStorage.removeItem(PENDING_OPERATIONS_KEY);
+        updatePendingOperationsStatus(0);
+        closePendingOperationsDialog();
+        alert('모든 대기 작업이 삭제되었습니다.');
       }
       
       // 일정 추가 다이얼로그 표시 함수
