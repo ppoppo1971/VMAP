@@ -2122,7 +2122,7 @@
         if (navigator.onLine) {
           setTimeout(() => {
             processPendingOperations().catch(error => {
-              console.error('초기 대기 작업 처리 실패:', error);
+              // console.error('초기 대기 작업 처리 실패:', error);
             });
           }, 2000); // Firebase 초기화 대기
         }
@@ -2347,7 +2347,7 @@
        async function saveCheckboxStates() {
          // 동기화 중이면 무시 (무한 루프 방지)
          if (isSyncing) {
-           console.log('동기화 중이므로 체크박스 저장 건너뜀');
+           // console.log('동기화 중이므로 체크박스 저장 건너뜀');
            return;
          }
          
@@ -2363,7 +2363,7 @@
            updateSyncStatus('체크박스 저장 중...', 'info');
            
            // Firebase에 저장
-           await window.firestore.setDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+           await window.firestore.setDoc(window.userDocRef, {
              preparationCheckboxes: states,
              lastUpdated: window.firestore.serverTimestamp()
            }, { merge: true });
@@ -2371,7 +2371,7 @@
            // 사용자 추가 항목의 체크박스 상태도 업데이트
            updateUserItemsCheckboxStates();
            
-                     console.log('Firebase에 체크박스 상태 저장 완료');
+                     // console.log('Firebase에 체크박스 상태 저장 완료');
           onFirebaseUploadSuccess('체크박스');
            
          } catch (error) {
@@ -2402,7 +2402,7 @@
              if (checkbox && item.checked !== checkbox.checked) {
                item.checked = checkbox.checked;
                hasChanges = true;
-               console.log(`체크박스 상태 변경: ${item.id} -> ${checkbox.checked}`);
+               // console.log(`체크박스 상태 변경: ${item.id} -> ${checkbox.checked}`);
              }
            }
            return item;
@@ -2411,12 +2411,12 @@
          // 변경사항이 있으면 Firebase에 저장
          if (hasChanges) {
            try {
-             await window.firestore.setDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+             await window.firestore.setDoc(window.userDocRef, {
                userAddedItems: updatedItems,
                lastUpdated: window.firestore.serverTimestamp()
              }, { merge: true });
              
-             console.log('사용자 항목 체크박스 상태 Firebase 저장 완료');
+             // console.log('사용자 항목 체크박스 상태 Firebase 저장 완료');
            } catch (error) {
              console.error('사용자 항목 체크박스 상태 저장 실패:', error);
            }
@@ -2429,7 +2429,7 @@
       // 체크박스 상태 복원 함수
       async function restoreCheckboxStates() {
         try {
-          const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+          const docSnap = await window.firestore.getDoc(window.userDocRef);
           if (docSnap.exists()) {
             const data = docSnap.data();
             
@@ -2467,7 +2467,7 @@
             // 마커제거 버튼 상태 업데이트
             updateMarkerRemoveButtons();
             
-            console.log('Firebase에서 상태 복원 완료');
+            // console.log('Firebase에서 상태 복원 완료');
             // 기존 항목 숨김/오버라이드 상태 복원 (없을 경우 기본값)
             window.hiddenExistingItems = data.hiddenExistingItems || [];
             window.existingItemOverrides = data.existingItemOverrides || {};
@@ -2476,7 +2476,7 @@
             }
           } else {
             // Firebase 문서가 존재하지 않는 경우
-            console.log('Firebase 문서가 존재하지 않음');
+            // console.log('Firebase 문서가 존재하지 않음');
             
             // UI 초기화
             window.firebaseUserItems = [];
@@ -2497,9 +2497,6 @@
         }
       }
        
-       // 사전준비 정보창 표시 함수 (제거됨 - 일정추가로 대체)
-        // function showPreparationInfo() { ... }
-      
       // 사전준비 정보창 닫기 함수
       function closePreparationInfo() {
         const infoDiv = document.getElementById('preparationInfo');
@@ -2609,24 +2606,18 @@
         }
       }
       
-      // 1일차 정보창 표시 함수 (제거됨 - 일정추가로 대체)
-      // function showDay1Info() { ... }
       
-
-      
-
-
       // 기존 항목 숨김/오버라이드 적용 함수
       function applyOverridesAndHides() {
         try {
           const hidden = Array.isArray(window.hiddenExistingItems) ? window.hiddenExistingItems : [];
           const overrides = window.existingItemOverrides || {};
           
-          console.log('applyOverridesAndHides 실행:', {
-            숨김항목수: hidden.length,
-            오버라이드수: Object.keys(overrides).length,
-            현재섹션: window.currentActiveSection || ''
-          });
+          // console.log('applyOverridesAndHides 실행:', {
+          //   숨김항목수: hidden.length,
+          //   오버라이드수: Object.keys(overrides).length,
+          //   현재섹션: window.currentActiveSection || ''
+          // });
           
           document.querySelectorAll('.checklist-item[data-item-type="existing"]').forEach(el => {
             const id = el.getAttribute('data-item-id');
@@ -2672,7 +2663,7 @@
             }
           });
           
-          console.log('applyOverridesAndHides 완료');
+          // console.log('applyOverridesAndHides 완료');
         } catch (e) {
           console.error('applyOverridesAndHides 실패:', e);
         }
@@ -2778,7 +2769,7 @@
            updateSyncStatus('새 항목 저장 중...', 'info');
            
            // Firebase에 저장
-           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+           await window.firestore.updateDoc(window.userDocRef, {
              userAddedItems: window.firestore.arrayUnion(newItem)
            });
            
@@ -2794,7 +2785,7 @@
            // 항목 추가 후 폼 자동 숨기기
            hideAddForm();
            
-           console.log('Firebase에 새 항목 저장 완료 - 실시간 동기화로 UI 업데이트');
+           // console.log('Firebase에 새 항목 저장 완료 - 실시간 동기화로 UI 업데이트');
            
          } catch (error) {
            console.error('Firebase 저장 실패:', error);
@@ -2818,7 +2809,7 @@
            }
            
            updateSyncStatus(errorMessage, 'warning');
-           console.log(`사용자 항목 오프라인 저장 완료 (작업 ID: ${operationId})`);
+           // console.log(`사용자 항목 오프라인 저장 완료 (작업 ID: ${operationId})`);
            
          } finally {
            // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
@@ -2886,7 +2877,7 @@
       
       // 전체 지도를 모든 마커와 경로가 보이도록 조정하는 함수
       function resetMapToShowAllItems() {
-        console.log('전체 지도로 돌아가기');
+        // console.log('전체 지도로 돌아가기');
         
         const bounds = new google.maps.LatLngBounds();
         let hasItems = false;
@@ -2913,7 +2904,7 @@
         
         // 3. 마커나 경로가 있으면 화면에 맞추기, 없으면 기본 홋카이도 지역으로
         if (hasItems) {
-          console.log('모든 마커/경로를 포함하여 화면 맞추기');
+          // console.log('모든 마커/경로를 포함하여 화면 맞추기');
           
           const paddingOptions = {
             top: isMobile ? 80 : 60,
@@ -2932,7 +2923,7 @@
             }
           }, 100);
         } else {
-          console.log('마커/경로가 없어 기본 홋카이도 지역으로 이동');
+          // console.log('마커/경로가 없어 기본 홋카이도 지역으로 이동');
           // 기본 홋카이도 지역으로 설정
           map.setCenter({ lat: 43.2203, lng: 142.8635 });
           map.setZoom(7);
@@ -2996,17 +2987,17 @@
           const updatedUserItems = currentItems.filter(item => item.id !== itemId);
           
           // Firebase에서 항목 제거
-          await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+          await window.firestore.updateDoc(window.userDocRef, {
             userAddedItems: updatedUserItems,
             lastUpdated: window.firestore.serverTimestamp()
           });
           
           // Firebase에서 해당 항목의 체크박스 상태도 제거
-          const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+          const docSnap = await window.firestore.getDoc(window.userDocRef);
           if (docSnap.exists() && docSnap.data().preparationCheckboxes) {
             const currentCheckboxStates = { ...docSnap.data().preparationCheckboxes };
             delete currentCheckboxStates[itemId];
-            await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+            await window.firestore.updateDoc(window.userDocRef, {
               preparationCheckboxes: currentCheckboxStates,
               lastUpdated: window.firestore.serverTimestamp()
             });
@@ -3022,7 +3013,7 @@
           updateRouteRemoveButtons();
           
           onFirebaseUploadSuccess('항목 삭제');
-          console.log('Firebase에서 항목 삭제 완료');
+          // console.log('Firebase에서 항목 삭제 완료');
           
                  } catch (error) {
            console.error('Firebase 삭제 실패:', error);
@@ -3107,7 +3098,7 @@
             saveCheckboxStates();
             // Firebase 저장
             await window.firestore.setDoc(
-              window.firestore.doc(window.db, 'users', 'currentUser'),
+              window.userDocRef,
               { hiddenExistingItems: window.firestore.arrayUnion(itemId), lastUpdated: window.firestore.serverTimestamp() },
               { merge: true }
             );
@@ -3219,13 +3210,13 @@
               applyOverridesAndHides();
             }
             await window.firestore.setDoc(
-              window.firestore.doc(window.db, 'users', 'currentUser'),
+              window.userDocRef,
               { existingItemOverrides: { [itemId]: { title, link } }, lastUpdated: window.firestore.serverTimestamp() },
               { merge: true }
             );
             
             // 실시간 동기화를 위한 강제 업데이트 트리거
-            console.log('세부항목 수정 완료 - 실시간 동기화 트리거');
+            // console.log('세부항목 수정 완료 - 실시간 동기화 트리거');
             onFirebaseUploadSuccess('세부항목 수정');
           } catch (e) {
             console.error('오버라이드 저장 실패:', e);
@@ -3273,19 +3264,19 @@
           currentItems[itemIndex] = updatedItem;
           
           // Firebase에 저장
-          console.log('사용자 항목 수정 - Firebase 저장 시도:', {
-            itemId,
-            title,
-            link,
-            updatedItem
-          });
+          // console.log('사용자 항목 수정 - Firebase 저장 시도:', {
+          //   itemId,
+          //   title,
+          //   link,
+          //   updatedItem
+          // });
           
-          await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+          await window.firestore.updateDoc(window.userDocRef, {
             userAddedItems: currentItems,
             lastUpdated: window.firestore.serverTimestamp()
           });
           
-          console.log('사용자 항목 수정 - Firebase 저장 완료');
+          // console.log('사용자 항목 수정 - Firebase 저장 완료');
           
           // 전역 변수 업데이트
           window.firebaseUserItems = currentItems;
@@ -3327,7 +3318,7 @@
           window.existingItemOverrides[itemId] = { title, link };
           
           // 실시간 동기화를 위한 강제 업데이트
-          console.log('기존 항목 수정 완료 - 실시간 동기화 강제 트리거');
+          // console.log('기존 항목 수정 완료 - 실시간 동기화 강제 트리거');
           
           // 즉시 UI에 반영
           if (typeof applyOverridesAndHides === 'function') {
@@ -3662,7 +3653,7 @@
             updateSyncStatus('동기화 상태 확인 중...', 'info');
             
             // 간단한 연결 테스트
-            window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'))
+            window.firestore.getDoc(window.userDocRef)
               .then(() => {
                 updateSyncStatus('동기화 정상', 'success');
                 
@@ -5017,7 +5008,7 @@
           updateSyncStatus('경로 저장 중...', 'info');
           
           // Firebase에 저장
-          await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+          await window.firestore.updateDoc(window.userDocRef, {
             savedUserRoutes: window.firestore.arrayUnion(routeData),
             lastUpdated: window.firestore.serverTimestamp()
           });
@@ -5252,7 +5243,7 @@
           updateSyncStatus('마커 저장 중...', 'info');
           
           // Firebase에 저장
-          await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+          await window.firestore.updateDoc(window.userDocRef, {
             savedUserMarkers: window.firestore.arrayUnion(markerData),
             lastUpdated: window.firestore.serverTimestamp()
           });
@@ -5749,7 +5740,7 @@
               저장할경로수: updatedRoutes.length
             });
             
-            const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+            const userDocRef = window.userDocRef;
             const sanitizedRoutes = sanitizeRoutesForFirestore(updatedRoutes);
             await window.firestore.updateDoc(userDocRef, {
               savedUserRoutes: sanitizedRoutes,
@@ -5784,7 +5775,7 @@
           console.log('window.firestore:', !!window.firestore);
           
           if (window.db && window.firestore) {
-            const testDoc = window.firestore.doc(window.db, 'users', 'currentUser');
+            const testDoc = window.userDocRef;
             const docSnap = await window.firestore.getDoc(testDoc);
             console.log('Firebase 연결 성공, 문서 존재:', docSnap.exists());
             return true;
@@ -5974,7 +5965,7 @@
             [routeId]: { content: newContent, link: newLink, color: selectedColor }
           };
           
-          const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+          const userDocRef = window.userDocRef;
           await window.firestore.updateDoc(userDocRef, {
             routeInfoData: updatedRouteInfoData,
             lastUpdated: window.firestore.serverTimestamp()
@@ -6277,7 +6268,7 @@
           const updatedMarkerInfoData = { ...markerInfoData, [markerId]: newInfo };
           
           console.log('Firebase 저장 시도 중...', { markerId, newInfo });
-          const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+          const userDocRef = window.userDocRef;
           await window.firestore.updateDoc(userDocRef, {
             markerInfoData: updatedMarkerInfoData,
             lastUpdated: window.firestore.serverTimestamp()
@@ -6519,7 +6510,7 @@
                 updatedMarkerInfoData
               });
               
-              const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+              const userDocRef = window.userDocRef;
               const sanitizedSavedUserMarkers = sanitizeSavedUserMarkersForFirestore(updatedMarkers);
               await window.firestore.updateDoc(userDocRef, {
                 savedUserMarkers: sanitizedSavedUserMarkers,
@@ -6728,7 +6719,7 @@
        async function restoreSavedUserRoutes() {
          try {
            // Firebase에서 복원 시도
-           const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+           const docSnap = await window.firestore.getDoc(window.userDocRef);
            if (docSnap.exists()) {
              const data = docSnap.data();
              if (data.savedUserRoutes && data.savedUserRoutes.length > 0) {
@@ -6751,7 +6742,7 @@
        async function restoreSavedUserMarkers() {
          try {
            // Firebase에서 복원 시도
-           const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+           const docSnap = await window.firestore.getDoc(window.userDocRef);
            if (docSnap.exists()) {
              const data = docSnap.data();
              // 마커 정보 데이터(이모지 포함)를 먼저 복원한 뒤 마커를 그린다
@@ -6817,7 +6808,7 @@
            const sanitizedRoutes = sanitizeRoutesForFirestore(updatedRoutes);
            
            // Firebase에서 해당 위치 경로들 제거
-           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+           await window.firestore.updateDoc(window.userDocRef, {
              savedUserRoutes: sanitizedRoutes,
              lastUpdated: window.firestore.serverTimestamp()
            });
@@ -6912,7 +6903,7 @@
            
            // Firebase에서 해당 위치 마커들 제거 (직렬화 가능한 데이터만 전송)
            const sanitizedForDeleteByLocation = sanitizeSavedUserMarkersForFirestore(updatedMarkers);
-           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+           await window.firestore.updateDoc(window.userDocRef, {
              savedUserMarkers: sanitizedForDeleteByLocation,
              markerInfoData: updatedMarkerInfoData,
              lastUpdated: window.firestore.serverTimestamp()
@@ -8624,7 +8615,7 @@
           });
           
           // Firebase에 저장
-          await window.firestore.setDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+          await window.firestore.setDoc(window.userDocRef, {
             userAddedItems: currentItems,
             lastUpdated: window.firestore.serverTimestamp()
           }, { merge: true });
@@ -8652,7 +8643,7 @@
           }
           
           // Firebase에서 현재 일정들을 가져오기
-          const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+          const docSnap = await window.firestore.getDoc(window.userDocRef);
           if (docSnap.exists() && docSnap.data().customSchedules) {
             const customSchedules = docSnap.data().customSchedules;
             
@@ -8670,7 +8661,7 @@
             
             // Firebase에 저장
             await window.firestore.updateDoc(
-              window.firestore.doc(window.db, 'users', 'currentUser'),
+              window.userDocRef,
               {
                 customSchedules: reorderedSchedules,
                 lastUpdated: window.firestore.serverTimestamp()
@@ -8854,7 +8845,7 @@
       }
       
       async function retryPendingOperation(operation) {
-        const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+        const userDocRef = window.userDocRef;
         
         switch (operation.type) {
           case OPERATION_TYPES.MARKER_INFO:
@@ -9042,7 +9033,7 @@
           addSyncStatusIndicator();
           
           const unsubscribe = window.firestore.onSnapshot(
-            window.firestore.doc(window.db, 'users', 'currentUser'), 
+            window.userDocRef, 
             (doc) => {
               if (doc.exists()) {
                 const data = doc.data();
@@ -9794,7 +9785,7 @@
             };
             
             await window.firestore.updateDoc(
-              window.firestore.doc(window.db, 'users', 'currentUser'),
+              window.userDocRef,
               {
                 customSchedules: window.firestore.arrayUnion(scheduleData),
                 lastUpdated: window.firestore.serverTimestamp()
@@ -10334,7 +10325,7 @@
           updateSyncStatus('가계부 저장 중...', 'info');
           
           // 기존 데이터 가져오기
-          const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+          const userDocRef = window.userDocRef;
           const docSnap = await window.firestore.getDoc(userDocRef);
           let existingBudgetItems = [];
           
@@ -10613,7 +10604,7 @@
         try {
           if (!window.db || !window.firestore) return;
           
-          const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+          const docSnap = await window.firestore.getDoc(window.userDocRef);
           if (docSnap.exists() && docSnap.data().customSchedules) {
             const customSchedules = docSnap.data().customSchedules;
             
@@ -10807,7 +10798,7 @@
         try {
           // Firebase에서 해당 일정 찾기 및 업데이트
           if (window.db && window.firestore) {
-            const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+            const docSnap = await window.firestore.getDoc(window.userDocRef);
             if (docSnap.exists() && docSnap.data().customSchedules) {
               const customSchedules = docSnap.data().customSchedules;
               const scheduleIndex = customSchedules.findIndex(schedule => schedule.id === scheduleId);
@@ -10822,7 +10813,7 @@
                 
                 // Firebase에 저장 (1차: 일정 제목만 우선 저장)
                 await window.firestore.updateDoc(
-                  window.firestore.doc(window.db, 'users', 'currentUser'),
+                  window.userDocRef,
                   {
                     customSchedules: customSchedules,
                     lastUpdated: window.firestore.serverTimestamp()
@@ -10831,7 +10822,7 @@
                 
                 // 연관 데이터(userAddedItems, savedUserRoutes, savedUserMarkers)의 section/location을 새 제목으로 갱신
                 try {
-                  const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+                  const userDocRef = window.userDocRef;
                   const currentDoc = await window.firestore.getDoc(userDocRef);
                   if (currentDoc.exists()) {
                     const data = currentDoc.data();
@@ -10946,14 +10937,14 @@
         try {
           // Firebase에서 해당 일정 제거
           if (window.db && window.firestore) {
-            const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+            const docSnap = await window.firestore.getDoc(window.userDocRef);
             if (docSnap.exists() && docSnap.data().customSchedules) {
               const customSchedules = docSnap.data().customSchedules;
               const updatedSchedules = customSchedules.filter(schedule => schedule.id !== scheduleId);
               
               // Firebase에 저장
               await window.firestore.updateDoc(
-                window.firestore.doc(window.db, 'users', 'currentUser'),
+                window.userDocRef,
                 {
                   customSchedules: updatedSchedules,
                   lastUpdated: window.firestore.serverTimestamp()
@@ -11006,7 +10997,7 @@
        // Initialize Firestore
        const db = getFirestore(app);
        
-       console.log('Firebase Firestore 연결 완료!');
+       // console.log('Firebase Firestore 연결 완료!');
        
        // 전역 변수로 db를 사용할 수 있도록 설정
        window.db = db;
@@ -11020,6 +11011,9 @@
          onSnapshot,
          serverTimestamp
        };
+       
+       // Firebase 문서 참조 최적화 - 재사용을 위한 전역 변수
+       window.userDocRef = window.userDocRef;
        
        // 연결 테스트 후 초기화 완료 이벤트 발생
        try {
