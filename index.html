@@ -5509,6 +5509,26 @@
         // 마커 위치에 정보창 표시 (마커 상단에 표시)
         const marker = markerGroup.markerElements[index];
         window.currentInfoWindow.open(map, marker);
+        
+        // 정보창 외부 클릭/터치 시 닫기 (수정창과 동일한 방식)
+        setTimeout(() => {
+          const closeInfoWindow = () => {
+            if (window.currentInfoWindow) {
+              window.currentInfoWindow.close();
+              window.currentInfoWindow = null;
+              // 추적 변수 초기화
+              window.currentOpenMarkerGroup = null;
+              window.currentOpenMarkerIndex = null;
+              window.currentOpenRouteId = null;
+              document.removeEventListener('click', closeInfoWindow);
+              document.removeEventListener('touchend', closeInfoWindow);
+            }
+          };
+          
+          document.addEventListener('click', closeInfoWindow);
+          document.addEventListener('touchend', closeInfoWindow);
+        }, 100);
+        
         try {
           const currentZoom = map.getZoom();
           // 현재 줌레벨이 15 미만일 때만 줌레벨 15로 확대
@@ -5621,18 +5641,37 @@
            position: clickPosition,
            disableAutoPan: false,
            maxWidth: 200,
-           pixelOffset: new google.maps.Size(0, -30) // 마커 상단에 더 명확하게 표시
+           pixelOffset: new google.maps.Size(0, 0) // 마커 상단에 더 명확하게 표시
          });
          
-         // X 버튼 제거
-         google.maps.event.addListener(window.currentInfoWindow, 'domready', function() {
-           const closeBtn = document.querySelector('.gm-ui-hover-effect');
-           if (closeBtn) {
-             closeBtn.style.display = 'none';
-           }
-         });
-         
-         window.currentInfoWindow.open(map);
+                 // X 버튼 제거
+        google.maps.event.addListener(window.currentInfoWindow, 'domready', function() {
+          const closeBtn = document.querySelector('.gm-ui-hover-effect');
+          if (closeBtn) {
+            closeBtn.style.display = 'none';
+          }
+        });
+        
+        window.currentInfoWindow.open(map);
+        
+        // 정보창 외부 클릭/터치 시 닫기 (수정창과 동일한 방식)
+        setTimeout(() => {
+          const closeInfoWindow = () => {
+            if (window.currentInfoWindow) {
+              window.currentInfoWindow.close();
+              window.currentInfoWindow = null;
+              // 추적 변수 초기화
+              window.currentOpenMarkerGroup = null;
+              window.currentOpenMarkerIndex = null;
+              window.currentOpenRouteId = null;
+              document.removeEventListener('click', closeInfoWindow);
+              document.removeEventListener('touchend', closeInfoWindow);
+            }
+          };
+          
+          document.addEventListener('click', closeInfoWindow);
+          document.addEventListener('touchend', closeInfoWindow);
+        }, 100);
        }
       
       // Firestore 저장용으로 경로 배열을 정제 (UI 전용 필드 제거)
