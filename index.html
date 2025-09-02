@@ -35,10 +35,10 @@
             z-index: 10;
             width: 200px;
             max-width: 85vw;
-            background: rgba(255, 255, 255, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
             padding: 15px 12px 12px 12px;
             display: flex;
             flex-direction: column;
@@ -48,8 +48,8 @@
             max-height: calc(100vh - 40px);
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
         }
         #customMapMenu.hide {
             left: -220px;
@@ -182,13 +182,13 @@
             flex-direction: column;
             gap: 6px;
             transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
             padding: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
         }
         
         #mapTypeSelector.hide {
@@ -282,9 +282,9 @@
         }
         
         .map-type-btn.sub-option {
-            margin-left: 15px;
-            font-size: 0.8rem;
-            padding: 10px 12px;
+            margin-left: 0;
+            font-size: 0.9rem;
+            padding: 12px 16px;
         }
         
         /* 모바일 최적화를 위한 미디어 쿼리 */
@@ -325,6 +325,13 @@
             }
             
             .map-type-btn {
+                padding: 7px 10px;
+                font-size: 0.85rem;
+                min-height: 28px;
+            }
+            
+            .map-type-btn.sub-option {
+                margin-left: 0;
                 padding: 7px 10px;
                 font-size: 0.85rem;
                 min-height: 28px;
@@ -396,6 +403,13 @@
             }
             
             .map-type-btn {
+                padding: 6px 8px;
+                font-size: 0.8rem;
+                min-height: 25px;
+            }
+            
+            .map-type-btn.sub-option {
+                margin-left: 0;
                 padding: 6px 8px;
                 font-size: 0.8rem;
                 min-height: 25px;
@@ -570,10 +584,10 @@
             width: 400px;
             max-width: 90vw;
             max-height: 80vh;
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -4832,7 +4846,6 @@
           
           // 경로 정보 표시
           const totalDistance = calculateRouteDistance(path);
-          console.log(`경로가 생성되었습니다. 총 거리: ${formatDistance(totalDistance)}`);
         }
       }
       
@@ -5423,14 +5436,7 @@
                   if (isRouteMode) { addUserRoutePoint(marker.getPosition()); return; }
                   if (isRouteSearchMode) { addRouteSearchPoint(marker.getPosition()); return; }
                   
-                  // 사용자 마커 클릭 플래그 설정 (정보창이 닫히지 않도록)
-                  window.searchMarkerClicked = true;
                   showMarkerInfo(markerGroup, markerData, index);
-                  
-                  // 플래그 해제 (다음 클릭을 위해)
-                  setTimeout(() => {
-                    window.searchMarkerClicked = false;
-                  }, 100);
                 });
                 
                 markerGroup.markerElements.push(marker);
@@ -5509,25 +5515,6 @@
         // 마커 위치에 정보창 표시 (마커 상단에 표시)
         const marker = markerGroup.markerElements[index];
         window.currentInfoWindow.open(map, marker);
-        
-        // 정보창 외부 클릭/터치 시 닫기 (수정창과 동일한 방식)
-        setTimeout(() => {
-          const closeInfoWindow = () => {
-            if (window.currentInfoWindow) {
-              window.currentInfoWindow.close();
-              window.currentInfoWindow = null;
-              // 추적 변수 초기화
-              window.currentOpenMarkerGroup = null;
-              window.currentOpenMarkerIndex = null;
-              window.currentOpenRouteId = null;
-              document.removeEventListener('click', closeInfoWindow);
-              document.removeEventListener('touchend', closeInfoWindow);
-            }
-          };
-          
-          document.addEventListener('click', closeInfoWindow);
-          document.addEventListener('touchend', closeInfoWindow);
-        }, 100);
         
         try {
           const currentZoom = map.getZoom();
@@ -5612,20 +5599,28 @@
          const contentLabel = (routeExtra.content && routeExtra.content.trim()) || (hasLink ? routeExtra.link : '');
          const contentText = contentLabel
            ? (hasLink
-               ? `<div style=\"margin-top:6px; font-size:12px; line-height:1.4;\"><a href=\"${routeExtra.link}\" target=\"_self\" style=\"color:#2563eb; text-decoration:underline;\">${contentLabel}</a></div>`
-               : `<div style=\"margin-top:6px; color:#111827; font-size:12px; line-height:1.4;\">${contentLabel}</div>`)
+               ? `<div style=\"margin-top:4px; font-size:18px; line-height:1.2;\"><a href=\"${routeExtra.link}\" target=\"_self\" style=\"color:#2563eb; text-decoration:underline;\">${contentLabel}</a></div>`
+               : `<div style=\"margin-top:4px; color:#111827; font-size:18px; line-height:1.2;\">${contentLabel}</div>`)
            : '';
          const info = `
-           <div style="padding: 10px; min-width: 180px; position: relative;">
-             ${!isTemporaryRoute ? `
-               <button onclick="editRouteInfo('${route.id}', '${route.name}')" 
-                       style="position: absolute; top: 8px; right: 8px; 
-                              background: transparent; color: #3b82f6; border: none; 
-                              border-radius: 4px; padding: 4px 8px; font-size: 12px; 
-                              cursor: pointer; z-index: 1000;"
-                       title="수정">수정</button>
-             ` : ''}
-             <p style="margin: 0; font-size: 14px; font-weight: bold; color: #3b82f6; ${!isTemporaryRoute ? 'padding-right: 50px;' : ''}">${formattedDistance}</p>
+           <div style="padding: 8px; min-width: 160px; position: relative; display: flex; flex-direction: column;">
+             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+               ${!isTemporaryRoute ? `
+                 <p onclick="editRouteInfo('${route.id}', '${route.name}')" 
+                    style="margin: 0; font-size: 18px; font-weight: bold; color: #3b82f6; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: background-color 0.2s; flex: 1;" 
+                    onmouseover="this.style.backgroundColor='rgba(59, 130, 246, 0.1)'" 
+                    onmouseout="this.style.backgroundColor='transparent'"
+                    title="클릭하여 수정">${formattedDistance}</p>
+               ` : `
+                 <p style="margin: 0; font-size: 18px; font-weight: bold; color: #3b82f6; padding: 4px 8px; flex: 1;">${formattedDistance}</p>
+               `}
+               <button onclick="closeInfoWindow()" 
+                       style="background: transparent; color: #666; border: none; 
+                              border-radius: 50%; width: 27px; height: 27px; 
+                              font-size: 18px; cursor: pointer;
+                              display: flex; align-items: center; justify-content: center;"
+                       title="닫기">×</button>
+             </div>
              ${contentText}
            </div>
          `;
@@ -5640,38 +5635,18 @@
            content: info,
            position: clickPosition,
            disableAutoPan: false,
-           maxWidth: 200,
-           pixelOffset: new google.maps.Size(0, -10) // 마커 상단에 더 명확하게 표시
+           maxWidth: 200
          });
          
-                 // X 버튼 제거
-        google.maps.event.addListener(window.currentInfoWindow, 'domready', function() {
-          const closeBtn = document.querySelector('.gm-ui-hover-effect');
-          if (closeBtn) {
-            closeBtn.style.display = 'none';
-          }
-        });
-        
-        window.currentInfoWindow.open(map);
-        
-        // 정보창 외부 클릭/터치 시 닫기 (수정창과 동일한 방식)
-        setTimeout(() => {
-          const closeInfoWindow = () => {
-            if (window.currentInfoWindow) {
-              window.currentInfoWindow.close();
-              window.currentInfoWindow = null;
-              // 추적 변수 초기화
-              window.currentOpenMarkerGroup = null;
-              window.currentOpenMarkerIndex = null;
-              window.currentOpenRouteId = null;
-              document.removeEventListener('click', closeInfoWindow);
-              document.removeEventListener('touchend', closeInfoWindow);
-            }
-          };
-          
-          document.addEventListener('click', closeInfoWindow);
-          document.addEventListener('touchend', closeInfoWindow);
-        }, 100);
+         // X 버튼 제거
+         google.maps.event.addListener(window.currentInfoWindow, 'domready', function() {
+           const closeBtn = document.querySelector('.gm-ui-hover-effect');
+           if (closeBtn) {
+             closeBtn.style.display = 'none';
+           }
+         });
+         
+         window.currentInfoWindow.open(map);
        }
       
       // Firestore 저장용으로 경로 배열을 정제 (UI 전용 필드 제거)
@@ -5875,14 +5850,15 @@
           transform: translate(-50%, -50%);
           width: ${dialogWidth}px;
           max-width: ${maxWidth};
-          background: rgba(255, 255, 255, 0.95);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 16px;
-          box-shadow: 0 12px 32px rgba(0,0,0,0.15);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+          background: rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 20px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           overflow: hidden;
+          transition: all 0.3s ease;
         `;
         
         dialogDiv.innerHTML = html;
@@ -6157,14 +6133,15 @@
           transform: translate(-50%, -50%);
           width: ${dialogWidth}px;
           max-width: ${maxWidth};
-          background: rgba(255, 255, 255, 0.95);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 16px;
-          box-shadow: 0 12px 32px rgba(0,0,0,0.15);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+          background: rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 20px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           overflow: hidden;
+          transition: all 0.3s ease;
         `;
         
         dialogDiv.innerHTML = editInfo;
@@ -6549,6 +6526,18 @@
         }
       }
       
+      // 정보창 닫기 함수
+      function closeInfoWindow() {
+        if (window.currentInfoWindow) {
+          window.currentInfoWindow.close();
+          window.currentInfoWindow = null;
+          // 추적 변수 초기화
+          window.currentOpenMarkerGroup = null;
+          window.currentOpenMarkerIndex = null;
+          window.currentOpenRouteId = null;
+        }
+      }
+      
       // 저장된 정보로 마커 정보창 표시
       function showMarkerInfoWithData(markerGroupName, index) {
         // 현재 열린 마커 정보 추적
@@ -6577,14 +6566,18 @@
         }
         
         const info = `
-          <div style="padding: 10px; min-width: 200px; position: relative;">
-            <button onclick="editMarkerInfo('${markerGroupName}', ${index})" 
-                    style="position: absolute; top: 8px; right: 8px; 
-                           background: transparent; color: #8b5cf6; border: none; 
-                           border-radius: 4px; padding: 4px 8px; font-size: 12px; 
-                           cursor: pointer; z-index: 1000;"
-                    title="수정">수정</button>
-            <h4 style="margin: 0 0 10px 0; padding-right: 50px;">${titleDisplay}</h4>
+          <div style="padding: 8px; min-width: 160px; position: relative; display: flex; align-items: center; justify-content: space-between;">
+            <h4 onclick="editMarkerInfo('${markerGroupName}', ${index})" 
+                style="margin: 0; font-size: 14px; font-weight: bold; flex: 1; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: background-color 0.2s;" 
+                onmouseover="this.style.backgroundColor='rgba(139, 92, 246, 0.1)'" 
+                onmouseout="this.style.backgroundColor='transparent'"
+                title="클릭하여 수정">${titleDisplay}</h4>
+            <button onclick="closeInfoWindow()" 
+                    style="background: transparent; color: #666; border: none; 
+                           border-radius: 50%; width: 27px; height: 27px; 
+                           font-size: 18px; cursor: pointer;
+                           display: flex; align-items: center; justify-content: center;"
+                    title="닫기">×</button>
           </div>
         `;
         
@@ -6595,7 +6588,7 @@
           window.currentInfoWindow = new google.maps.InfoWindow({
             content: info,
             disableAutoPan: false,
-            maxWidth: 300,
+            maxWidth: 200,
             pixelOffset: new google.maps.Size(0, 0) // 마커 상단에 더 명확하게 표시
           });
         }
@@ -7620,8 +7613,7 @@
                return;
              }
              
-             // 검색 마커 클릭 플래그 설정 (정보창이 닫히지 않도록)
-             window.searchMarkerClicked = true;
+
              
              // 기존 정보창 닫기
              if (currentInfoWindow) {
@@ -7700,11 +7692,6 @@
                 if (currentZoom < 15) {
                   map.setZoom(15);
                 }
-                
-                // 플래그 해제 (다음 클릭을 위해)
-                setTimeout(() => {
-                  window.searchMarkerClicked = false;
-                }, 100);
                });
              } else {
                // place_id가 없는 경우 기본 정보창 표시
@@ -7718,11 +7705,6 @@
                 if (currentZoom < 15) {
                   map.setZoom(15);
                 }
-                
-                // 플래그 해제 (다음 클릭을 위해)
-                setTimeout(() => {
-                  window.searchMarkerClicked = false;
-                }, 100);
              }
            });
          });
@@ -9892,14 +9874,16 @@
           transform: translate(-50%, -50%);
           z-index: 1000;
           background: rgba(255, 255, 255, 0.2);
-          backdrop-filter: blur(20px);
-          border-radius: 16px;
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border-radius: 20px;
           box-shadow: 0 8px 32px rgba(0,0,0,0.12);
           border: 1px solid rgba(255, 255, 255, 0.12);
           min-width: 280px;
           max-width: 95vw;
           max-height: 90vh;
           overflow-y: auto;
+          transition: all 0.3s ease;
         `;
         
         dialog.innerHTML = `
