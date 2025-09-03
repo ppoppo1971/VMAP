@@ -131,7 +131,7 @@
         .marker-info-content {
             position: relative;
             transition: transform 0.3s ease;
-            background: white;
+            background: transparent;
             border-radius: 8px;
             cursor: grab;
         }
@@ -6537,14 +6537,8 @@
         
         const info = `
           <div class="marker-info-container" style="padding: 8px; min-width: 160px; position: relative;">
-            <div class="marker-info-content" style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="marker-info-content" style="display: flex; align-items: center; justify-content: flex-start;">
               <h4 style="margin: 0; font-size: 14px; font-weight: bold; flex: 1; padding: 4px 8px; border-radius: 4px;">${titleDisplay}</h4>
-              <button onclick="closeInfoWindow()" 
-                      style="background: transparent; color: #666; border: none; 
-                             border-radius: 50%; width: 27px; height: 27px; 
-                             font-size: 18px; cursor: pointer;
-                             display: flex; align-items: center; justify-content: center;"
-                      title="닫기">×</button>
             </div>
             <button class="marker-swipe-edit-btn" onclick="editMarkerInfo('${markerGroupName}', ${index})" title="편집">편집</button>
           </div>
@@ -6572,6 +6566,8 @@
           // 마커 정보창 스와이프 이벤트 설정
           setupMarkerInfoSwipeEvents();
         });
+        
+
       }
       
       // 마커 정보창 스와이프 이벤트 설정 함수
@@ -6645,13 +6641,16 @@
           hasSwiped = false;
         }, { passive: true });
         
-        // 클릭 시 스와이프 상태 해제
+        // 클릭 시 스와이프 상태 해제 및 이벤트 전파 방지
         markerInfoContainer.addEventListener('click', function(e) {
           // 편집 버튼 클릭이 아닌 경우에만 스와이프 해제
           if (!e.target.classList.contains('marker-swipe-edit-btn')) {
             markerInfoContainer.classList.remove('swiped');
             markerInfoContainer.querySelector('.marker-info-content').style.transform = 'translateX(0)';
           }
+          
+          // 정보창 내부 클릭 시 이벤트 전파 방지 (지도 클릭 이벤트로 인한 정보창 닫기 방지)
+          e.stopPropagation();
         });
         
         // 마우스 드래그 이벤트 (데스크톱 지원)
@@ -6677,8 +6676,8 @@
           
           const diffX = dragStartX - e.clientX;
           
-          if (Math.abs(diffX) > 10) {
-            // 드래그 진행 중 시각적 피드백
+          if (Math.abs(diffX) > 5) {
+            // 드래그 진행 중 시각적 피드백 - 더 민감하게 조정
             const translateX = -Math.min(Math.abs(diffX), 80);
             markerInfoContainer.querySelector('.marker-info-content').style.transform = `translateX(${translateX}px)`;
           }
@@ -6689,7 +6688,8 @@
           
           const diffX = dragStartX - e.clientX;
           
-          if (diffX > 50) {
+          // 정보창 크기를 고려하여 더 작은 거리로 조정 (30px)
+          if (diffX > 30) {
             // 드래그 완료 - 편집 버튼 표시
             markerInfoContainer.classList.add('swiped');
           } else {
