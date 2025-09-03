@@ -6506,6 +6506,12 @@
             content.style.transform = 'translateX(0)';
           }
         }
+        
+        // 외부 클릭 이벤트 리스너 정리
+        if (window.markerInfoOutsideClickHandler) {
+          document.removeEventListener('click', window.markerInfoOutsideClickHandler);
+          window.markerInfoOutsideClickHandler = null;
+        }
       }
       
       // 저장된 정보로 마커 정보창 표시
@@ -6565,6 +6571,24 @@
           
           // 마커 정보창 스와이프 이벤트 설정
           setupMarkerInfoSwipeEvents();
+          
+          // 정보창 외부 클릭으로 닫기 기능 추가
+          setTimeout(() => {
+            const infoWindowElement = document.querySelector('.gm-style-iw-c');
+            if (infoWindowElement) {
+              // 정보창 외부 클릭 감지를 위한 이벤트 리스너
+              window.markerInfoOutsideClickHandler = function(event) {
+                if (!infoWindowElement.contains(event.target)) {
+                  closeInfoWindow();
+                }
+              };
+              
+              // 약간의 지연 후 이벤트 리스너 추가 (정보창이 완전히 렌더링된 후)
+              setTimeout(() => {
+                document.addEventListener('click', window.markerInfoOutsideClickHandler);
+              }, 100);
+            }
+          }, 200);
         });
         
 
@@ -6641,7 +6665,7 @@
           hasSwiped = false;
         }, { passive: true });
         
-        // 클릭 시 스와이프 상태 해제 및 이벤트 전파 방지
+        // 클릭 시 스와이프 상태 해제
         markerInfoContainer.addEventListener('click', function(e) {
           // 편집 버튼 클릭이 아닌 경우에만 스와이프 해제
           if (!e.target.classList.contains('marker-swipe-edit-btn')) {
@@ -6649,8 +6673,11 @@
             markerInfoContainer.querySelector('.marker-info-content').style.transform = 'translateX(0)';
           }
           
-          // 정보창 내부 클릭 시 이벤트 전파 방지 (지도 클릭 이벤트로 인한 정보창 닫기 방지)
-          e.stopPropagation();
+          // 편집 버튼 클릭이 아닌 경우에만 이벤트 전파 방지
+          // 편집 버튼 클릭 시에는 이벤트가 전파되어야 함
+          if (!e.target.classList.contains('marker-swipe-edit-btn')) {
+            e.stopPropagation();
+          }
         });
         
         // 마우스 드래그 이벤트 (데스크톱 지원)
@@ -6668,7 +6695,7 @@
           
           isDragging = true;
           dragStartX = e.clientX;
-          e.preventDefault();
+          // preventDefault 제거 - 드래그가 제대로 작동하도록
         });
         
         markerInfoContainer.addEventListener('mousemove', function(e) {
@@ -6676,7 +6703,7 @@
           
           const diffX = dragStartX - e.clientX;
           
-          if (Math.abs(diffX) > 5) {
+          if (Math.abs(diffX) > 3) {
             // 드래그 진행 중 시각적 피드백 - 더 민감하게 조정
             const translateX = -Math.min(Math.abs(diffX), 80);
             markerInfoContainer.querySelector('.marker-info-content').style.transform = `translateX(${translateX}px)`;
@@ -6688,8 +6715,8 @@
           
           const diffX = dragStartX - e.clientX;
           
-          // 정보창 크기를 고려하여 더 작은 거리로 조정 (30px)
-          if (diffX > 30) {
+          // 정보창 크기를 고려하여 더 작은 거리로 조정 (20px)
+          if (diffX > 20) {
             // 드래그 완료 - 편집 버튼 표시
             markerInfoContainer.classList.add('swiped');
           } else {
