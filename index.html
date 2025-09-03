@@ -149,9 +149,9 @@
             right: -80px;
             top: 50%;
             transform: translateY(-50%);
-            background: #8b5cf6;
-            color: white;
-            border: none;
+            background: transparent;
+            color: #8b5cf6;
+            border: 1px solid #8b5cf6;
             border-radius: 6px;
             padding: 8px 12px;
             font-size: 12px;
@@ -172,11 +172,78 @@
         }
         
         .marker-swipe-edit-btn:hover {
-            background: #7c3aed;
+            background: rgba(139, 92, 246, 0.1);
+            border-color: #7c3aed;
+            color: #7c3aed;
         }
         
         .marker-swipe-edit-btn:active {
-            background: #6d28d9;
+            background: rgba(139, 92, 246, 0.2);
+            border-color: #6d28d9;
+            color: #6d28d9;
+            transform: translateY(-50%) scale(0.95);
+        }
+        
+        /* 경로 정보창 스와이프 편집 기능을 위한 스타일 */
+        .route-info-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+        
+        .route-info-content {
+            position: relative;
+            transition: transform 0.3s ease;
+            background: transparent;
+            border-radius: 8px;
+            cursor: grab;
+        }
+        
+        .route-info-content:active {
+            cursor: grabbing;
+        }
+        
+        .route-info-container.swiped .route-info-content {
+            transform: translateX(-80px);
+        }
+        
+        .route-swipe-edit-btn {
+            position: absolute;
+            right: -80px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            color: #3b82f6;
+            border: 1px solid #3b82f6;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 32px;
+            min-width: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        
+        .route-info-container.swiped .route-swipe-edit-btn {
+            right: 8px;
+        }
+        
+        .route-swipe-edit-btn:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: #2563eb;
+            color: #2563eb;
+        }
+        
+        .route-swipe-edit-btn:active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: #1d4ed8;
+            color: #1d4ed8;
             transform: translateY(-50%) scale(0.95);
         }
         
@@ -2589,6 +2656,16 @@
         if (markerInfoContainer) {
           markerInfoContainer.classList.remove('swiped');
           const content = markerInfoContainer.querySelector('.marker-info-content');
+          if (content) {
+            content.style.transform = 'translateX(0)';
+          }
+        }
+        
+        // 경로 정보창 스와이프 상태 초기화
+        const routeInfoContainer = document.querySelector('.route-info-container');
+        if (routeInfoContainer) {
+          routeInfoContainer.classList.remove('swiped');
+          const content = routeInfoContainer.querySelector('.route-info-content');
           if (content) {
             content.style.transform = 'translateX(0)';
           }
@@ -5573,24 +5650,11 @@
                : `<div style=\"margin-top:4px; color:#111827; font-size:18px; line-height:1.2;\">${contentLabel}</div>`)
            : '';
          const info = `
-           <div style="padding: 8px; min-width: 160px; position: relative; display: flex; flex-direction: column;">
-             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-               ${!isTemporaryRoute ? `
-                 <p onclick="editRouteInfo('${route.id}', '${route.name}')" 
-                    style="margin: 0; font-size: 18px; font-weight: bold; color: #3b82f6; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: background-color 0.2s; flex: 1;" 
-                    onmouseover="this.style.backgroundColor='rgba(59, 130, 246, 0.1)'" 
-                    onmouseout="this.style.backgroundColor='transparent'"
-                    title="클릭하여 수정">${formattedDistance}</p>
-               ` : `
-                 <p style="margin: 0; font-size: 18px; font-weight: bold; color: #3b82f6; padding: 4px 8px; flex: 1;">${formattedDistance}</p>
-               `}
-               <button onclick="closeInfoWindow()" 
-                       style="background: transparent; color: #666; border: none; 
-                              border-radius: 50%; width: 27px; height: 27px; 
-                              font-size: 18px; cursor: pointer;
-                              display: flex; align-items: center; justify-content: center;"
-                       title="닫기">×</button>
+           <div class="route-info-container" style="padding: 8px; min-width: 160px; position: relative; display: flex; flex-direction: column;">
+             <div class="route-info-content" style="display: flex; align-items: center; justify-content: flex-start; margin-bottom: 4px;">
+               <p style="margin: 0; font-size: 18px; font-weight: bold; color: #3b82f6; padding: 4px 8px; flex: 1;">${formattedDistance}</p>
              </div>
+             ${!isTemporaryRoute ? `<button class="route-swipe-edit-btn" onclick="editRouteInfo('${route.id}', '${route.name}')" title="편집">편집</button>` : ''}
              ${contentText}
            </div>
          `;
@@ -5608,16 +5672,179 @@
            maxWidth: 200
          });
          
-         // X 버튼 제거
+         // X 버튼 제거 및 스와이프 이벤트 설정
          google.maps.event.addListener(window.currentInfoWindow, 'domready', function() {
            const closeBtn = document.querySelector('.gm-ui-hover-effect');
            if (closeBtn) {
              closeBtn.style.display = 'none';
            }
+           
+           // 경로 정보창 스와이프 이벤트 설정
+           setupRouteInfoSwipeEvents();
+           
+           // 정보창 외부 클릭으로 닫기 기능 추가
+           setTimeout(() => {
+             const infoWindowElement = document.querySelector('.gm-style-iw-c');
+             if (infoWindowElement) {
+               // 정보창 외부 클릭 감지를 위한 이벤트 리스너
+               window.routeInfoOutsideClickHandler = function(event) {
+                 if (!infoWindowElement.contains(event.target)) {
+                   closeInfoWindow();
+                 }
+               };
+               
+               // 약간의 지연 후 이벤트 리스너 추가 (정보창이 완전히 렌더링된 후)
+               setTimeout(() => {
+                 document.addEventListener('click', window.routeInfoOutsideClickHandler);
+               }, 100);
+             }
+           }, 200);
          });
          
          window.currentInfoWindow.open(map);
        }
+      
+      // 경로 정보창 스와이프 이벤트 설정 함수
+      function setupRouteInfoSwipeEvents() {
+        const routeInfoContainer = document.querySelector('.route-info-container');
+        if (!routeInfoContainer) return;
+        
+        let startX = 0;
+        let startY = 0;
+        let startTime = 0;
+        let hasSwiped = false;
+        
+        // 터치 시작 이벤트
+        routeInfoContainer.addEventListener('touchstart', function(e) {
+          // 편집 버튼을 터치한 경우에는 스와이프 방지
+          if (e.target.classList.contains('route-swipe-edit-btn')) {
+            return;
+          }
+          
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          startTime = Date.now();
+          hasSwiped = false;
+        }, { passive: true });
+        
+        // 터치 이동 이벤트
+        routeInfoContainer.addEventListener('touchmove', function(e) {
+          if (!startX || !startY) return;
+          
+          const currentX = e.touches[0].clientX;
+          const currentY = e.touches[0].clientY;
+          const diffX = startX - currentX;
+          const diffY = Math.abs(startY - currentY);
+          
+          // 수직 스크롤보다 수평 스와이프가 더 큰 경우에만 처리
+          if (Math.abs(diffX) > diffY && Math.abs(diffX) > 10) {
+            e.preventDefault();
+            hasSwiped = true;
+            
+            // 스와이프 진행 중 시각적 피드백
+            const progress = Math.min(Math.abs(diffX) / 80, 1);
+            const translateX = -Math.min(Math.abs(diffX), 80);
+            routeInfoContainer.querySelector('.route-info-content').style.transform = `translateX(${translateX}px)`;
+          }
+        }, { passive: false });
+        
+        // 터치 종료 이벤트
+        routeInfoContainer.addEventListener('touchend', function(e) {
+          if (!hasSwiped) return;
+          
+          const endTime = Date.now();
+          const diffTime = endTime - startTime;
+          const currentX = e.changedTouches[0].clientX;
+          const diffX = startX - currentX;
+          
+          // 스와이프 완료 조건: 30px 이상 이동, 1초 이내, 수평 이동
+          if (diffX > 30 && diffTime < 1000) {
+            // 스와이프 완료 - 편집 버튼 표시
+            routeInfoContainer.classList.add('swiped');
+          } else {
+            // 스와이프 취소 - 원래 위치로 복원
+            routeInfoContainer.classList.remove('swiped');
+            routeInfoContainer.querySelector('.route-info-content').style.transform = 'translateX(0)';
+          }
+          
+          // 변수 초기화
+          startX = 0;
+          startY = 0;
+          startTime = 0;
+          hasSwiped = false;
+        }, { passive: true });
+        
+        // 클릭 시 스와이프 상태 해제
+        routeInfoContainer.addEventListener('click', function(e) {
+          // 편집 버튼 클릭이 아닌 경우에만 스와이프 해제
+          if (!e.target.classList.contains('route-swipe-edit-btn')) {
+            routeInfoContainer.classList.remove('swiped');
+            routeInfoContainer.querySelector('.route-info-content').style.transform = 'translateX(0)';
+          }
+          
+          // 편집 버튼 클릭이 아닌 경우에만 이벤트 전파 방지
+          if (!e.target.classList.contains('route-swipe-edit-btn')) {
+            e.stopPropagation();
+          }
+        });
+        
+        // 마우스 드래그 이벤트 (데스크톱 지원)
+        let isDragging = false;
+        let dragStartX = 0;
+        
+        routeInfoContainer.addEventListener('mousedown', function(e) {
+          // 편집 버튼을 클릭한 경우에는 드래그 방지
+          if (e.target.classList.contains('route-swipe-edit-btn')) {
+            return;
+          }
+          
+          if (e.button !== 0) return; // 왼쪽 버튼만
+          
+          isDragging = true;
+          dragStartX = e.clientX;
+        });
+        
+        routeInfoContainer.addEventListener('mousemove', function(e) {
+          if (!isDragging) return;
+          
+          const diffX = dragStartX - e.clientX;
+          
+          if (Math.abs(diffX) > 3) {
+            // 드래그 진행 중 시각적 피드백 - 더 민감하게 조정
+            const translateX = -Math.min(Math.abs(diffX), 80);
+            routeInfoContainer.querySelector('.route-info-content').style.transform = `translateX(${translateX}px)`;
+          }
+        });
+        
+        routeInfoContainer.addEventListener('mouseup', function(e) {
+          if (!isDragging) return;
+          
+          const diffX = dragStartX - e.clientX;
+          
+          // 정보창 크기를 고려하여 더 작은 거리로 조정 (20px)
+          if (diffX > 20) {
+            // 드래그 완료 - 편집 버튼 표시
+            routeInfoContainer.classList.add('swiped');
+          } else {
+            // 드래그 취소 - 원래 위치로 복원
+            routeInfoContainer.classList.remove('swiped');
+            routeInfoContainer.querySelector('.route-info-content').style.transform = 'translateX(0)';
+          }
+          
+          isDragging = false;
+          dragStartX = 0;
+        });
+        
+        // 마우스가 컨테이너를 벗어날 때 드래그 상태 해제
+        routeInfoContainer.addEventListener('mouseleave', function() {
+          if (isDragging) {
+            routeInfoContainer.classList.remove('swiped');
+            routeInfoContainer.querySelector('.route-info-content').style.transform = 'translateX(0)';
+            isDragging = false;
+            dragStartX = 0;
+          }
+        });
+      }
       
       // Firestore 저장용으로 경로 배열을 정제 (UI 전용 필드 제거)
       function sanitizeRoutesForFirestore(routes) {
@@ -6511,6 +6738,21 @@
         if (window.markerInfoOutsideClickHandler) {
           document.removeEventListener('click', window.markerInfoOutsideClickHandler);
           window.markerInfoOutsideClickHandler = null;
+        }
+        
+        if (window.routeInfoOutsideClickHandler) {
+          document.removeEventListener('click', window.routeInfoOutsideClickHandler);
+          window.routeInfoOutsideClickHandler = null;
+        }
+        
+        // 경로 정보창 스와이프 상태 초기화
+        const routeInfoContainer = document.querySelector('.route-info-container');
+        if (routeInfoContainer) {
+          routeInfoContainer.classList.remove('swiped');
+          const content = routeInfoContainer.querySelector('.route-info-content');
+          if (content) {
+            content.style.transform = 'translateX(0)';
+          }
         }
       }
       
