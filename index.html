@@ -184,6 +184,43 @@
             transform: translateY(-50%) scale(0.95);
         }
         
+        /* 데스크톱에서 항상 표시되는 편집 버튼 */
+        @media (min-width: 769px) {
+            .marker-info-container .marker-swipe-edit-btn {
+                position: static;
+                right: auto;
+                top: auto;
+                transform: none;
+                margin-left: 8px;
+                display: flex;
+            }
+            
+            .marker-info-container .marker-info-content {
+                cursor: default;
+            }
+            
+            .marker-info-container .marker-info-content:active {
+                cursor: default;
+            }
+            
+            .route-info-container .route-swipe-edit-btn {
+                position: static;
+                right: auto;
+                top: auto;
+                transform: none;
+                margin-left: 8px;
+                display: flex;
+            }
+            
+            .route-info-container .route-info-content {
+                cursor: default;
+            }
+            
+            .route-info-container .route-info-content:active {
+                cursor: default;
+            }
+        }
+        
         /* 경로 정보창 스와이프 편집 기능을 위한 스타일 */
         .route-info-container {
             position: relative;
@@ -5653,8 +5690,8 @@
            <div class="route-info-container" style="padding: 8px; min-width: 160px; position: relative; display: flex; flex-direction: column;">
              <div class="route-info-content" style="display: flex; align-items: center; justify-content: flex-start; margin-bottom: 4px;">
                <p style="margin: 0; font-size: 18px; font-weight: bold; color: #3b82f6; padding: 4px 8px; flex: 1;">${formattedDistance}</p>
+               ${!isTemporaryRoute ? `<button class="route-swipe-edit-btn" onclick="editRouteInfo('${route.id}', '${route.name}')" title="편집">편집</button>` : ''}
              </div>
-             ${!isTemporaryRoute ? `<button class="route-swipe-edit-btn" onclick="editRouteInfo('${route.id}', '${route.name}')" title="편집">편집</button>` : ''}
              ${contentText}
            </div>
          `;
@@ -5788,62 +5825,64 @@
           }
         });
         
-        // 마우스 드래그 이벤트 (데스크톱 지원)
-        let isDragging = false;
-        let dragStartX = 0;
-        
-        routeInfoContainer.addEventListener('mousedown', function(e) {
-          // 편집 버튼을 클릭한 경우에는 드래그 방지
-          if (e.target.classList.contains('route-swipe-edit-btn')) {
-            return;
-          }
+        // 모바일에서만 마우스 드래그 이벤트 활성화
+        if (window.innerWidth <= 768) {
+          let isDragging = false;
+          let dragStartX = 0;
           
-          if (e.button !== 0) return; // 왼쪽 버튼만
+          routeInfoContainer.addEventListener('mousedown', function(e) {
+            // 편집 버튼을 클릭한 경우에는 드래그 방지
+            if (e.target.classList.contains('route-swipe-edit-btn')) {
+              return;
+            }
+            
+            if (e.button !== 0) return; // 왼쪽 버튼만
+            
+            isDragging = true;
+            dragStartX = e.clientX;
+          });
           
-          isDragging = true;
-          dragStartX = e.clientX;
-        });
-        
-        routeInfoContainer.addEventListener('mousemove', function(e) {
-          if (!isDragging) return;
+          routeInfoContainer.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            
+            const diffX = dragStartX - e.clientX;
+            
+            if (Math.abs(diffX) > 3) {
+              // 드래그 진행 중 시각적 피드백 - 더 민감하게 조정
+              const translateX = -Math.min(Math.abs(diffX), 80);
+              routeInfoContainer.querySelector('.route-info-content').style.transform = `translateX(${translateX}px)`;
+            }
+          });
           
-          const diffX = dragStartX - e.clientX;
-          
-          if (Math.abs(diffX) > 3) {
-            // 드래그 진행 중 시각적 피드백 - 더 민감하게 조정
-            const translateX = -Math.min(Math.abs(diffX), 80);
-            routeInfoContainer.querySelector('.route-info-content').style.transform = `translateX(${translateX}px)`;
-          }
-        });
-        
-        routeInfoContainer.addEventListener('mouseup', function(e) {
-          if (!isDragging) return;
-          
-          const diffX = dragStartX - e.clientX;
-          
-          // 정보창 크기를 고려하여 더 작은 거리로 조정 (20px)
-          if (diffX > 20) {
-            // 드래그 완료 - 편집 버튼 표시
-            routeInfoContainer.classList.add('swiped');
-          } else {
-            // 드래그 취소 - 원래 위치로 복원
-            routeInfoContainer.classList.remove('swiped');
-            routeInfoContainer.querySelector('.route-info-content').style.transform = 'translateX(0)';
-          }
-          
-          isDragging = false;
-          dragStartX = 0;
-        });
-        
-        // 마우스가 컨테이너를 벗어날 때 드래그 상태 해제
-        routeInfoContainer.addEventListener('mouseleave', function() {
-          if (isDragging) {
-            routeInfoContainer.classList.remove('swiped');
-            routeInfoContainer.querySelector('.route-info-content').style.transform = 'translateX(0)';
+          routeInfoContainer.addEventListener('mouseup', function(e) {
+            if (!isDragging) return;
+            
+            const diffX = dragStartX - e.clientX;
+            
+            // 정보창 크기를 고려하여 더 작은 거리로 조정 (20px)
+            if (diffX > 20) {
+              // 드래그 완료 - 편집 버튼 표시
+              routeInfoContainer.classList.add('swiped');
+            } else {
+              // 드래그 취소 - 원래 위치로 복원
+              routeInfoContainer.classList.remove('swiped');
+              routeInfoContainer.querySelector('.route-info-content').style.transform = 'translateX(0)';
+            }
+            
             isDragging = false;
             dragStartX = 0;
-          }
-        });
+          });
+          
+          // 마우스가 컨테이너를 벗어날 때 드래그 상태 해제
+          routeInfoContainer.addEventListener('mouseleave', function() {
+            if (isDragging) {
+              routeInfoContainer.classList.remove('swiped');
+              routeInfoContainer.querySelector('.route-info-content').style.transform = 'translateX(0)';
+              isDragging = false;
+              dragStartX = 0;
+            }
+          });
+        }
       }
       
       // Firestore 저장용으로 경로 배열을 정제 (UI 전용 필드 제거)
@@ -6787,8 +6826,8 @@
           <div class="marker-info-container" style="padding: 8px; min-width: 160px; position: relative;">
             <div class="marker-info-content" style="display: flex; align-items: center; justify-content: flex-start;">
               <h4 style="margin: 0; font-size: 14px; font-weight: bold; flex: 1; padding: 4px 8px; border-radius: 4px;">${titleDisplay}</h4>
+              <button class="marker-swipe-edit-btn" onclick="editMarkerInfo('${markerGroupName}', ${index})" title="편집">편집</button>
             </div>
-            <button class="marker-swipe-edit-btn" onclick="editMarkerInfo('${markerGroupName}', ${index})" title="편집">편집</button>
           </div>
         `;
         
@@ -6922,64 +6961,65 @@
           }
         });
         
-        // 마우스 드래그 이벤트 (데스크톱 지원)
-        let isDragging = false;
-        let dragStartX = 0;
-        
-        markerInfoContainer.addEventListener('mousedown', function(e) {
-          // 편집 버튼이나 닫기 버튼을 클릭한 경우에는 드래그 방지
-          if (e.target.classList.contains('marker-swipe-edit-btn') ||
-              e.target.tagName === 'BUTTON') {
-            return;
-          }
+        // 모바일에서만 마우스 드래그 이벤트 활성화
+        if (window.innerWidth <= 768) {
+          let isDragging = false;
+          let dragStartX = 0;
           
-          if (e.button !== 0) return; // 왼쪽 버튼만
+          markerInfoContainer.addEventListener('mousedown', function(e) {
+            // 편집 버튼이나 닫기 버튼을 클릭한 경우에는 드래그 방지
+            if (e.target.classList.contains('marker-swipe-edit-btn') ||
+                e.target.tagName === 'BUTTON') {
+              return;
+            }
+            
+            if (e.button !== 0) return; // 왼쪽 버튼만
+            
+            isDragging = true;
+            dragStartX = e.clientX;
+          });
           
-          isDragging = true;
-          dragStartX = e.clientX;
-          // preventDefault 제거 - 드래그가 제대로 작동하도록
-        });
-        
-        markerInfoContainer.addEventListener('mousemove', function(e) {
-          if (!isDragging) return;
+          markerInfoContainer.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            
+            const diffX = dragStartX - e.clientX;
+            
+            if (Math.abs(diffX) > 3) {
+              // 드래그 진행 중 시각적 피드백 - 더 민감하게 조정
+              const translateX = -Math.min(Math.abs(diffX), 80);
+              markerInfoContainer.querySelector('.marker-info-content').style.transform = `translateX(${translateX}px)`;
+            }
+          });
           
-          const diffX = dragStartX - e.clientX;
-          
-          if (Math.abs(diffX) > 3) {
-            // 드래그 진행 중 시각적 피드백 - 더 민감하게 조정
-            const translateX = -Math.min(Math.abs(diffX), 80);
-            markerInfoContainer.querySelector('.marker-info-content').style.transform = `translateX(${translateX}px)`;
-          }
-        });
-        
-        markerInfoContainer.addEventListener('mouseup', function(e) {
-          if (!isDragging) return;
-          
-          const diffX = dragStartX - e.clientX;
-          
-          // 정보창 크기를 고려하여 더 작은 거리로 조정 (20px)
-          if (diffX > 20) {
-            // 드래그 완료 - 편집 버튼 표시
-            markerInfoContainer.classList.add('swiped');
-          } else {
-            // 드래그 취소 - 원래 위치로 복원
-            markerInfoContainer.classList.remove('swiped');
-            markerInfoContainer.querySelector('.marker-info-content').style.transform = 'translateX(0)';
-          }
-          
-          isDragging = false;
-          dragStartX = 0;
-        });
-        
-        // 마우스가 컨테이너를 벗어날 때 드래그 상태 해제
-        markerInfoContainer.addEventListener('mouseleave', function() {
-          if (isDragging) {
-            markerInfoContainer.classList.remove('swiped');
-            markerInfoContainer.querySelector('.marker-info-content').style.transform = 'translateX(0)';
+          markerInfoContainer.addEventListener('mouseup', function(e) {
+            if (!isDragging) return;
+            
+            const diffX = dragStartX - e.clientX;
+            
+            // 정보창 크기를 고려하여 더 작은 거리로 조정 (20px)
+            if (diffX > 20) {
+              // 드래그 완료 - 편집 버튼 표시
+              markerInfoContainer.classList.add('swiped');
+            } else {
+              // 드래그 취소 - 원래 위치로 복원
+              markerInfoContainer.classList.remove('swiped');
+              markerInfoContainer.querySelector('.marker-info-content').style.transform = 'translateX(0)';
+            }
+            
             isDragging = false;
             dragStartX = 0;
-          }
-        });
+          });
+          
+          // 마우스가 컨테이너를 벗어날 때 드래그 상태 해제
+          markerInfoContainer.addEventListener('mouseleave', function() {
+            if (isDragging) {
+              markerInfoContainer.classList.remove('swiped');
+              markerInfoContainer.querySelector('.marker-info-content').style.transform = 'translateX(0)';
+              isDragging = false;
+              dragStartX = 0;
+            }
+          });
+        }
       }
       
       // 저장된 모든 경로 그리기
