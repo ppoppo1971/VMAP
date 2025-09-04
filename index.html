@@ -48,6 +48,8 @@
             max-height: calc(100vh - 40px);
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            scroll-behavior: smooth;
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
         }
@@ -463,6 +465,8 @@
                 max-height: calc(100vh - 30px);
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+                scroll-behavior: smooth;
             }
             
             #customMapMenu.hide {
@@ -528,6 +532,12 @@
             /* 모바일에서 스크롤 최적화 */
             .info-content {
                 -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+                scroll-behavior: smooth;
+                /* 모바일에서 스크롤 바운스 효과 개선 */
+                -webkit-overflow-scrolling: touch;
+                /* 터치 스크롤 성능 향상 */
+                will-change: scroll-position;
             }
         }
         
@@ -541,6 +551,8 @@
                 max-height: calc(100vh - 20px);
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+                scroll-behavior: smooth;
             }
             
             #customMapMenu.hide {
@@ -813,6 +825,10 @@
             overflow-y: auto;
             flex: 1;
             min-height: 0;
+            /* 모바일 친화적 스크롤 설정 */
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            scroll-behavior: smooth;
         }
         
         .info-section {
@@ -1630,8 +1646,13 @@
         
         /* 추가된 일정 버튼들 스타일 */
         #additionalDays {
-            overflow: hidden !important; /* 스와이프 버튼 숨김을 위해 필수 */
+            overflow-y: auto !important; /* 세로 스크롤 허용 */
+            overflow-x: hidden !important; /* 가로 스크롤 방지 (스와이프 버튼 숨김을 위해) */
             position: relative !important;
+            max-height: 300px; /* 최대 높이 제한 */
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            scroll-behavior: smooth;
         }
         
         /* 메뉴 그룹 자체에도 overflow 적용 */
@@ -1959,10 +1980,12 @@
             }, { passive: false });
           }
           
-          // 모바일에서 스크롤 성능 최적화
+          // 모바일에서 스크롤 성능 최적화 - 자연스러운 스크롤 허용
           document.addEventListener('touchmove', function(event) {
-            if (event.target.closest('.info-content')) {
-              event.stopPropagation();
+            // info-content와 customMapMenu 내부의 스크롤은 자연스럽게 허용
+            if (event.target.closest('.info-content') || event.target.closest('#customMapMenu')) {
+              // 스크롤 이벤트는 그대로 전파되도록 함
+              return;
             }
           }, { passive: true });
           
@@ -3080,6 +3103,21 @@
               clearAllSwipeStates();
             }
           });
+          
+          // 모바일에서 사이드 패널 스크롤 최적화
+          if (isMobile) {
+            customMapMenu.addEventListener('touchmove', function(e) {
+              // 스크롤 중 부드러운 애니메이션 비활성화
+              this.style.scrollBehavior = 'auto';
+            }, { passive: true });
+            
+            customMapMenu.addEventListener('touchend', function(e) {
+              // 터치 종료 시 부드러운 스크롤 복원
+              setTimeout(() => {
+                this.style.scrollBehavior = 'smooth';
+              }, 100);
+            }, { passive: true });
+          }
         }
       }
       
@@ -10483,6 +10521,12 @@
         }
         
         try {
+          // 현재 섹션의 기존 항목들에서 최대 order 값 찾기
+          const currentSection = window.currentActiveSection || '';
+          const currentItems = window.firebaseUserItems || [];
+          const sectionItems = currentItems.filter(item => item.section === currentSection);
+          const maxOrder = sectionItems.length > 0 ? Math.max(...sectionItems.map(item => item.order || 0)) : -1;
+          
           // 새 항목 생성
           const itemId = 'user_' + Date.now();
           const newItem = {
@@ -10493,7 +10537,8 @@
             checked: false,
             timestamp: new Date().toISOString(),
             section: window.currentActiveSection || '', // 현재 활성 섹션 정보 추가
-            type: 'user_item'
+            type: 'user_item',
+            order: maxOrder + 1 // 맨 아래에 배치되도록 order 설정
           };
           
           // Firebase에 저장
@@ -11319,7 +11364,7 @@
             <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">${title}</h3>
             <button type="button" onclick="closeScheduleInfo()" class="schedule-close-btn" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 20px; color: #666; cursor: pointer; padding: 5px; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">×</button>
           </div>
-          <div class="info-content">
+          <div class="info-content" style="touch-action: pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;">
               <div class="info-section">
                 <!-- 사용자 추가 항목들이 여기에 표시됩니다 -->
                 <div id="userAddedItems"></div>
@@ -11361,6 +11406,30 @@
         
         // 정보창을 지도 위에 표시
         document.body.appendChild(infoDiv);
+        
+        // 모바일에서 스크롤 최적화를 위한 추가 설정
+        if (isMobile) {
+          const infoContent = infoDiv.querySelector('.info-content');
+          if (infoContent) {
+            // 터치 이벤트 최적화
+            infoContent.addEventListener('touchstart', function(e) {
+              // 터치 시작 시 스크롤 위치 기록
+              this.scrollTop = this.scrollTop;
+            }, { passive: true });
+            
+            infoContent.addEventListener('touchmove', function(e) {
+              // 스크롤 중 부드러운 애니메이션 비활성화
+              this.style.scrollBehavior = 'auto';
+            }, { passive: true });
+            
+            infoContent.addEventListener('touchend', function(e) {
+              // 터치 종료 시 부드러운 스크롤 복원
+              setTimeout(() => {
+                this.style.scrollBehavior = 'smooth';
+              }, 100);
+            }, { passive: true });
+          }
+        }
         
         // 클릭 가능한 텍스트 끝에 ❗ 표시 추가
         if (typeof appendExclamationToLinks === 'function') {
@@ -11840,3 +11909,4 @@
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg&libraries=geometry,directions,places&callback=initMap" async defer></script>
 </body>
 </html>
+
