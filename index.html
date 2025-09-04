@@ -1296,7 +1296,7 @@
         
         .user-added-item.swiped .item-content,
         .checklist-item.swiped .item-content {
-            width: calc(100% - 120px); /* 버튼 너비(108px) + 여백(12px) */
+            width: var(--content-width, 100%);
             transition: width 0.3s ease;
             white-space: nowrap;
             overflow: hidden;
@@ -1305,7 +1305,7 @@
         
         /* 일정 항목은 사이드패널에서 세부항목과 동일한 거리로 스와이프 */
         .user-added-item[data-item-type="schedule"].swiped .item-content {
-            width: calc(100% - 120px); /* 버튼 너비(108px) + 여백(12px) */
+            width: var(--content-width, 100%);
             transition: width 0.3s ease;
             white-space: nowrap;
             overflow: hidden;
@@ -8466,294 +8466,202 @@
           addressSearchCandidates = [];
         }
       }
-      // 스와이프 삭제/수정 기능 초기화 - 모바일 최적화
+      // 스와이프 삭제/수정 기능 초기화 - 마커정보창과 동일한 방식
       function initializeSwipeDelete() {
         const allItems = document.querySelectorAll('.user-added-item, .checklist-item');
         
         allItems.forEach(item => {
           let startX = 0;
-          let currentX = 0;
           let startY = 0;
-          let currentY = 0;
-          let isSwiping = false;
-          let hasSwiped = false;
           let startTime = 0;
+          let hasSwiped = false;
           
-          // 터치 시작 - 모바일 최적화
+          // 동적 내용 컨테이너 너비 계산 함수 (마커정보창과 동일)
+          function calculateItemContentWidth() {
+            const content = item.querySelector('.item-content');
+            const editBtn = item.querySelector('.swipe-edit-btn');
+            const deleteBtn = item.querySelector('.swipe-delete-btn');
+            
+            // 편집 버튼과 삭제 버튼의 너비 (50px + 8px 여백) + (60px + 8px 여백) = 126px
+            const buttonsWidth = 126;
+            
+            // 컨테이너의 현재 너비
+            const containerWidth = item.offsetWidth;
+            
+            // 내용 컨테이너의 최대 너비 = 컨테이너 너비 - 버튼들 너비 - 여백
+            const maxContentWidth = containerWidth - buttonsWidth - 16; // 16px 여백
+            
+            return maxContentWidth;
+          }
+          
+          // 터치 시작 이벤트 (마커정보창과 동일한 방식)
           item.addEventListener('touchstart', function(e) {
-            // 삭제 버튼이나 체크박스 클릭 시에는 스와이프 방지
+            // 수정/삭제 버튼이나 체크박스 클릭 시에는 스와이프 방지
             if (e.target.classList.contains('swipe-delete-btn') ||
                 e.target.classList.contains('prep-checkbox') ||
                 e.target.classList.contains('swipe-edit-btn')) {
-              console.log('터치 시작 취소: 버튼 클릭');
               return;
             }
             
             // 다른 아이템의 스와이프 상태 해제
             clearAllSwipeStates();
             
-            console.log('터치 시작:', this.dataset.itemId);
-            
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
             startTime = Date.now();
-            isSwiping = true;
             hasSwiped = false;
-            this.classList.add('swiping');
-            
-            // 기존 타이머 취소
-            if (currentLongPressTimer) {
-              clearTimeout(currentLongPressTimer);
-            }
-            
-            // 현재 드래그 아이템 설정
-            currentDragItem = this;
-            
-            // 롱프레스 타이머 시작 (800ms 후 드래그 모드 활성화)
-            currentLongPressTimer = setTimeout(() => {
-              console.log('롱프레스 타이머 실행:', {
-                isSwiping,
-                hasSwiped,
-                currentDragItem: currentDragItem === this,
-                element: this.dataset.itemId
-              });
-              
-              if (isSwiping && !hasSwiped && currentDragItem === this) {
-                // 가상 이벤트 객체 생성 (현재 터치 위치 기준)
-                const mockEvent = {
-                  touches: [{
-                    clientX: startX,
-                    clientY: startY
-                  }]
-                };
-                startDragMode(this, mockEvent);
-              }
-            }, 800);
-          }, { passive: false });
+          }, { passive: true });
           
-          // 터치 이동 - 모바일 최적화
+          // 터치 이동 이벤트 (마커정보창과 동일한 방식)
           item.addEventListener('touchmove', function(e) {
-            if (!isSwiping) return;
+            if (!startX || !startY) return;
             
-            currentX = e.touches[0].clientX;
-            currentY = e.touches[0].clientY;
+            const currentX = e.touches[0].clientX;
+            const currentY = e.touches[0].clientY;
             const diffX = startX - currentX;
             const diffY = Math.abs(startY - currentY);
-            const diffTime = Date.now() - startTime;
             
-            // 드래그 모드일 때
-            if (isDraggingGlobal) {
+            // 수직 스크롤보다 수평 스와이프가 더 큰 경우에만 처리
+            if (Math.abs(diffX) > diffY && Math.abs(diffX) > 10) {
               e.preventDefault();
-              handleDragMove(this, e);
-              return;
-            }
-            
-            // 스와이프 중일 때만 preventDefault 호출
-            if (Math.abs(diffX) > 10 || diffY > 10) {
-              e.preventDefault();
-            }
-            
-            // 롱프레스 타이머 취소 (움직임이 감지되면)
-            if (currentLongPressTimer && (Math.abs(diffX) > 10 || diffY > 10)) {
-              clearTimeout(currentLongPressTimer);
-              currentLongPressTimer = null;
-              currentDragItem = null;
-            }
-            
-            // 세로 움직임이 가로보다 크면 스와이프 취소
-            if (diffY > Math.abs(diffX) && diffY > 20) {
-              clearTimeout(currentLongPressTimer);
-              currentLongPressTimer = null;
-              currentDragItem = null;
-              return;
-            }
-            
-            // 빠른 스와이프 감지 (모바일에서 더 민감하게)
-            if (diffX > 30 && diffTime < 500 && diffY < 30) {
-              // 스와이프 진행 중 시각적 피드백 - CSS 클래스로 처리
               hasSwiped = true;
+              
+              // 동적 내용 컨테이너 너비 계산
+              const maxContentWidth = calculateItemContentWidth();
+              
+              // 스와이프 진행 중 시각적 피드백 - 내용 컨테이너 너비 조정
+              const progress = Math.min(Math.abs(diffX) / 80, 1);
+              const contentWidth = maxContentWidth * (1 - progress * 0.3); // 최대 30% 축소
+              const contentElement = item.querySelector('.item-content');
+              if (contentElement) {
+                contentElement.style.width = `${contentWidth}px`;
+              }
             }
           }, { passive: false });
           
-          // 터치 종료 - 모바일 최적화
+          // 터치 종료 이벤트 (마커정보창과 동일한 방식)
           item.addEventListener('touchend', function(e) {
-            // 롱프레스 타이머 취소
-            if (currentLongPressTimer) {
-              clearTimeout(currentLongPressTimer);
-              currentLongPressTimer = null;
-              currentDragItem = null;
-            }
+            if (!hasSwiped) return;
             
-            if (!isSwiping) return;
-            
-            // 드래그 모드 종료
-            if (isDraggingGlobal) {
-              handleDragEnd(this, e);
-              isDraggingGlobal = false;
-              isSwiping = false;
-              this.classList.remove('swiping');
-              return;
-            }
-            
-            isSwiping = false;
-            this.classList.remove('swiping');
-            
+            const endTime = Date.now();
+            const diffTime = endTime - startTime;
+            const currentX = e.changedTouches[0].clientX;
             const diffX = startX - currentX;
-            const diffTime = Date.now() - startTime;
             
-            // 모바일에서 더 민감한 스와이프 감지
-            if (hasSwiped && diffX > 30 && diffTime < 1000) {
-              // 스와이프 완료 - 수정/삭제 버튼 표시 (CSS에서 처리)
-              this.classList.add('swiped');
+            // 스와이프 완료 조건: 30px 이상 이동, 1초 이내, 수평 이동
+            if (diffX > 30 && diffTime < 1000) {
+              // 스와이프 완료 - 수정/삭제 버튼 표시
+              item.classList.add('swiped');
+              const maxContentWidth = calculateItemContentWidth();
+              item.style.setProperty('--content-width', `${maxContentWidth}px`);
             } else {
               // 스와이프 취소 - 원래 위치로 복원
-              this.classList.remove('swiped');
+              item.classList.remove('swiped');
+              const contentElement = item.querySelector('.item-content');
+              if (contentElement) {
+                contentElement.style.width = '100%';
+              }
             }
-          }, { passive: false });
+            
+            // 변수 초기화
+            startX = 0;
+            startY = 0;
+            startTime = 0;
+            hasSwiped = false;
+          }, { passive: true });
           
-          // 클릭 시 스와이프 상태 해제 - 모바일 최적화
+          // 클릭 시 스와이프 상태 해제 (마커정보창과 동일한 방식)
           item.addEventListener('click', function(e) {
             // 수정/삭제 버튼 클릭이 아닌 경우에만 스와이프 해제
             if (!e.target.classList.contains('swipe-edit-btn') &&
                 !e.target.classList.contains('swipe-delete-btn') &&
                 !e.target.classList.contains('prep-checkbox')) {
-              clearAllSwipeStates();
+              item.classList.remove('swiped');
+              const contentElement = item.querySelector('.item-content');
+              if (contentElement) {
+                contentElement.style.width = '100%';
+              }
+            }
+            
+            // 수정/삭제 버튼 클릭이 아닌 경우에만 이벤트 전파 방지
+            if (!e.target.classList.contains('swipe-edit-btn') &&
+                !e.target.classList.contains('swipe-delete-btn')) {
+              e.stopPropagation();
             }
           });
           
-          // 마우스 이벤트 (데스크톱 지원) - 드래그앤드롭 포함
-          if (!isMobile) {
-            let mouseStartTime = 0;
-            let mouseHasMoved = false;
-            let mouseDragTimer = null;
+          // 모바일에서만 마우스 드래그 이벤트 활성화 (마커정보창과 동일한 방식)
+          if (window.innerWidth <= 768) {
+            let isDragging = false;
+            let dragStartX = 0;
             
             item.addEventListener('mousedown', function(e) {
-              if (e.button !== 0) return; // 왼쪽 버튼만
-              
-              // 삭제 버튼이나 체크박스 클릭 시에는 드래그 방지
+              // 수정/삭제 버튼이나 체크박스 클릭 시에는 드래그 방지
               if (e.target.classList.contains('swipe-delete-btn') ||
                   e.target.classList.contains('prep-checkbox') ||
                   e.target.classList.contains('swipe-edit-btn')) {
                 return;
               }
               
-              startX = e.clientX;
-              startY = e.clientY;
-              mouseStartTime = Date.now();
-              isSwiping = true;
-              hasSwiped = false;
-              mouseHasMoved = false;
-              this.classList.add('swiping');
-              currentDragItem = this;
+              if (e.button !== 0) return; // 왼쪽 버튼만
               
-              console.log('데스크탑 마우스 다운:', this.dataset.itemId);
+              isDragging = true;
+              dragStartX = e.clientX;
+            });
+            
+            item.addEventListener('mousemove', function(e) {
+              if (!isDragging) return;
               
-              // 데스크탑에서는 300ms 후 드래그 모드 (더 빠름)
-              mouseDragTimer = setTimeout(() => {
-                if (isSwiping && !hasSwiped && !mouseHasMoved && currentDragItem === this) {
-                  console.log('데스크탑 드래그 모드 시작');
-                  const mockEvent = {
-                    touches: null,
-                    clientX: startX,
-                    clientY: startY
-                  };
-                  startDragMode(this, mockEvent);
-                }
-              }, 300);
+              const diffX = dragStartX - e.clientX;
               
-              const handleMouseMove = (e) => {
-                if (!isSwiping) return;
+              if (Math.abs(diffX) > 3) {
+                // 동적 내용 컨테이너 너비 계산
+                const maxContentWidth = calculateItemContentWidth();
                 
-                currentX = e.clientX;
-                currentY = e.clientY;
-                const diffX = startX - currentX;
-                const diffY = Math.abs(startY - currentY);
-                
-                // 움직임 감지
-                if (Math.abs(diffX) > 5 || diffY > 5) {
-                  mouseHasMoved = true;
+                // 드래그 진행 중 시각적 피드백 - 내용 컨테이너 너비 조정
+                const progress = Math.min(Math.abs(diffX) / 80, 1);
+                const contentWidth = maxContentWidth * (1 - progress * 0.3); // 최대 30% 축소
+                const contentElement = item.querySelector('.item-content');
+                if (contentElement) {
+                  contentElement.style.width = `${contentWidth}px`;
                 }
-                
-                // 드래그 모드일 때
-                if (isDraggingGlobal) {
-                  e.preventDefault();
-                  const mockEvent = {
-                    touches: null,
-                    clientX: e.clientX,
-                    clientY: e.clientY
-                  };
-                  handleDragMove(this, mockEvent);
-                  return;
-                }
-                
-                // 세로 움직임이 크면 드래그 타이머 취소
-                if (diffY > Math.abs(diffX) && diffY > 20) {
-                  if (mouseDragTimer) {
-                    clearTimeout(mouseDragTimer);
-                    mouseDragTimer = null;
-                  }
-                  return;
-                }
-                
-                // 스와이프 처리 (가로 움직임)
-                if (diffX > 50 && diffY < 30) {
-                  // 스와이프 진행 중 시각적 피드백 - CSS 클래스로 처리
-                  hasSwiped = true;
-                  
-                  // 드래그 타이머 취소 (스와이프 중)
-                  if (mouseDragTimer) {
-                    clearTimeout(mouseDragTimer);
-                    mouseDragTimer = null;
-                  }
-                }
-              };
+              }
+            });
+            
+            item.addEventListener('mouseup', function(e) {
+              if (!isDragging) return;
               
-              const handleMouseUp = (e) => {
-                if (mouseDragTimer) {
-                  clearTimeout(mouseDragTimer);
-                  mouseDragTimer = null;
-                }
-                
-                console.log('데스크탑 마우스 업:', { isDraggingGlobal, isSwiping });
-                
-                if (!isSwiping) return;
-                
-                // 드래그 모드 종료
-                if (isDraggingGlobal) {
-                  const mockEvent = {
-                    touches: null,
-                    clientX: e.clientX,
-                    clientY: e.clientY
-                  };
-                  handleDragEnd(this, mockEvent);
-                  isDraggingGlobal = false;
-                  isSwiping = false;
-                  this.classList.remove('swiping');
-                  currentDragItem = null;
-                  
-                  document.removeEventListener('mousemove', handleMouseMove);
-                  document.removeEventListener('mouseup', handleMouseUp);
-                  return;
-                }
-                
-                isSwiping = false;
-                this.classList.remove('swiping');
-                currentDragItem = null;
-                
-                if (hasSwiped && (startX - currentX) > 50) {
-                  // 스와이프 완료 - 수정/삭제 버튼 표시 (CSS에서 처리)
-                  this.classList.add('swiped');
-                } else {
-                  // 스와이프 취소 - 원래 위치로 복원
-                  this.classList.remove('swiped');
-                }
-                
-                document.removeEventListener('mousemove', handleMouseMove);
-                document.removeEventListener('mouseup', handleMouseUp);
-              };
+              const diffX = dragStartX - e.clientX;
               
-              document.addEventListener('mousemove', handleMouseMove);
-              document.addEventListener('mouseup', handleMouseUp);
+              if (diffX > 20) {
+                // 드래그 완료 - 수정/삭제 버튼 표시
+                item.classList.add('swiped');
+                const maxContentWidth = calculateItemContentWidth();
+                item.style.setProperty('--content-width', `${maxContentWidth}px`);
+              } else {
+                // 드래그 취소 - 원래 위치로 복원
+                item.classList.remove('swiped');
+                const contentElement = item.querySelector('.item-content');
+                if (contentElement) {
+                  contentElement.style.width = '100%';
+                }
+              }
+              
+              isDragging = false;
+              dragStartX = 0;
+            });
+            
+            // 마우스가 컨테이너를 벗어날 때 드래그 상태 해제
+            item.addEventListener('mouseleave', function() {
+              if (isDragging) {
+                item.classList.remove('swiped');
+                const contentElement = item.querySelector('.item-content');
+                if (contentElement) {
+                  contentElement.style.width = '100%';
+                }
+                isDragging = false;
+                dragStartX = 0;
+              }
             });
           }
         });
