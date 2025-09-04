@@ -1296,20 +1296,12 @@
         
         .user-added-item.swiped .item-content,
         .checklist-item.swiped .item-content {
-            width: calc(100% - 120px); /* 버튼 너비(108px) + 여백(12px) */
             transition: width 0.3s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
         
         /* 일정 항목은 사이드패널에서 세부항목과 동일한 거리로 스와이프 */
         .user-added-item[data-item-type="schedule"].swiped .item-content {
-            width: calc(100% - 120px); /* 버튼 너비(108px) + 여백(12px) */
             transition: width 0.3s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
         
         .user-added-item.swiped .swipe-edit-btn,
@@ -3262,7 +3254,12 @@
         if (item) {
           item.classList.remove('swiped');
           const itemContent = item.querySelector('.item-content');
-          if (itemContent) {
+          if (itemContent && item.dataset.originalText) {
+            // 원래 내용으로 복원
+            itemContent.textContent = item.dataset.originalText;
+            itemContent.style.whiteSpace = 'normal';
+            itemContent.style.overflow = 'visible';
+            itemContent.style.textOverflow = 'clip';
             itemContent.style.width = '100%';
           }
         }
@@ -3490,6 +3487,20 @@
           
           // UI 업데이트
           displayUserAddedItemsFromFirebase(currentItems);
+          
+          // 원래 내용 업데이트 (스와이프 상태가 있다면)
+          const item = document.querySelector(`[data-item-id="${itemId}"]`);
+          if (item && item.dataset.originalText) {
+            item.dataset.originalText = title;
+            const itemContent = item.querySelector('.item-content');
+            if (itemContent && item.classList.contains('swiped')) {
+              // 스와이프 상태라면 말줄임표 유지
+              itemContent.textContent = '...';
+            } else {
+              // 일반 상태라면 새 내용으로 업데이트
+              itemContent.textContent = title;
+            }
+          }
           
           onFirebaseUploadSuccess('항목 수정');
           
@@ -8570,7 +8581,22 @@
             
             // 빠른 스와이프 감지 (모바일에서 더 민감하게)
             if (diffX > 30 && diffTime < 500 && diffY < 30) {
-              // 스와이프 진행 중 시각적 피드백 - CSS 클래스로 처리
+              // 스와이프 진행 중 시각적 피드백 - 내용을 일시적으로 말줄임표로 변경
+              const itemContent = this.querySelector('.item-content');
+              const originalText = itemContent.textContent;
+              
+              // 원본 내용 저장 (아직 저장되지 않은 경우에만)
+              if (!this.dataset.originalText) {
+                this.dataset.originalText = originalText;
+              }
+              
+              // 내용을 말줄임표로 변경
+              itemContent.textContent = '...';
+              itemContent.style.whiteSpace = 'nowrap';
+              itemContent.style.overflow = 'hidden';
+              itemContent.style.textOverflow = 'ellipsis';
+              itemContent.style.width = 'calc(100% - 120px)';
+              
               hasSwiped = true;
             }
           }, { passive: false });
@@ -8603,11 +8629,19 @@
             
             // 모바일에서 더 민감한 스와이프 감지
             if (hasSwiped && diffX > 30 && diffTime < 1000) {
-              // 스와이프 완료 - 수정/삭제 버튼 표시 (CSS에서 처리)
+              // 스와이프 완료 - 수정/삭제 버튼 표시 (말줄임표 유지)
               this.classList.add('swiped');
             } else {
-              // 스와이프 취소 - 원래 위치로 복원
+              // 스와이프 취소 - 원래 내용으로 복원
               this.classList.remove('swiped');
+              const itemContent = this.querySelector('.item-content');
+              if (this.dataset.originalText) {
+                itemContent.textContent = this.dataset.originalText;
+                itemContent.style.whiteSpace = 'normal';
+                itemContent.style.overflow = 'visible';
+                itemContent.style.textOverflow = 'clip';
+                itemContent.style.width = '100%';
+              }
             }
           }, { passive: false });
           
@@ -8618,6 +8652,16 @@
                 !e.target.classList.contains('swipe-delete-btn') &&
                 !e.target.classList.contains('prep-checkbox')) {
               clearAllSwipeStates();
+              
+              // 원래 내용으로 복원
+              const itemContent = this.querySelector('.item-content');
+              if (this.dataset.originalText) {
+                itemContent.textContent = this.dataset.originalText;
+                itemContent.style.whiteSpace = 'normal';
+                itemContent.style.overflow = 'visible';
+                itemContent.style.textOverflow = 'clip';
+                itemContent.style.width = '100%';
+              }
             }
           });
           
@@ -8697,7 +8741,22 @@
                 
                 // 스와이프 처리 (가로 움직임)
                 if (diffX > 50 && diffY < 30) {
-                  // 스와이프 진행 중 시각적 피드백 - CSS 클래스로 처리
+                  // 스와이프 진행 중 시각적 피드백 - 내용을 일시적으로 말줄임표로 변경
+                  const itemContent = this.querySelector('.item-content');
+                  const originalText = itemContent.textContent;
+                  
+                  // 원본 내용 저장 (아직 저장되지 않은 경우에만)
+                  if (!this.dataset.originalText) {
+                    this.dataset.originalText = originalText;
+                  }
+                  
+                  // 내용을 말줄임표로 변경
+                  itemContent.textContent = '...';
+                  itemContent.style.whiteSpace = 'nowrap';
+                  itemContent.style.overflow = 'hidden';
+                  itemContent.style.textOverflow = 'ellipsis';
+                  itemContent.style.width = 'calc(100% - 120px)';
+                  
                   hasSwiped = true;
                   
                   // 드래그 타이머 취소 (스와이프 중)
@@ -8741,11 +8800,19 @@
                 currentDragItem = null;
                 
                 if (hasSwiped && (startX - currentX) > 50) {
-                  // 스와이프 완료 - 수정/삭제 버튼 표시 (CSS에서 처리)
+                  // 스와이프 완료 - 수정/삭제 버튼 표시 (말줄임표 유지)
                   this.classList.add('swiped');
                 } else {
-                  // 스와이프 취소 - 원래 위치로 복원
+                  // 스와이프 취소 - 원래 내용으로 복원
                   this.classList.remove('swiped');
+                  const itemContent = this.querySelector('.item-content');
+                  if (this.dataset.originalText) {
+                    itemContent.textContent = this.dataset.originalText;
+                    itemContent.style.whiteSpace = 'normal';
+                    itemContent.style.overflow = 'visible';
+                    itemContent.style.textOverflow = 'clip';
+                    itemContent.style.width = '100%';
+                  }
                 }
                 
                 document.removeEventListener('mousemove', handleMouseMove);
