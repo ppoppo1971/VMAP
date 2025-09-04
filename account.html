@@ -1,0 +1,2105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가계부</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f7f7fb;
+            min-height: 100vh;
+            padding: 20px;
+            color: #111827;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            backdrop-filter: none;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #ffffff;
+            color: #111827;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .stats { display: none; }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .stat-card .emoji {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card h3 {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-card .amount {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        
+        .table-container {
+            padding: 30px;
+            overflow-x: auto;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+
+        
+
+        
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 8px 12px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .filter-btn:hover {
+            border-color: #4f46e5;
+            color: #4f46e5;
+        }
+        
+        .filter-btn.active {
+            background: #4f46e5;
+            border-color: #4f46e5;
+            color: white;
+        }
+        
+        .budget-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 15px;
+            overflow: visible;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            table-layout: fixed;
+        }
+        
+        .budget-table th {
+            background: #f8fafc;
+            padding: 18px 15px;
+            text-align: center;
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .budget-table td {
+            padding: 16px 15px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 14px;
+        }
+
+        /* 데스크탑/기본 컬럼 고정 너비 (요청 비율) */
+        .budget-table th:nth-child(1),
+        .budget-table td:nth-child(1) { /* 날짜 */
+            width: 10%;
+            text-align: center;
+        }
+        .budget-table th:nth-child(2),
+        .budget-table td:nth-child(2) { /* 항목 */
+            width: 12% !important;
+            min-width: 80px;
+            max-width: 80px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .budget-table th:nth-child(3),
+        .budget-table td:nth-child(3) { /* 내용 */
+            width: 33%;
+        }
+        .budget-table th:nth-child(4),
+        .budget-table td:nth-child(4) { /* 결제방법 */
+            width: 12%;
+            text-align: center;
+        }
+        .budget-table th:nth-child(5) { /* 금액 헤더 */
+            width: 16%;
+            text-align: center;
+        }
+        .budget-table td:nth-child(5) { /* 금액 값 */
+            width: 16%;
+            text-align: right;
+        }
+        .budget-table th:nth-child(6),
+        .budget-table td:nth-child(6) { /* 삭제 */
+            width: 10%;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .budget-table tr:hover {
+            background: rgba(79, 70, 229, 0.02);
+        }
+        
+        
+        
+
+        
+        .amount-cell {
+            font-weight: 600;
+            text-align: right;
+        }
+        
+        .amount-krw {
+            color: #2563eb; /* 파란색 */
+        }
+        
+        .amount-jpy {
+            color: #dc2626; /* 빨간색 유지 */
+        }
+        
+        .payment-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .payment-card {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        
+        .payment-cash {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .date-cell {
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .content-cell {
+            max-width: 200px;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+        
+        .editable-cell {
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+        
+        .editable-cell:hover {
+            background-color: rgba(79, 70, 229, 0.05);
+        }
+        
+        .editable-cell.editing {
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+        
+                 .inline-input {
+             width: 100%;
+             border: 2px solid #4f46e5;
+             border-radius: 4px;
+             padding: 4px 8px;
+             font-size: 14px;
+             outline: none;
+             background: white;
+             -webkit-appearance: none;
+             -moz-appearance: none;
+             appearance: none;
+         }
+         
+                   /* 모바일에서 입력 필드 확대 방지 */
+          @media (max-width: 768px) {
+              .inline-input {
+                  font-size: 16px;
+                  -webkit-text-size-adjust: 100%;
+                  -webkit-appearance: none;
+                  -moz-appearance: none;
+                  appearance: none;
+                  border-radius: 4px;
+              }
+              
+              .inline-select {
+                  font-size: 16px;
+                  -webkit-text-size-adjust: 100%;
+              }
+              
+              /* iOS 모바일에서 입력 필드 최적화 */
+              input[type="number"] {
+                  -webkit-appearance: none;
+                  -moz-appearance: none;
+                  appearance: none;
+                  border-radius: 4px;
+                  background: white;
+              }
+              
+              /* iOS에서 입력 필드 포커스 시 확대 방지 */
+              input[type="number"]:focus {
+                  font-size: 16px;
+                  -webkit-text-size-adjust: 100%;
+                  transform: none;
+              }
+          }
+        
+        .inline-select {
+            width: 100%;
+            border: 2px solid #4f46e5;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 14px;
+            outline: none;
+            background: white;
+        }
+        
+
+        
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+        
+
+        
+        .export-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            font-size: 14px;
+        }
+        
+        .export-btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 5px;
+                border-radius: 15px;
+            }
+            
+
+            
+            .header {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+
+            
+            .table-container {
+                padding: 10px;
+                overflow-x: auto;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            
+
+            
+            .filter-buttons {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .filter-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            
+            .export-btn {
+                padding: 10px 20px;
+                font-size: 12px;
+            }
+            
+            .search-box input {
+                width: 100%;
+            }
+            
+            .budget-table {
+                font-size: 11px;
+                min-width: 100%;
+                table-layout: fixed;
+                white-space: normal;
+            }
+            
+            .budget-table th,
+            .budget-table td {
+                padding: 8px 4px;
+                font-size: 11px;
+            }
+            
+            /* 768px 이하 컬럼 고정 너비 (요청 비율) */
+            .budget-table th:nth-child(1),
+            .budget-table td:nth-child(1) { /* 날짜 */
+                width: 10%;
+                text-align: center;
+            }
+
+            .budget-table th:nth-child(2),
+            .budget-table td:nth-child(2) { /* 항목 */
+                width: 12% !important;
+                min-width: 60px;
+                max-width: 60px;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .budget-table th:nth-child(3),
+            .budget-table td:nth-child(3) { /* 내용 */
+                width: 36%;
+            }
+
+            .budget-table th:nth-child(4),
+            .budget-table td:nth-child(4) { /* 결제방법 */
+                width: 12%;
+                text-align: center;
+            }
+
+            .budget-table th:nth-child(5) { /* 금액 (헤더 가운데) */
+                width: 16%;
+                text-align: center;
+            }
+
+            .budget-table td:nth-child(5) { /* 금액 값은 오른쪽 정렬 */
+                width: 16%;
+                text-align: right;
+            }
+
+            .budget-table th:nth-child(6),
+            .budget-table td:nth-child(6) { /* 삭제 */
+                width: 10%;
+                text-align: center;
+                white-space: nowrap;
+            }
+
+            .content-cell {
+                max-width: none;
+                word-break: break-all;
+                white-space: normal;
+                line-height: 1.2;
+            }
+            
+            .date-cell {
+                min-width: 60px;
+                font-size: 10px;
+            }
+            
+            .amount-cell {
+                min-width: 70px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            
+            .payment-badge {
+                padding: 2px 6px;
+                font-size: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                margin: 0;
+            }
+            
+            .header {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+
+            
+            .table-container {
+                padding: 5px;
+            }
+            
+            .budget-table {
+                font-size: 10px;
+                table-layout: fixed;
+                white-space: normal;
+            }
+            
+            .budget-table th,
+            .budget-table td {
+                padding: 6px 2px;
+                font-size: 10px;
+            }
+            
+            /* 480px 이하 컬럼 고정 너비 (요청 비율) */
+            .budget-table th:nth-child(1),
+            .budget-table td:nth-child(1) { /* 날짜 */
+                width: 10%;
+                text-align: center;
+            }
+
+            .budget-table th:nth-child(2),
+            .budget-table td:nth-child(2) { /* 항목 */
+                width: 12% !important;
+                min-width: 50px;
+                max-width: 50px;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .budget-table th:nth-child(3),
+            .budget-table td:nth-child(3) { /* 내용 */
+                width: 23%;
+            }
+
+            .budget-table th:nth-child(4),
+            .budget-table td:nth-child(4) { /* 결제방법 */
+                width: 12%;
+                text-align: center;
+            }
+
+            .budget-table th:nth-child(5) { /* 금액 (헤더 가운데) */
+                width: 23%;
+                text-align: center;
+            }
+
+            .budget-table td:nth-child(5) { /* 금액 값은 오른쪽 정렬 */
+                width: 23%;
+                text-align: right;
+            }
+
+            .budget-table th:nth-child(6),
+            .budget-table td:nth-child(6) { /* 삭제 */
+                width: 10%;
+                text-align: center;
+                white-space: nowrap;
+            }
+            
+            .content-cell {
+                max-width: none;
+                word-break: break-all;
+                white-space: normal;
+                line-height: 1.1;
+            }
+            
+            .date-cell {
+                font-size: 9px;
+            }
+            
+            .amount-cell {
+                font-size: 10px;
+            }
+            
+            .payment-badge {
+                padding: 1px 4px;
+                font-size: 9px;
+            }
+            
+            /* 삭제 버튼 크기 조정 */
+            .budget-table button {
+                padding: 2px 4px;
+                font-size: 9px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>가계부</h1>
+            <p>여행 지출 내역을 한눈에 확인하세요</p>
+        </div>
+        
+        <div class="stats" id="statsContainer">
+            <!-- 통계 카드들이 여기에 동적으로 생성됩니다 -->
+        </div>
+        
+        <div class="table-container">
+            <div class="controls">
+                <div style="display: flex; gap: 10px; justify-content: space-between;">
+                    <button class="export-btn" onclick="exportToCSV()" style="flex: 1; background: white; color: #333; border: 2px solid white; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">CSV 내보내기</button>
+                    <button class="export-btn" onclick="showAddBudgetDialog()" style="flex: 1; background: white; color: #333; border: 2px solid white; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);">항목 추가</button>
+                </div>
+            </div>
+            
+            <table class="budget-table" id="budgetTable">
+                <thead>
+                    <tr>
+                        <th onclick="toggleDateSort()" style="cursor: pointer; user-select: none;" id="dateHeader">날짜 ↓</th>
+                        <th onclick="toggleCategoryDropdown(event)" style="cursor: pointer; user-select: none; position: relative;" id="categoryHeader">항목</th>
+                        <th>내용</th>
+                        <th onclick="togglePaymentFilter()" style="cursor: pointer; user-select: none;" id="paymentHeader">결제방법</th>
+                        <th>금액</th>
+                        <th>삭제</th>
+                    </tr>
+                </thead>
+                <tbody id="budgetTableBody">
+                    <!-- 데이터가 여기에 동적으로 생성됩니다 -->
+                </tbody>
+                <tfoot id="budgetTableFooter"></tfoot>
+            </table>
+            
+            <div class="no-data" id="noDataMessage" style="display: none;">
+                <div class="emoji">📝</div>
+                <h3>가계부 내역이 없습니다</h3>
+                <p>홋카이도 여행지도에서 가계부를 작성해보세요!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (v9 modular) -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, arrayUnion, arrayRemove, getDoc, serverTimestamp, orderBy, query } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+        
+        // Firebase 설정 (index47m.html과 동일)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhndv9tfh_Uu8Nkm7AZxjRCNIgvnGEj_c",
+            authDomain: "travelplan250826.firebaseapp.com",
+            projectId: "travelplan250826",
+            storageBucket: "travelplan250826.firebasestorage.app",
+            messagingSenderId: "918345537744",
+            appId: "1:918345537744:web:08d0daace8cb0ec021e6d5",
+            measurementId: "G-18R59NTNBT"
+        };
+        
+        // Firebase 초기화
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        // 전역 변수로 설정 (기존 방식과 호환)
+        window.db = db;
+        window.firestore = {
+            doc: doc,
+            updateDoc: updateDoc,
+            getDoc: getDoc,
+            arrayUnion: arrayUnion,
+            arrayRemove: arrayRemove,
+            serverTimestamp: serverTimestamp,
+            query: query,
+            orderBy: orderBy,
+            getDocs: getDocs
+        };
+        
+
+    </script>
+    
+    <script>
+        // 오프라인 지원 시스템 (index.html과 동일)
+        const PENDING_OPERATIONS_KEY = 'pendingFirebaseOperations';
+        const MAX_PENDING_OPERATIONS = 50;
+        
+        const OPERATION_TYPES = {
+          BUDGET_ADD: 'budgetAdd',
+          BUDGET_UPDATE: 'budgetUpdate',
+          BUDGET_DELETE: 'budgetDelete'
+        };
+        
+        // 대기 작업 관리 함수들
+        function getPendingOperations() {
+          try {
+            const pending = localStorage.getItem(PENDING_OPERATIONS_KEY);
+            return pending ? JSON.parse(pending) : [];
+          } catch (error) {
+            console.error('대기 작업 로드 실패:', error);
+            return [];
+          }
+        }
+        
+        function savePendingOperations(operations) {
+          try {
+            const limitedOps = operations.slice(-MAX_PENDING_OPERATIONS);
+            localStorage.setItem(PENDING_OPERATIONS_KEY, JSON.stringify(limitedOps));
+          } catch (error) {
+            console.error('대기 작업 저장 실패:', error);
+          }
+        }
+        
+        function addPendingOperation(operation) {
+          const pending = getPendingOperations();
+          const newOperation = {
+            id: `${operation.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: Date.now(),
+            retryCount: 0,
+            ...operation
+          };
+          
+          pending.push(newOperation);
+          savePendingOperations(pending);
+          
+
+          return newOperation.id;
+        }
+        
+        function removePendingOperation(operationId) {
+          const pending = getPendingOperations();
+          const filtered = pending.filter(op => op.id !== operationId);
+          savePendingOperations(filtered);
+
+        }
+        
+        // 자동 재시도 시스템
+        async function processPendingOperations() {
+          if (!navigator.onLine || !window.db || !window.firestore) {
+
+            return;
+          }
+          
+          const pending = getPendingOperations();
+          if (pending.length === 0) return;
+          
+
+          
+          for (const operation of pending) {
+            try {
+              await retryPendingOperation(operation);
+              removePendingOperation(operation.id);
+            } catch (error) {
+              console.error('대기 작업 재시도 실패:', operation.id, error);
+              operation.retryCount = (operation.retryCount || 0) + 1;
+              
+              if (operation.retryCount >= 3) {
+                console.warn('최대 재시도 횟수 초과로 작업 제거:', operation.id);
+                removePendingOperation(operation.id);
+              } else {
+                const pending = getPendingOperations();
+                const index = pending.findIndex(op => op.id === operation.id);
+                if (index !== -1) {
+                  pending[index] = operation;
+                  savePendingOperations(pending);
+                }
+              }
+            }
+          }
+        }
+        
+        async function retryPendingOperation(operation) {
+          const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+          
+          switch (operation.type) {
+            case OPERATION_TYPES.BUDGET_ADD:
+              await window.firestore.updateDoc(userDocRef, {
+                budgetItems: window.firestore.arrayUnion(operation.data),
+                lastUpdated: window.firestore.serverTimestamp()
+              });
+
+              break;
+              
+            case OPERATION_TYPES.BUDGET_UPDATE:
+              await window.firestore.updateDoc(userDocRef, {
+                budgetItems: window.firestore.arrayRemove(operation.oldData)
+              });
+              await window.firestore.updateDoc(userDocRef, {
+                budgetItems: window.firestore.arrayUnion(operation.newData),
+                lastUpdated: window.firestore.serverTimestamp()
+              });
+
+              break;
+              
+            case OPERATION_TYPES.BUDGET_DELETE:
+              await window.firestore.updateDoc(userDocRef, {
+                budgetItems: window.firestore.arrayRemove(operation.data),
+                lastUpdated: window.firestore.serverTimestamp()
+              });
+
+              break;
+              
+            default:
+              throw new Error(`알 수 없는 작업 타입: ${operation.type}`);
+          }
+        }
+        
+        // 네트워크 상태 감지
+        window.addEventListener('online', function() {
+
+          setTimeout(() => {
+            processPendingOperations().catch(error => {
+              console.error('온라인 전환 시 대기 작업 처리 실패:', error);
+            });
+          }, 1000);
+        });
+        
+        // 페이지 로드 시 대기 작업 처리
+        if (navigator.onLine) {
+          setTimeout(() => {
+            processPendingOperations().catch(error => {
+              console.error('초기 대기 작업 처리 실패:', error);
+            });
+          }, 2000);
+        }
+    </script>
+    
+    <script>
+        
+        let budgetData = [];
+        let filteredData = [];
+        let dateSortOrder = 'desc'; // 'desc' = 내림차순(최신순), 'asc' = 오름차순(오래된순)
+        let currentCategoryFilter = 'all'; // 현재 카테고리 필터
+        let currentPaymentFilter = 'all'; // 'all', 'card', 'cash'
+        let categoryDropdownPortal = null; // 바디 포탈 드롭다운 참조
+        
+        // 카테고리별 이모지 매핑
+        const categoryEmojis = {
+            '식비': '🥣',
+            '교통비': '🚌',
+            '숙박비': '🏨',
+            '쇼핑': '🎁',
+            '기타': '💡'
+        };
+        
+        // Firebase에서 가계부 데이터 로드 (개선된 방식)
+        async function loadBudgetDataFromFirebase() {
+            try {
+                if (!window.db || !window.firestore) {
+                    console.warn('Firebase가 초기화되지 않았습니다.');
+                    loadBudgetDataFromURL();
+                    return;
+                }
+                
+                const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+                const docSnap = await window.firestore.getDoc(userDocRef);
+                
+                if (docSnap.exists() && docSnap.data().budgetItems) {
+                    budgetData = docSnap.data().budgetItems || [];
+                    
+                    // 데이터 일관성 검사 및 수정
+                    budgetData = budgetData.map(item => {
+                        // ID가 없는 항목에 ID 추가
+                        if (!item.id && item.timestamp) {
+                            item.id = item.timestamp.toString();
+                        } else if (!item.id) {
+                            item.id = Date.now().toString();
+                        }
+                        return item;
+                    });
+                    
+                    // 날짜 기준 최신순 정렬 (날짜가 같으면 timestamp 기준)
+                    budgetData.sort((a, b) => {
+                        const dateA = new Date(a.date);
+                        const dateB = new Date(b.date);
+                        if (dateA.getTime() !== dateB.getTime()) {
+                            return dateB.getTime() - dateA.getTime(); // 날짜 내림차순
+                        }
+                        return (b.timestamp || 0) - (a.timestamp || 0); // 같은 날짜면 입력시간 내림차순
+                    });
+                    
+                    // 수정된 데이터를 Firebase에 다시 저장 (일관성 유지)
+                    if (budgetData.length > 0) {
+                        await window.firestore.updateDoc(userDocRef, {
+                            budgetItems: budgetData,
+                            lastUpdated: window.firestore.serverTimestamp()
+                        });
+                    }
+                } else {
+                    budgetData = [];
+                }
+                
+                filteredData = [...budgetData];
+                
+                renderStats();
+                renderTable();
+
+            } catch (error) {
+                console.error('Firebase 데이터 로드 실패:', error);
+                // Firebase 로드 실패시 URL 파라미터에서 로드 시도
+                loadBudgetDataFromURL();
+            }
+        }
+        
+        // localStorage 마이그레이션 함수 제거됨 (Firebase 직접 저장으로 변경)
+        
+        // Firebase에 가계부 데이터 저장 (개선된 방식)
+        async function saveBudgetDataToFirebase(budgetItem) {
+            try {
+                if (!window.db || !window.firestore) {
+                    throw new Error('Firebase가 초기화되지 않았습니다.');
+                }
+                
+                // 로컬 데이터에 추가
+                budgetData.push(budgetItem);
+                filteredData = [...budgetData];
+                
+                const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+                
+                // 전체 배열을 한 번에 업데이트 (더 안정적)
+                await window.firestore.updateDoc(userDocRef, {
+                    budgetItems: budgetData,
+                    lastUpdated: window.firestore.serverTimestamp()
+                });
+                
+
+                return budgetItem.id;
+            } catch (error) {
+                console.error('Firebase 저장 실패:', error);
+                throw error;
+            }
+        }
+        
+        // Firebase에서 가계부 데이터 삭제 (개선된 방식)
+        async function deleteBudgetDataFromFirebase(itemId) {
+            try {
+                if (!window.db || !window.firestore) {
+                    throw new Error('Firebase가 초기화되지 않았습니다.');
+                }
+                
+                // 삭제할 항목 찾기 (id 또는 timestamp로)
+                const itemIndex = budgetData.findIndex(item => (item.id || item.timestamp) === itemId);
+                if (itemIndex === -1) {
+                    throw new Error('삭제할 항목을 찾을 수 없습니다.');
+                }
+                
+                // 로컬 데이터에서 제거
+                budgetData.splice(itemIndex, 1);
+                filteredData = [...budgetData];
+                
+                const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+                
+                // 전체 배열을 한 번에 업데이트 (더 안정적)
+                await window.firestore.updateDoc(userDocRef, {
+                    budgetItems: budgetData,
+                    lastUpdated: window.firestore.serverTimestamp()
+                });
+                
+
+            } catch (error) {
+                console.error('Firebase 삭제 실패:', error);
+                throw error;
+            }
+        }
+        
+        // Firebase에서 가계부 데이터 수정 (개선된 방식)
+        async function updateBudgetDataInFirebase(itemId, updatedData) {
+            try {
+                if (!window.db || !window.firestore) {
+                    throw new Error('Firebase가 초기화되지 않았습니다.');
+                }
+                
+                // 기존 항목 찾기 (id 또는 timestamp로)
+                const oldItemIndex = budgetData.findIndex(item => (item.id || item.timestamp) === itemId);
+                if (oldItemIndex === -1) {
+                    throw new Error('수정할 항목을 찾을 수 없습니다.');
+                }
+                
+                // 새 항목 생성 (기존 ID 유지)
+                const updatedItem = { 
+                    ...budgetData[oldItemIndex], 
+                    ...updatedData,
+                    id: budgetData[oldItemIndex].id || budgetData[oldItemIndex].timestamp // ID 유지
+                };
+                
+                // 로컬 데이터 업데이트
+                budgetData[oldItemIndex] = updatedItem;
+                filteredData = [...budgetData];
+                
+                const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
+                
+                // 전체 배열을 한 번에 업데이트 (더 안정적)
+                await window.firestore.updateDoc(userDocRef, {
+                    budgetItems: budgetData,
+                    lastUpdated: window.firestore.serverTimestamp()
+                });
+                
+
+            } catch (error) {
+                console.error('Firebase 수정 실패:', error);
+                throw error;
+            }
+        }
+        
+        // URL에서 데이터 가져오기 (Firebase 실패시 백업용)
+        function loadBudgetDataFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const dataParam = urlParams.get('data');
+            
+            if (dataParam) {
+                try {
+                    budgetData = JSON.parse(decodeURIComponent(dataParam));
+                    filteredData = [...budgetData];
+                    
+                    // 날짜 기준 최신순 정렬
+                    const sortByDate = (a, b) => {
+                        const dateA = new Date(a.date);
+                        const dateB = new Date(b.date);
+                        if (dateA.getTime() !== dateB.getTime()) {
+                            return dateB.getTime() - dateA.getTime();
+                        }
+                        return (b.timestamp || 0) - (a.timestamp || 0);
+                    };
+                    budgetData.sort(sortByDate);
+                    filteredData.sort(sortByDate);
+                    
+                    renderStats();
+                    renderTable();
+
+                } catch (error) {
+                    console.error('URL 데이터 파싱 오류:', error);
+                    showNoData();
+                }
+            } else {
+                showNoData();
+            }
+        }
+        
+        // 통계 카드 렌더링 (미사용: 미니멀 UI)
+        function renderStats() {
+            const statsContainer = document.getElementById('statsContainer');
+            if (statsContainer) statsContainer.innerHTML = '';
+        }
+        
+        // 날짜 정렬 토글 함수
+        function toggleDateSort() {
+            dateSortOrder = dateSortOrder === 'desc' ? 'asc' : 'desc';
+            sortDataByDate();
+            updateDateHeader();
+            renderTable();
+        }
+        
+        // 날짜 기준으로 데이터 정렬
+        function sortDataByDate() {
+            const sortFunction = (a, b) => {
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                if (dateA.getTime() !== dateB.getTime()) {
+                    if (dateSortOrder === 'desc') {
+                        return dateB.getTime() - dateA.getTime(); // 내림차순
+                    } else {
+                        return dateA.getTime() - dateB.getTime(); // 오름차순
+                    }
+                }
+                // 같은 날짜면 timestamp 기준
+                if (dateSortOrder === 'desc') {
+                    return (b.timestamp || 0) - (a.timestamp || 0);
+                } else {
+                    return (a.timestamp || 0) - (b.timestamp || 0);
+                }
+            };
+            
+            budgetData.sort(sortFunction);
+            filteredData.sort(sortFunction);
+        }
+        
+        // 날짜 헤더 업데이트
+        function updateDateHeader() {
+            const dateHeader = document.getElementById('dateHeader');
+            if (dateHeader) {
+                dateHeader.textContent = dateSortOrder === 'desc' ? '날짜 ↓' : '날짜 ↑';
+            }
+        }
+        
+        // 결제방법 필터 토글
+        function togglePaymentFilter() {
+            if (currentPaymentFilter === 'all') {
+                currentPaymentFilter = 'cash';
+            } else if (currentPaymentFilter === 'cash') {
+                currentPaymentFilter = 'card';
+            } else {
+                currentPaymentFilter = 'all';
+            }
+            updatePaymentHeader();
+            applyFilters();
+        }
+        
+        // 결제방법 헤더 업데이트
+        function updatePaymentHeader() {
+            const paymentHeader = document.getElementById('paymentHeader');
+            if (paymentHeader) {
+                switch (currentPaymentFilter) {
+                    case 'cash':
+                        paymentHeader.textContent = '결제방법(현금)';
+                        paymentHeader.style.color = '#166534';
+                        break;
+                    case 'card':
+                        paymentHeader.textContent = '결제방법(카드)';
+                        paymentHeader.style.color = '#1d4ed8';
+                        break;
+                    default:
+                        paymentHeader.textContent = '결제방법';
+                        paymentHeader.style.color = '#374151';
+                        break;
+                }
+            }
+        }
+        
+        // 카테고리 드롭다운 토글 (바디 포탈)
+        function toggleCategoryDropdown(event) {
+            if (event) event.stopPropagation();
+            
+            const header = document.getElementById('categoryHeader');
+            if (!header) return;
+            
+            // 포탈 요소 없으면 생성
+            if (!categoryDropdownPortal) {
+                categoryDropdownPortal = document.createElement('div');
+                categoryDropdownPortal.id = 'categoryDropdown';
+                categoryDropdownPortal.style.position = 'fixed';
+                categoryDropdownPortal.style.background = 'white';
+                categoryDropdownPortal.style.border = '1px solid #e5e7eb';
+                categoryDropdownPortal.style.borderRadius = '6px';
+                categoryDropdownPortal.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                categoryDropdownPortal.style.zIndex = '99999';
+                categoryDropdownPortal.style.minWidth = '140px';
+                categoryDropdownPortal.style.display = 'none';
+                categoryDropdownPortal.innerHTML = `
+                    <div onclick="event.stopPropagation(); selectCategory('all')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #f3f4f6; font-weight:600;">전체</div>
+                    <div onclick="event.stopPropagation(); selectCategory('식비')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #f3f4f6;">식비</div>
+                    <div onclick="event.stopPropagation(); selectCategory('교통비')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #f3f4f6;">교통비</div>
+                    <div onclick="event.stopPropagation(); selectCategory('숙박비')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #f3f4f6;">숙박비</div>
+                    <div onclick="event.stopPropagation(); selectCategory('쇼핑')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding:8px 12px; cursor:pointer; border-bottom:1px solid #f3f4f6;">쇼핑</div>
+                    <div onclick="event.stopPropagation(); selectCategory('기타')" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'" style="padding:8px 12px; cursor:pointer;">기타</div>`;
+                document.body.appendChild(categoryDropdownPortal);
+            }
+            
+            // 위치 계산 (헤더 아래)
+            const rect = header.getBoundingClientRect();
+            categoryDropdownPortal.style.top = (rect.bottom + 6) + 'px';
+            categoryDropdownPortal.style.left = rect.left + 'px';
+            
+            // 화면 우측 넘어가면 좌표 보정
+            const portalWidth = 160;
+            const overflowX = rect.left + portalWidth - window.innerWidth;
+            if (overflowX > 0) {
+                categoryDropdownPortal.style.left = (rect.left - overflowX - 10) + 'px';
+            }
+            
+            // 토글 표시
+            categoryDropdownPortal.style.display = (categoryDropdownPortal.style.display === 'none' || categoryDropdownPortal.style.display === '') ? 'block' : 'none';
+        }
+        
+        // 카테고리 선택
+        function selectCategory(category) {
+            currentCategoryFilter = category;
+            updateCategoryHeader();
+            hideDropdown();
+            applyFilters();
+        }
+        
+        // 카테고리 헤더 업데이트
+        function updateCategoryHeader() {
+            const categoryHeader = document.getElementById('categoryHeader');
+            if (categoryHeader) {
+                const headerText = currentCategoryFilter === 'all' ? '항목' : `항목(${currentCategoryFilter})`;
+                categoryHeader.textContent = headerText;
+                
+                // 색상 변경
+                if (currentCategoryFilter === 'all') {
+                    categoryHeader.style.color = '#374151';
+                } else {
+                    categoryHeader.style.color = '#4f46e5';
+                }
+            }
+        }
+        
+        // 드롭다운 숨기기
+        function hideDropdown() {
+            if (categoryDropdownPortal) {
+                categoryDropdownPortal.style.display = 'none';
+            }
+        }
+        
+        // 모든 필터 적용
+        function applyFilters() {
+            filteredData = budgetData.filter(item => {
+                // 카테고리 필터
+                const categoryMatch = currentCategoryFilter === 'all' || item.category === currentCategoryFilter;
+                
+                // 결제방법 필터
+                let paymentMatch = true;
+                if (currentPaymentFilter === 'cash') {
+                    paymentMatch = item.payment === '현금';
+                } else if (currentPaymentFilter === 'card') {
+                    paymentMatch = item.payment === '카드';
+                }
+                
+                return categoryMatch && paymentMatch;
+            });
+            
+            // 현재 정렬 순서 적용
+            sortDataByDate();
+            renderTable();
+        }
+        
+        // 테이블 렌더링
+        function renderTable() {
+            const tableBody = document.getElementById('budgetTableBody');
+            const noDataMessage = document.getElementById('noDataMessage');
+            
+            if (filteredData.length === 0) {
+                tableBody.innerHTML = '';
+                noDataMessage.style.display = 'block';
+                return;
+            }
+            
+            noDataMessage.style.display = 'none';
+            
+            const tableHTML = filteredData.map(item => {
+                const dateObj = new Date(item.date);
+                const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate().toString().padStart(2, '0')}`;
+                
+                const currencySymbol = item.currency === '원화' ? '원' : '¥';
+                const amountClass = item.currency === '원화' ? 'amount-krw' : 'amount-jpy';
+                const paymentClass = item.payment === '카드' ? 'payment-card' : 'payment-cash';
+                
+                return `
+                    <tr data-item-id="${item.id || item.timestamp}">
+                        <td class="date-cell editable-cell" data-field="date" data-type="date" onclick="editCell(this, '${item.id || item.timestamp}')">${formattedDate}</td>
+                        <td class="category-cell editable-cell" data-field="category" data-type="select" onclick="event.stopPropagation(); editCell(this, '${item.id || item.timestamp}')">
+                            <span>${item.category}</span>
+                        </td>
+                        <td class="content-cell editable-cell" data-field="content" data-type="text" onclick="editCell(this, '${item.id || item.timestamp}')">${item.content || '-'}</td>
+                        <td class="editable-cell" data-field="payment" data-type="select" onclick="event.stopPropagation(); editCell(this, '${item.id || item.timestamp}')">
+                            <span class="payment-badge ${paymentClass}">${item.payment}</span>
+                        </td>
+                        <td class="amount-cell ${amountClass} editable-cell" data-field="amount" data-type="number" onclick="editCell(this, '${item.id || item.timestamp}')">
+                            ${item.amount.toLocaleString()}${currencySymbol}
+                        </td>
+                        <td style="text-align: center;">
+                            <button onclick="deleteBudgetItem('${item.id || item.timestamp}')" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">삭제</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            tableBody.innerHTML = tableHTML;
+
+            // 합계 표시 (현재 필터링된 데이터 기준)
+            const totalKRW = filteredData.filter(i => i.currency === '원화').reduce((s, i) => s + (Number(i.amount) || 0), 0);
+            const totalJPY = filteredData.filter(i => i.currency === '엔화').reduce((s, i) => s + (Number(i.amount) || 0), 0);
+            const footer = document.getElementById('budgetTableFooter');
+            if (footer) {
+                footer.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align:right; font-weight:700; color:#374151; background:#f9fafb;">합계</td>
+                        <td style="text-align:right; font-weight:700; background:#f9fafb; white-space:nowrap; overflow:visible; min-width:max-content;">
+                            <span style="color: #2563eb;">${totalKRW.toLocaleString()}원</span>${totalJPY ? ` / <span style="color: #dc2626;">¥${totalJPY.toLocaleString()}</span>` : ''}
+                        </td>
+                        <td style="background:#f9fafb;"></td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // 데이터 없음 표시
+        function showNoData() {
+            const stats = document.getElementById('statsContainer');
+            if (stats) stats.innerHTML = '';
+            document.getElementById('noDataMessage').style.display = 'block';
+            const footer = document.getElementById('budgetTableFooter');
+            if (footer) footer.innerHTML = '';
+        }
+        
+
+        
+        // 필터 기능 (드롭다운 외부 클릭시 닫기)
+        function setupFilters() {
+            // 문서 전체에 클릭 이벤트 추가하여 드롭다운 외부 클릭시 닫기
+            document.addEventListener('click', function(e) {
+                const categoryHeader = document.getElementById('categoryHeader');
+                const categoryDropdown = document.getElementById('categoryDropdown');
+                
+                // 카테고리 헤더나 드롭다운을 클릭한 경우가 아니면 드롭다운 닫기
+                if (categoryHeader && categoryDropdown && 
+                    !categoryHeader.contains(e.target)) {
+                    hideDropdown();
+                }
+            });
+            
+            // 초기 카테고리 헤더 설정
+            updateCategoryHeader();
+        }
+        
+        // CSV 내보내기
+        function exportToCSV() {
+            if (budgetData.length === 0) {
+                alert('내보낼 데이터가 없습니다.');
+                return;
+            }
+            
+            const headers = ['날짜', '항목', '내용', '결제방법', '통화', '금액'];
+            const csvContent = [
+                headers.join(','),
+                ...budgetData.map(item => [
+                    item.date,
+                    item.category,
+                    `"${item.content.replace(/"/g, '""')}"`,
+                    item.payment,
+                    item.currency,
+                    item.amount
+                ].join(','))
+            ].join('\n');
+            
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `홋카이도_가계부_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // 가계부 항목 추가 다이얼로그 표시
+        function showAddBudgetDialog() {
+            const dialogHTML = `
+                <div id="budgetDialog" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                        <h3 style="margin-bottom: 20px; text-align: center;">가계부 항목 추가</h3>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">날짜</label>
+                            <input type="date" id="dialogDate" value="${new Date().toISOString().split('T')[0]}" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">카테고리</label>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button type="button" onclick="selectDialogCategory('식비')" id="dialog-식비" style="padding: 8px 12px; background: #f3f4f6; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">식비</button>
+                                <button type="button" onclick="selectDialogCategory('교통비')" id="dialog-교통비" style="padding: 8px 12px; background: #f3f4f6; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">교통비</button>
+                                <button type="button" onclick="selectDialogCategory('숙박비')" id="dialog-숙박비" style="padding: 8px 12px; background: #f3f4f6; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">숙박비</button>
+                                <button type="button" onclick="selectDialogCategory('쇼핑')" id="dialog-쇼핑" style="padding: 8px 12px; background: #f3f4f6; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">쇼핑</button>
+                                <button type="button" onclick="selectDialogCategory('기타')" id="dialog-기타" style="padding: 8px 12px; background: #f3f4f6; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">기타</button>
+                            </div>
+                            <input type="hidden" id="dialogCategory">
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">내용</label>
+                            <input type="text" id="dialogContent" placeholder="상세 내용 입력" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">결제방법</label>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" onclick="selectDialogPayment('카드')" id="dialog-카드" style="flex: 1; padding: 10px; background: #f3f4f6; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">카드</button>
+                                <button type="button" onclick="selectDialogPayment('현금')" id="dialog-현금" style="flex: 1; padding: 10px; background: #f3f4f6; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">현금</button>
+                            </div>
+                            <input type="hidden" id="dialogPayment">
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">통화</label>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" onclick="selectDialogCurrency('원화')" id="dialog-원화" style="flex: 1; padding: 10px; background: #f3f4f6; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">원화</button>
+                                <button type="button" onclick="selectDialogCurrency('엔화')" id="dialog-엔화" style="flex: 1; padding: 10px; background: #f3f4f6; border: 1px solid #ddd; border-radius: 6px; cursor: pointer;">엔화</button>
+                            </div>
+                            <input type="hidden" id="dialogCurrency">
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">금액</label>
+                            <input type="text" id="dialogAmount" placeholder="금액 입력" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="saveBudgetFromDialog()" style="flex: 1; background: #4f46e5; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer;">저장</button>
+                            <button onclick="closeBudgetDialog()" style="flex: 1; background: #6b7280; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer;">취소</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', dialogHTML);
+            
+            // 입력 필드 이벤트 리스너 추가
+            const contentInput = document.getElementById('dialogContent');
+            const amountInput = document.getElementById('dialogAmount');
+            
+            // 내용 입력 필드 이벤트
+            if (contentInput) {
+                // 엔터 키로 입력 완료
+                contentInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        checkAndSaveIfComplete();
+                    }
+                });
+                
+                // blur 이벤트로 입력 완료 체크
+                contentInput.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        checkAndSaveIfComplete();
+                    }, 200);
+                });
+            }
+            
+            // 금액 입력 필드 이벤트
+            if (amountInput) {
+                // blur 이벤트로 입력 완료 체크
+                amountInput.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        checkAndSaveIfComplete();
+                    }, 200);
+                });
+                
+                // 엔터 키로 입력 완료
+                amountInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        checkAndSaveIfComplete();
+                    }
+                });
+            }
+        }
+        
+        // 모든 필드가 입력되었는지 확인하고 자동 저장
+        function checkAndSaveIfComplete() {
+            const date = document.getElementById('dialogDate')?.value;
+            const category = document.getElementById('dialogCategory')?.value;
+            const content = document.getElementById('dialogContent')?.value?.trim();
+            const payment = document.getElementById('dialogPayment')?.value;
+            const currency = document.getElementById('dialogCurrency')?.value;
+            const amount = document.getElementById('dialogAmount')?.value?.trim();
+            
+            // 모든 필드가 입력되었는지 확인
+            if (date && category && content && payment && currency && amount && Number(amount) > 0) {
+                saveBudgetFromDialog();
+            }
+        }
+        
+        // 다이얼로그 선택 함수들
+        function selectDialogCategory(category) {
+            ['식비', '교통비', '숙박비', '쇼핑', '기타'].forEach(cat => {
+                const btn = document.getElementById(`dialog-${cat}`);
+                if (btn) btn.style.background = '#f3f4f6';
+            });
+            document.getElementById(`dialog-${category}`).style.background = '#4f46e5';
+            document.getElementById(`dialog-${category}`).style.color = 'white';
+            document.getElementById('dialogCategory').value = category;
+        }
+        
+        function selectDialogPayment(payment) {
+            ['카드', '현금'].forEach(method => {
+                const btn = document.getElementById(`dialog-${method}`);
+                if (btn) btn.style.background = '#f3f4f6';
+            });
+            document.getElementById(`dialog-${payment}`).style.background = '#4f46e5';
+            document.getElementById(`dialog-${payment}`).style.color = 'white';
+            document.getElementById('dialogPayment').value = payment;
+        }
+        
+        function selectDialogCurrency(currency) {
+            ['원화', '엔화'].forEach(curr => {
+                const btn = document.getElementById(`dialog-${curr}`);
+                if (btn) btn.style.background = '#f3f4f6';
+            });
+            document.getElementById(`dialog-${currency}`).style.background = '#4f46e5';
+            document.getElementById(`dialog-${currency}`).style.color = 'white';
+            document.getElementById('dialogCurrency').value = currency;
+        }
+        
+        // 다이얼로그에서 Firebase에 저장
+        async function saveBudgetFromDialog() {
+            const date = document.getElementById('dialogDate').value;
+            const category = document.getElementById('dialogCategory').value;
+            const content = document.getElementById('dialogContent').value.trim();
+            const payment = document.getElementById('dialogPayment').value;
+            const currency = document.getElementById('dialogCurrency').value;
+            const amount = document.getElementById('dialogAmount').value.trim();
+            
+            if (!date || !category || !content || !payment || !currency || !amount) {
+                alert('모든 필드를 입력해주세요.');
+                return;
+            }
+            
+            if (isNaN(amount) || Number(amount) <= 0) {
+                alert('올바른 금액을 입력해주세요.');
+                return;
+            }
+            
+            try {
+                const budgetItem = {
+                    id: 'budget_' + Date.now(),
+                    date: date,
+                    category: category,
+                    content: content,
+                    payment: payment,
+                    currency: currency,
+                    amount: Number(amount),
+                    timestamp: Date.now()
+                };
+                
+                await saveBudgetDataToFirebase(budgetItem);
+                alert('가계부에 추가되었습니다!');
+                closeBudgetDialog();
+                
+                // 데이터 다시 로드
+                await loadBudgetDataFromFirebase();
+            } catch (error) {
+                console.error('가계부 저장 실패:', error);
+                
+                // 오프라인 지원 - 실패한 작업을 대기 큐에 추가
+                const operationId = addPendingOperation({
+                  type: OPERATION_TYPES.BUDGET_ADD,
+                  data: budgetItem
+                });
+                
+                // 구체적인 오류 메시지
+                let errorMessage = '가계부가 임시 저장되었습니다.';
+                if (error.message.includes('Firebase') || error.code === 'unavailable') {
+                  errorMessage = '네트워크 연결 문제로 임시 저장되었습니다. 연결 시 자동으로 동기화됩니다.';
+                } else if (error.code === 'permission-denied') {
+                  errorMessage = '권한 문제로 임시 저장되었습니다. 로그인을 확인해주세요.';
+                }
+                
+
+                alert(errorMessage);
+                closeBudgetDialog();
+                
+                // 임시로 로컬 데이터에 추가 (UI 반영)
+                budgetData.unshift(budgetItem);
+                filteredData = [...budgetData];
+                renderStats();
+                renderTable();
+            }
+        }
+        
+        // 다이얼로그 닫기
+        function closeBudgetDialog() {
+            const dialog = document.getElementById('budgetDialog');
+            if (dialog) dialog.remove();
+        }
+        
+        // 가계부 항목 삭제
+        async function deleteBudgetItem(itemId) {
+            if (!confirm('이 항목을 삭제하시겠습니까?')) return;
+            
+            try {
+                await deleteBudgetDataFromFirebase(itemId);
+                alert('항목이 삭제되었습니다.');
+                await loadBudgetDataFromFirebase();
+            } catch (error) {
+                console.error('가계부 삭제 실패:', error);
+                
+                // 오프라인 지원 - 실패한 작업을 대기 큐에 추가
+                const itemToDelete = budgetData.find(item => (item.id || item.timestamp) === itemId);
+                if (itemToDelete) {
+                  const operationId = addPendingOperation({
+                    type: OPERATION_TYPES.BUDGET_DELETE,
+                    data: itemToDelete
+                  });
+                  
+                  // 임시로 로컬에서 제거 (UI 반영)
+                  budgetData = budgetData.filter(item => (item.id || item.timestamp) !== itemId);
+                  filteredData = [...budgetData];
+                  renderStats();
+                  renderTable();
+                  
+
+                  alert('항목이 임시 삭제되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
+                } else {
+                  alert('삭제에 실패했습니다. 다시 시도해주세요.');
+                }
+            }
+        }
+        
+        // 인라인 편집 기능
+        let currentEditingCell = null;
+        
+        function editCell(cell, itemId) {
+            // 이미 편집 중인 셀이 있으면 취소
+            if (currentEditingCell && currentEditingCell !== cell) {
+                cancelEditWithoutWarning();
+            }
+            
+            // 같은 셀을 다시 클릭하면 편집 종료
+            if (currentEditingCell === cell) {
+                cancelEditWithoutWarning();
+                return;
+            }
+            
+            const field = cell.dataset.field;
+            const type = cell.dataset.type;
+            const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
+            if (!item) return;
+            
+            currentEditingCell = cell;
+            cell.classList.add('editing');
+            
+            const originalContent = cell.innerHTML;
+            let currentValue = '';
+            
+            // 현재 값 추출
+            switch (field) {
+                case 'date':
+                    currentValue = item.date;
+                    break;
+                case 'category':
+                    currentValue = item.category;
+                    break;
+                case 'content':
+                    currentValue = item.content;
+                    break;
+                case 'payment':
+                    currentValue = item.payment;
+                    break;
+                case 'amount':
+                    currentValue = item.amount;
+                    break;
+            }
+            
+            // 편집 요소 생성
+            let editElement;
+            if (type === 'select' && field === 'category') {
+                editElement = createCategorySelect(currentValue);
+            } else if (type === 'select' && field === 'payment') {
+                editElement = createPaymentSelect(currentValue);
+            } else if (type === 'date') {
+                editElement = document.createElement('input');
+                editElement.type = 'date';
+                editElement.value = currentValue;
+                editElement.className = 'inline-input';
+            } else if (type === 'number') {
+                // 금액 필드의 경우 간단한 숫자 입력창만 표시
+                editElement = createSimpleAmountInput(currentValue);
+            } else {
+                editElement = document.createElement('input');
+                editElement.type = 'text';
+                editElement.value = currentValue;
+                editElement.className = 'inline-input';
+            }
+            
+            // 이벤트 리스너 추가
+            if (type === 'number') {
+                // 금액 필드의 경우 특별 처리
+                editElement.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        const value = this.value.trim();
+                        if (value && !isNaN(value) && Number(value) > 0) {
+                            // 금액 저장 후 통화 선택 드롭다운 표시
+                            saveAmountAndShowCurrencySelect(Number(value), itemId, cell);
+                        } else {
+                            alert('올바른 금액을 입력해주세요.');
+                            this.focus();
+                        }
+                    } else if (e.key === 'Escape') {
+                        cancelEdit(originalContent);
+                    }
+                });
+                
+                // blur 이벤트로 입력 완료 체크 (터치 후 다른 곳 터치 시)
+                editElement.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        const value = this.value.trim();
+                        if (value && !isNaN(value) && Number(value) > 0) {
+                            // 금액 저장 후 통화 선택 드롭다운 표시
+                            saveAmountAndShowCurrencySelect(Number(value), itemId, cell);
+                        }
+                    }, 200);
+                });
+            } else {
+                // 다른 필드들의 키보드 이벤트
+                editElement.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        saveCurrentEdit();
+                    } else if (e.key === 'Escape') {
+                        cancelEdit(originalContent);
+                    }
+                });
+                
+                // 날짜 필드의 경우 change 이벤트로 자동 저장
+                if (type === 'date') {
+                    editElement.addEventListener('change', function(e) {
+                        saveCurrentEdit();
+                    });
+                }
+                
+                // select 필드의 경우 change 이벤트로 자동 저장
+                if (type === 'select') {
+                    editElement.addEventListener('change', function(e) {
+                        saveCurrentEdit();
+                    });
+                }
+            }
+            
+            // 셀 내용 교체 및 포커스
+            cell.innerHTML = '';
+            cell.appendChild(editElement);
+            editElement.focus();
+            if (editElement.select) editElement.select();
+        }
+        
+        // 간단한 금액 입력창 생성
+        function createSimpleAmountInput(currentValue) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentValue;
+            input.className = 'inline-input';
+            input.style.width = '100%';
+            input.style.fontSize = '16px';
+            input.setAttribute('inputmode', 'text');
+            input.setAttribute('autocomplete', 'off');
+            input.setAttribute('autocorrect', 'off');
+            input.setAttribute('autocapitalize', 'off');
+            input.setAttribute('spellcheck', 'false');
+            
+            // iOS 모바일에서 숫자만 입력되도록 제한
+            input.addEventListener('input', function(e) {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+            
+            return input;
+        }
+        
+        // 금액 저장 후 통화 선택 드롭다운 표시 (결제방법 드롭다운 방식으로 변경)
+        function saveAmountAndShowCurrencySelect(amount, itemId, cell) {
+            // 먼저 금액을 임시로 저장
+            const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
+            if (!item) return;
+            
+            // 금액만 먼저 업데이트
+            const tempUpdateData = { amount: amount };
+            
+            // Firebase에 금액만 먼저 저장
+            updateBudgetDataInFirebase(itemId, tempUpdateData).then(() => {
+                // 금액 저장 성공 후 통화 선택 드롭다운 표시
+                showCurrencySelectDropdown(amount, itemId, cell);
+            }).catch(error => {
+                console.error('금액 저장 실패:', error);
+                
+                // 오프라인 지원 - 금액만 임시 저장
+                const operationId = addPendingOperation({
+                    type: OPERATION_TYPES.BUDGET_UPDATE,
+                    oldData: item,
+                    newData: { ...item, ...tempUpdateData }
+                });
+                
+                Object.assign(item, tempUpdateData);
+                showCurrencySelectDropdown(amount, itemId, cell);
+                
+
+            });
+        }
+        
+        // 통화 선택 드롭다운 표시 (결제방법 드롭다운 방식)
+        function showCurrencySelectDropdown(amount, itemId, cell) {
+            const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
+            if (!item) return;
+            
+            // 통화 선택 버튼들 생성 (결제방법 드롭다운 방식)
+            const currencyContainer = document.createElement('div');
+            currencyContainer.style.cssText = 'display: flex; gap: 8px; width: 100%; position: relative;';
+            
+            const krwBtn = document.createElement('button');
+            krwBtn.innerHTML = '<span style="display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600;">₩</span>';
+            krwBtn.style.cssText = `
+                flex: 1;
+                padding: 12px 16px;
+                background: transparent;
+                border: 1px solid rgba(209, 213, 219, 0.3);
+                border-radius: 12px;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                color: #6b7280;
+                font-size: 14px;
+                font-weight: 500;
+                position: relative;
+                overflow: hidden;
+                min-height: 44px;
+            `;
+            
+            const jpyBtn = document.createElement('button');
+            jpyBtn.innerHTML = '<span style="display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600;">¥</span>';
+            jpyBtn.style.cssText = `
+                flex: 1;
+                padding: 12px 16px;
+                background: transparent;
+                border: 1px solid rgba(209, 213, 219, 0.3);
+                border-radius: 12px;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                color: #6b7280;
+                font-size: 14px;
+                font-weight: 500;
+                position: relative;
+                overflow: hidden;
+                min-height: 44px;
+            `;
+            
+            // 현재 통화에 따라 버튼 스타일 설정
+            const currentCurrency = item.currency || '원화';
+            if (currentCurrency === '원화') {
+                krwBtn.style.background = 'rgba(102, 126, 234, 0.1)';
+                krwBtn.style.color = '#667eea';
+                krwBtn.style.border = '1px solid rgba(102, 126, 234, 0.3)';
+            } else {
+                jpyBtn.style.background = 'rgba(102, 126, 234, 0.1)';
+                jpyBtn.style.color = '#667eea';
+                jpyBtn.style.border = '1px solid rgba(102, 126, 234, 0.3)';
+            }
+            
+            // 원화 버튼 클릭 이벤트
+            krwBtn.addEventListener('click', function() {
+                selectCurrencyAndSave(amount, '원화', itemId, cell);
+            });
+            
+            // 엔화 버튼 클릭 이벤트
+            jpyBtn.addEventListener('click', function() {
+                selectCurrencyAndSave(amount, '엔화', itemId, cell);
+            });
+            
+            // hover 효과 추가
+            krwBtn.addEventListener('mouseenter', function() {
+                if (this.style.background !== 'rgba(102, 126, 234, 0.1)') {
+                    this.style.background = 'rgba(102, 126, 234, 0.05)';
+                    this.style.border = '1px solid rgba(102, 126, 234, 0.2)';
+                }
+            });
+            
+            krwBtn.addEventListener('mouseleave', function() {
+                if (this.style.background !== 'rgba(102, 126, 234, 0.1)') {
+                    this.style.background = 'transparent';
+                    this.style.border = '1px solid rgba(209, 213, 219, 0.3)';
+                }
+            });
+            
+            jpyBtn.addEventListener('mouseenter', function() {
+                if (this.style.background !== 'rgba(102, 126, 234, 0.1)') {
+                    this.style.background = 'rgba(102, 126, 234, 0.05)';
+                    this.style.border = '1px solid rgba(102, 126, 234, 0.2)';
+                }
+            });
+            
+            jpyBtn.addEventListener('mouseleave', function() {
+                if (this.style.background !== 'rgba(102, 126, 234, 0.1)') {
+                    this.style.background = 'transparent';
+                    this.style.border = '1px solid rgba(209, 213, 219, 0.3)';
+                }
+            });
+            
+            // 모바일 터치 최적화
+            krwBtn.addEventListener('touchstart', function() {
+                if (this.style.background !== 'rgba(102, 126, 234, 0.1)') {
+                    this.style.background = 'rgba(102, 126, 234, 0.05)';
+                    this.style.border = '1px solid rgba(102, 126, 234, 0.2)';
+                }
+            }, { passive: true });
+            
+            jpyBtn.addEventListener('touchstart', function() {
+                if (this.style.background !== 'rgba(102, 126, 234, 0.1)') {
+                    this.style.background = 'rgba(102, 126, 234, 0.05)';
+                    this.style.border = '1px solid rgba(102, 126, 234, 0.2)';
+                }
+            }, { passive: true });
+            
+            currencyContainer.appendChild(krwBtn);
+            currencyContainer.appendChild(jpyBtn);
+            
+            // 셀 내용을 통화 선택 버튼들로 교체
+            cell.innerHTML = '';
+            cell.appendChild(currencyContainer);
+        }
+        
+        // 통화 선택 및 저장
+        function selectCurrencyAndSave(amount, currency, itemId, cell) {
+            const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
+            if (!item) return;
+            
+            const updateData = {
+                amount: amount,
+                currency: currency
+            };
+            
+            // Firebase 업데이트
+            updateBudgetDataInFirebase(itemId, updateData).then(() => {
+                currentEditingCell.classList.remove('editing');
+                currentEditingCell = null;
+                renderStats();
+                renderTable();
+            }).catch(error => {
+                console.error('통화 저장 실패:', error);
+                
+                // 오프라인 지원
+                const operationId = addPendingOperation({
+                    type: OPERATION_TYPES.BUDGET_UPDATE,
+                    oldData: item,
+                    newData: { ...item, ...updateData }
+                });
+                
+                Object.assign(item, updateData);
+                currentEditingCell.classList.remove('editing');
+                currentEditingCell = null;
+                renderStats();
+                renderTable();
+                
+
+                alert('통화가 임시 저장되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
+            });
+        }
+        
+        function createCategorySelect(currentValue) {
+            const select = document.createElement('select');
+            select.className = 'inline-select';
+            
+            const categories = ['식비', '교통비', '숙박비', '쇼핑', '기타'];
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                if (category === currentValue) option.selected = true;
+                select.appendChild(option);
+            });
+            
+            return select;
+        }
+        
+                         function createPaymentSelect(currentValue) {
+            const select = document.createElement('select');
+            select.className = 'inline-select';
+            
+            const payments = ['카드', '현금'];
+            payments.forEach(payment => {
+                const option = document.createElement('option');
+                option.value = payment;
+                option.textContent = payment;
+                if (payment === currentValue) option.selected = true;
+                select.appendChild(option);
+            });
+            
+            return select;
+        }
+        
+
+        
+                 async function saveCurrentEdit() {
+             if (!currentEditingCell) return;
+             
+             const cell = currentEditingCell;
+             const itemId = cell.closest('tr').dataset.itemId;
+             const field = cell.dataset.field;
+             const editElement = cell.querySelector('input, select');
+             
+             if (!editElement) {
+                 currentEditingCell = null;
+                 return;
+             }
+             
+             const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
+             
+             if (!item) {
+                 cancelEdit();
+                 return;
+             }
+             
+             let newValue = '';
+             let updateData = {};
+             
+                                                       // 금액 필드의 경우 특별 처리
+              if (field === 'amount') {
+                  // 금액 필드의 경우 별도 처리 함수에서 처리되므로 여기서는 건너뜀
+                  return;
+              }
+              
+             // 다른 필드들
+             newValue = editElement.value.trim();
+             
+             if (!newValue && field !== 'content') {
+                 alert('값을 입력해주세요.');
+                 editElement.focus();
+                 return;
+             }
+             
+             updateData[field] = newValue;
+             
+             try {
+                 // Firebase 업데이트
+                 await updateBudgetDataInFirebase(itemId, updateData);
+                 
+                 // 성공시 UI 업데이트
+                 currentEditingCell.classList.remove('editing');
+                 currentEditingCell = null;
+                 
+                 // 테이블 다시 렌더링 (전체 데이터 다시 로드하지 않고 로컬 업데이트)
+                 renderStats();
+                 renderTable();
+                 
+             } catch (error) {
+                 console.error('가계부 수정 실패:', error);
+                 
+                 // 오프라인 지원 - 실패한 작업을 대기 큐에 추가
+                 const operationId = addPendingOperation({
+                   type: OPERATION_TYPES.BUDGET_UPDATE,
+                   oldData: item,
+                   newData: { ...item, ...updateData }
+                 });
+                 
+                 // 임시로 로컬 데이터 수정 (UI 반영)
+                 Object.assign(item, updateData);
+                 
+                 // UI 업데이트
+                 currentEditingCell.classList.remove('editing');
+                 currentEditingCell = null;
+                 renderStats();
+                 renderTable();
+                 
+
+                 alert('항목이 임시 수정되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
+             }
+         }
+        
+        function cancelEdit(originalContent = '') {
+            if (!currentEditingCell) return;
+            
+            if (originalContent) {
+                currentEditingCell.innerHTML = originalContent;
+            }
+            currentEditingCell.classList.remove('editing');
+            currentEditingCell = null;
+        }
+        
+        // 경고창 없이 편집 취소 (다른 곳 클릭시 사용)
+        function cancelEditWithoutWarning() {
+            if (!currentEditingCell) return;
+            
+            // 원래 데이터로 복원
+            const itemId = currentEditingCell.closest('tr').dataset.itemId;
+            const field = currentEditingCell.dataset.field;
+            const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
+            
+            if (item) {
+                // 원래 값으로 셀 내용 복원
+                let originalValue = '';
+                switch (field) {
+                    case 'date':
+                        const dateObj = new Date(item.date);
+                        originalValue = `${dateObj.getMonth() + 1}/${dateObj.getDate().toString().padStart(2, '0')}`;
+                        break;
+                    case 'category':
+                        originalValue = `<span>${item.category}</span>`;
+                        break;
+                    case 'content':
+                        originalValue = item.content || '-';
+                        break;
+                    case 'payment':
+                        const paymentClass = item.payment === '카드' ? 'payment-card' : 'payment-cash';
+                        originalValue = `<span class="payment-badge ${paymentClass}">${item.payment}</span>`;
+                        break;
+                    case 'amount':
+                        const currencySymbol = item.currency === '원화' ? '원' : '¥';
+                        originalValue = `${item.amount.toLocaleString()}${currencySymbol}`;
+                        break;
+                }
+                currentEditingCell.innerHTML = originalValue;
+            }
+            
+            currentEditingCell.classList.remove('editing');
+            currentEditingCell = null;
+        }
+        
+        // 테이블 외부 클릭시 편집 취소 및 새 편집 시작
+        document.addEventListener('click', function(e) {
+            if (currentEditingCell) {
+                // 현재 편집 중인 셀 또는 그 안의 요소를 클릭한 경우는 무시
+                if (currentEditingCell.contains(e.target)) {
+                    return;
+                }
+                
+                // 편집 가능한 셀을 클릭한 경우
+                const clickedEditableCell = e.target.closest('.editable-cell');
+                if (clickedEditableCell && clickedEditableCell !== currentEditingCell) {
+                    // 현재 편집 취소하고 새 셀 편집 시작
+                    cancelEditWithoutWarning();
+                    // 새 셀 편집은 해당 셀의 onclick 이벤트에서 처리됨
+                    return;
+                }
+                
+                // 편집 가능한 셀이 아닌 곳을 클릭한 경우 편집 취소
+                if (!clickedEditableCell) {
+                    setTimeout(() => {
+                        if (currentEditingCell) {
+                            cancelEditWithoutWarning();
+                        }
+                    }, 50);
+                }
+            }
+        });
+        
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            // Firebase에서 데이터 로드 (우선순위)
+            loadBudgetDataFromFirebase();
+            setupFilters();
+        });
+    </script>
+</body>
+</html>
+
