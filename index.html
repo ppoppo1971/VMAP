@@ -1187,134 +1187,6 @@
             background-color: rgba(29, 78, 216, 0.05);
         }
         
-        /* 스와이프 수정/삭제 기능을 위한 스타일 */
-        .user-added-item .swipe-edit-btn,
-        .checklist-item .swipe-edit-btn {
-            position: absolute;
-            right: -80px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: transparent;
-            color: #000;
-            border: none;
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            z-index: 10;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-            min-height: 36px;
-            min-width: 50px;
-        }
-        
-        /* 일정 항목(사이드패널)용 스와이프 버튼 - 모바일 클릭 정확도 개선 */
-        .user-added-item[data-item-type="schedule"] .swipe-edit-btn {
-            right: -80px;
-            width: 50px;
-            min-width: 50px;
-            max-width: 50px;
-            padding: 6px 8px;
-            font-size: 0.75rem;
-            height: 36px;
-            min-height: 36px;
-            max-height: 36px;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            box-sizing: border-box;
-        }
-        
-        .user-added-item[data-item-type="schedule"] .swipe-delete-btn {
-            right: -80px;
-            width: 50px;
-            min-width: 50px;
-            max-width: 50px;
-            padding: 6px 8px;
-            font-size: 0.75rem;
-            height: 36px;
-            min-height: 36px;
-            max-height: 36px;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            box-sizing: border-box;
-        }
-        
-        .user-added-item .swipe-edit-btn:hover,
-        .checklist-item .swipe-edit-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .user-added-item .swipe-edit-btn:active,
-        .checklist-item .swipe-edit-btn:active {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-50%);
-        }
-        
-        /* 일정 항목의 수정 버튼은 active 애니메이션 제거 */
-        .user-added-item[data-item-type="schedule"] .swipe-edit-btn:active {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-50%);
-        }
-        
-        .user-added-item .swipe-delete-btn,
-        .checklist-item .swipe-delete-btn {
-            position: absolute;
-            right: -80px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: transparent;
-            color: #000;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            z-index: 10;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-            min-height: 44px;
-            min-width: 60px;
-        }
-        
-        .user-added-item .swipe-delete-btn:hover,
-        .checklist-item .swipe-delete-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-
-        /* 스와이프 버튼 hover 시 위치 고정 (일정/세부 공통) */
-        .user-added-item .swipe-edit-btn:hover,
-        .user-added-item .swipe-delete-btn:hover,
-        .user-added-item[data-item-type="schedule"] .swipe-edit-btn:hover,
-        .user-added-item[data-item-type="schedule"] .swipe-delete-btn:hover {
-            transform: translateY(-50%) !important;
-        }
-
-
-        
-        .user-added-item .swipe-delete-btn:active,
-        .checklist-item .swipe-delete-btn:active {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-50%);
-        }
-        
-        /* 일정 항목의 삭제 버튼은 active 애니메이션 제거 */
-        .user-added-item[data-item-type="schedule"] .swipe-delete-btn:active {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-50%);
-        }
         
         .user-added-item .item-content {
             display: flex;
@@ -1325,60 +1197,6 @@
             flex: 1;
         }
         
-        .user-added-item.swiped .item-content,
-        .checklist-item.swiped .item-content {
-            width: calc(100% - 120px) !important; /* 버튼 너비(108px) + 여백(12px) */
-            transition: width 0.3s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        /* 일정 항목은 사이드패널에서 세부항목과 동일한 거리로 스와이프 */
-        .user-added-item[data-item-type="schedule"] .item-content {
-            width: 100%;
-            transition: width 0.3s ease;
-        }
-        
-        .user-added-item[data-item-type="schedule"] .item-content .toggle-btn {
-            width: 100%;
-            transition: width 0.3s ease;
-        }
-        
-        .user-added-item[data-item-type="schedule"].swiped .item-content {
-            width: calc(100% - 120px) !important; /* 버튼 너비(108px) + 여백(12px) */
-            transition: width 0.3s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .user-added-item[data-item-type="schedule"].swiped .item-content .toggle-btn {
-            width: 100% !important;
-            transition: width 0.3s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .user-added-item.swiped .swipe-edit-btn,
-        .checklist-item.swiped .swipe-edit-btn {
-            right: 8px;
-        }
-        
-        .user-added-item.swiped .swipe-delete-btn,
-        .checklist-item.swiped .swipe-delete-btn {
-            right: 58px; /* 수정 버튼 너비(50px) + 여백(8px) */
-        }
-        
-        /* 일정 항목 스와이프 완료 시 위치 조정 - 세부항목과 동일한 위치 */
-        .user-added-item[data-item-type="schedule"].swiped .swipe-edit-btn {
-            right: 8px;
-        }
-        
-        .user-added-item[data-item-type="schedule"].swiped .swipe-delete-btn {
-            right: 58px; /* 수정 버튼 너비(50px) + 여백(8px) */
-        }
         
 
         
@@ -1694,39 +1512,6 @@
             border-color: rgba(255, 255, 255, 0.5) !important;
         }
         
-        /* 스와이프 힌트 스타일 */
-        #additionalDays .toggle-btn::after {
-            content: '← 스와이프하여 편집/삭제 →' !important;
-            position: absolute !important;
-            top: 50% !important;
-            right: 8px !important;
-            transform: translateY(-50%) !important;
-            font-size: 0.7rem !important;
-            color: rgba(255, 255, 255, 0.6) !important;
-            pointer-events: none !important;
-            opacity: 0 !important;
-            transition: opacity 0.3s ease !important;
-            white-space: nowrap !important;
-            font-weight: 500 !important;
-        }
-        
-        #additionalDays .toggle-btn:hover::after {
-            opacity: 1 !important;
-        }
-        
-        /* 모바일에서 스와이프 힌트 최적화 */
-        @media (max-width: 768px) {
-            #additionalDays .toggle-btn::after {
-                content: '← 스와이프 →' !important;
-                font-size: 0.6rem !important;
-                right: 4px !important;
-                opacity: 0.8 !important;
-            }
-            
-            #additionalDays .toggle-btn:hover::after {
-                opacity: 1 !important;
-            }
-        }
         
 
         
@@ -2021,22 +1806,16 @@
             }
           }, { passive: true });
           
-          // 모바일에서 버튼 터치 피드백 최적화 (일정 항목 스와이프 버튼 제외)
+          // 모바일에서 버튼 터치 피드백 최적화
           const buttons = document.querySelectorAll('button, .toggle-btn, .map-type-btn');
           buttons.forEach(button => {
-            // 일정 항목의 스와이프 버튼은 터치 애니메이션 제외
-            const isScheduleSwipeBtn = button.closest('[data-item-type="schedule"]') && 
-                                      (button.classList.contains('swipe-edit-btn') || button.classList.contains('swipe-delete-btn'));
+            button.addEventListener('touchstart', function() {
+              this.style.transform = 'scale(0.95)';
+            }, { passive: true });
             
-            if (!isScheduleSwipeBtn) {
-              button.addEventListener('touchstart', function() {
-                this.style.transform = 'scale(0.95)';
-              }, { passive: true });
-              
-              button.addEventListener('touchend', function() {
-                this.style.transform = 'scale(1)';
-              }, { passive: true });
-            }
+            button.addEventListener('touchend', function() {
+              this.style.transform = 'scale(1)';
+            }, { passive: true });
           });
         }
       }
@@ -2364,7 +2143,6 @@
             // 디바운싱으로 성능 최적화
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(function() {
-                clearAllSwipeStates();
                 closeSidePanel();
                 clearAllAddressMarkers();
             }, 150);
@@ -3025,28 +2803,6 @@
       }
       
 
-      // 모든 스와이프 상태를 해제하는 공통 함수
-      function clearAllSwipeStates() {
-        // 사용자 추가 항목들의 스와이프 상태 해제
-        const userItems = document.querySelectorAll('.user-added-item.swiped');
-        userItems.forEach(item => {
-          item.classList.remove('swiped');
-          const itemContent = item.querySelector('.item-content');
-          if (itemContent) {
-            itemContent.style.width = '100%';
-          }
-        });
-        
-        // 체크리스트 항목들의 스와이프 상태 해제
-        const checklistItems = document.querySelectorAll('.checklist-item.swiped');
-        checklistItems.forEach(item => {
-          item.classList.remove('swiped');
-          const itemContent = item.querySelector('.item-content');
-          if (itemContent) {
-            itemContent.style.width = '100%';
-          }
-        });
-      }
 
       // 사이드패널을 닫는 함수
       function closeSidePanel() {
@@ -3126,15 +2882,6 @@
       function setupSidePanelTouchEvents() {
         const customMapMenu = document.getElementById('customMapMenu');
         if (customMapMenu) {
-          customMapMenu.addEventListener('touchstart', function(e) {
-            // 스와이프 버튼이나 일정 버튼을 터치한 경우가 아니면 스와이프 상태 해제
-            if (!e.target.classList.contains('swipe-edit-btn') &&
-                !e.target.classList.contains('swipe-delete-btn') &&
-                !e.target.classList.contains('toggle-btn') &&
-                !e.target.closest('.user-added-item')) {
-              clearAllSwipeStates();
-            }
-          });
           
           // 모바일에서 사이드 패널 스크롤 최적화
           if (isMobile) {
@@ -8435,9 +8182,9 @@
           addressSearchCandidates = [];
         }
       }
-      // 스와이프 삭제/수정 기능 초기화 - 모바일 최적화
+      // 스와이프 삭제/수정 기능 초기화 - 모바일 최적화 (일정 항목 제외)
       function initializeSwipeDelete() {
-        const allItems = document.querySelectorAll('.user-added-item, .checklist-item');
+        const allItems = document.querySelectorAll('.user-added-item:not([data-item-type="schedule"]), .checklist-item');
         
         allItems.forEach(item => {
           let startX = 0;
@@ -9899,9 +9646,14 @@
         
         // 현재 활성 섹션에 맞는 항목만 필터링하고 순서대로 정렬
         const currentSection = window.currentActiveSection || '';
+        console.log('displayUserAddedItemsFromFirebase - 현재 섹션:', currentSection);
+        console.log('전체 사용자 항목들:', userItems);
+        
         const filteredItems = userItems
           .filter(item => item.section === currentSection)
           .sort((a, b) => (a.order || 0) - (b.order || 0)); // order 속성으로 정렬
+        
+        console.log('필터링된 항목들:', filteredItems);
         
         if (filteredItems.length === 0) {
           container.innerHTML = '';
@@ -9922,8 +9674,6 @@
                 <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
                 <span>${titleElement}</span>
               </div>
-              <button class="swipe-edit-btn" onclick="editUserItem('${item.id}', '${item.title}', '${item.description || ''}', '${item.link || ''}')" title="수정">수정</button>
-              <button class="swipe-delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">삭제</button>
             </div>
           `;
         });
@@ -9935,8 +9685,6 @@
           appendExclamationToLinks(container);
         }
         
-        // 스와이프 삭제 기능 초기화
-        initializeSwipeDelete();
         
         // 항목 터치 시 즉시 스크롤 활성화
         if (isMobile) {
@@ -10679,8 +10427,6 @@
               <div class="item-content">
                 <button class="toggle-btn" onclick="showScheduleInfo('${title}')" data-schedule-id="${scheduleId}" data-schedule-title="${title}">${title}</button>
               </div>
-              <button class="swipe-edit-btn" onclick="editSchedule('${scheduleId}', '${title}')" title="수정">수정</button>
-              <button class="swipe-delete-btn" onclick="deleteSchedule('${scheduleId}', '${title}')" title="삭제">삭제</button>
             </div>
           `;
           
@@ -10688,8 +10434,6 @@
           const additionalDaysContainer = document.getElementById('additionalDays');
           additionalDaysContainer.innerHTML += scheduleHtml;
           
-          // 스와이프 및 드래그 초기화
-          initializeSwipeDelete();
           
           // Firebase에 저장
           if (window.db && window.firestore) {
@@ -11407,17 +11151,18 @@
       
       // 일정 정보 표시 함수
       function showScheduleInfo(title) {
+        console.log('showScheduleInfo 호출됨:', title);
+        
         // 기존 정보창이 있으면 제거
         const existingInfo = document.getElementById('preparationInfo');
         if (existingInfo) {
           existingInfo.remove();
         }
         
-        // 다른 일정 클릭시 스와이프 상태 해제
-        clearAllSwipeStates();
         
         // 현재 활성 섹션 설정
         window.currentActiveSection = title;
+        console.log('현재 활성 섹션 설정:', window.currentActiveSection);
         
         // 정보창 생성
         const infoDiv = document.createElement('div');
@@ -11501,11 +11246,12 @@
           appendExclamationToLinks(infoDiv);
         }
         
+        // 해당 일정의 체크리스트 로드
+        displayUserAddedItemsFromFirebase(window.firebaseUserItems || [], title);
+        
         // 저장된 체크박스 상태 복원
         setTimeout(() => {
           restoreCheckboxStates();
-          // 스와이프 기능 초기화
-          initializeSwipeDelete();
           if (typeof applyOverridesAndHides === 'function') {
             applyOverridesAndHides();
           }
@@ -11560,16 +11306,12 @@
                     <div class="item-content">
                       <button class="toggle-btn" onclick="showScheduleInfo('${schedule.title}', '${schedule.description || ''}')" data-schedule-id="${schedule.id}" data-schedule-title="${schedule.title}">${schedule.title}</button>
                     </div>
-                    <button class="swipe-edit-btn" onclick="editSchedule('${schedule.id}', '${schedule.title}')" title="수정">수정</button>
-                    <button class="swipe-delete-btn" onclick="deleteSchedule('${schedule.id}', '${schedule.title}')" title="삭제">삭제</button>
                   </div>
                 `;
               });
               
               additionalDaysContainer.innerHTML = html;
               
-              // 스와이프 및 드래그 초기화
-              initializeSwipeDelete();
             }
           }
         } catch (error) {
