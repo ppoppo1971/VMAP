@@ -1309,8 +1309,21 @@
             transition: width 0.3s ease;
         }
         
+        .user-added-item[data-item-type="schedule"] .item-content .toggle-btn {
+            width: 100%;
+            transition: width 0.3s ease;
+        }
+        
         .user-added-item[data-item-type="schedule"].swiped .item-content {
             width: calc(100% - 120px) !important; /* 버튼 너비(108px) + 여백(12px) */
+            transition: width 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .user-added-item[data-item-type="schedule"].swiped .item-content .toggle-btn {
+            width: 100% !important;
             transition: width 0.3s ease;
             white-space: nowrap;
             overflow: hidden;
