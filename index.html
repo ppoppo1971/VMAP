@@ -677,12 +677,19 @@
         /* 모바일에서 추가 성능 최적화 */
         @media (max-width: 768px) {
             /* 모바일에서 하드웨어 가속 활성화 */
-            #map, .info-content, .user-added-item {
+            #map, .info-content, .user-added-item, #userAddedItems {
                 -webkit-transform: translateZ(0);
                 -moz-transform: translateZ(0);
                 -ms-transform: translateZ(0);
                 transform: translateZ(0);
                 will-change: transform;
+            }
+            
+            /* userAddedItems 컨테이너 모바일 스크롤 최적화 */
+            #userAddedItems {
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+                scroll-behavior: smooth;
             }
             
             /* 모바일에서 터치 피드백 최적화 */
@@ -1150,6 +1157,15 @@
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
+        }
+        
+        /* userAddedItems 컨테이너 스크롤 최적화 */
+        #userAddedItems {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+            will-change: scroll-position;
+            contain: layout style paint;
         }
         
         .user-added-item:hover {
@@ -3192,7 +3208,33 @@
                 !e.target.closest('.user-added-item')) {
               clearAllSwipeStates();
             }
-          });
+          }, { passive: true }); // passive: true로 스크롤 성능 향상
+        }
+        
+        // userAddedItems 컨테이너에 스크롤 최적화 이벤트 추가
+        const userAddedItemsContainer = document.getElementById('userAddedItems');
+        if (userAddedItemsContainer) {
+          // 터치 시작 시 스크롤 최적화
+          userAddedItemsContainer.addEventListener('touchstart', function(e) {
+            // 스와이프 버튼이나 체크박스를 터치한 경우가 아니면 스크롤 허용
+            if (!e.target.classList.contains('swipe-edit-btn') &&
+                !e.target.classList.contains('swipe-delete-btn') &&
+                !e.target.classList.contains('prep-checkbox')) {
+              // 스크롤을 위한 터치 이벤트 허용
+              e.stopPropagation();
+            }
+          }, { passive: true });
+          
+          // 터치 이동 시 스크롤 최적화
+          userAddedItemsContainer.addEventListener('touchmove', function(e) {
+            // 스와이프 버튼이나 체크박스를 터치한 경우가 아니면 스크롤 허용
+            if (!e.target.classList.contains('swipe-edit-btn') &&
+                !e.target.classList.contains('swipe-delete-btn') &&
+                !e.target.classList.contains('prep-checkbox')) {
+              // 스크롤을 위한 터치 이벤트 허용
+              e.stopPropagation();
+            }
+          }, { passive: true });
         }
       }
       
