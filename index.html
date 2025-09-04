@@ -526,6 +526,8 @@
             /* 모바일에서 스크롤 최적화 */
             .info-content {
                 -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+                scroll-behavior: smooth;
             }
         }
         
@@ -811,6 +813,10 @@
             overflow-y: auto;
             flex: 1;
             min-height: 0;
+            /* 모바일에서 스크롤 성능 최적화 */
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            scroll-behavior: smooth;
         }
         
         .info-section {
@@ -2965,11 +2971,10 @@
          // 현재 활성 섹션 확인
          const activeSection = window.currentActiveSection || '';
          
-         // 현재 섹션의 항목들 중 가장 큰 order 값 찾기
+         // 전체 항목들 중 가장 큰 order 값 찾기 (현재 섹션만이 아닌 전체)
          const currentItems = window.firebaseUserItems || [];
-         const currentSectionItems = currentItems.filter(item => item.section === activeSection);
-         const maxOrder = currentSectionItems.length > 0 
-           ? Math.max(...currentSectionItems.map(item => item.order || 0))
+         const maxOrder = currentItems.length > 0 
+           ? Math.max(...currentItems.map(item => item.order || 0))
            : -1;
          
          // 새 항목 생성 (기존 항목과 동일한 스타일)
@@ -3006,6 +3011,9 @@
            // 항목 추가 후 폼 자동 숨기기
            hideAddForm();
            
+           // 새 항목 ID를 전역 변수에 저장 (Firebase 동기화 후 스크롤용)
+           window.lastAddedItemId = newItem.id;
+           
 
            
          } catch (error) {
@@ -3020,6 +3028,9 @@
            // 성공한 것처럼 처리 (사용자 경험 향상)
            clearForm();
            hideAddForm();
+           
+           // 새 항목 ID를 전역 변수에 저장 (오프라인 모드에서도)
+           window.lastAddedItemId = newItem.id;
            
            // 구체적인 오류 메시지
            let errorMessage = '항목이 임시 저장되었습니다.';
@@ -3043,6 +3054,35 @@
         document.getElementById('newItemTitle').value = '';
         document.getElementById('newItemLink').value = '';
         document.getElementById('newItemTitle').focus();
+      }
+      
+      // 새 항목으로 자동 스크롤 함수
+      function scrollToNewItem(itemId) {
+        const newItemElement = document.querySelector(`[data-item-id="${itemId}"]`);
+        if (newItemElement) {
+          // 세부항목 창의 스크롤 컨테이너 찾기
+          const infoContent = document.querySelector('.info-content');
+          if (infoContent) {
+            // 새 항목이 보이는 위치로 부드럽게 스크롤
+            newItemElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center',
+              inline: 'nearest'
+            });
+            
+            // 새 항목에 하이라이트 효과 추가
+            newItemElement.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+            newItemElement.style.border = '2px solid rgba(59, 130, 246, 0.3)';
+            newItemElement.style.borderRadius = '8px';
+            
+            // 2초 후 하이라이트 제거
+            setTimeout(() => {
+              newItemElement.style.backgroundColor = '';
+              newItemElement.style.border = '';
+              newItemElement.style.borderRadius = '';
+            }, 2000);
+          }
+        }
       }
       
       // 사용자 추가 항목들 표시 함수
@@ -9943,6 +9983,14 @@
         
         // 사이드패널 터치 이벤트 설정
         setupSidePanelTouchEvents();
+        
+        // 새 항목이 추가된 경우 자동 스크롤 (전역 변수로 확인)
+        if (window.lastAddedItemId) {
+          setTimeout(() => {
+            scrollToNewItem(window.lastAddedItemId);
+            window.lastAddedItemId = null; // 스크롤 후 초기화
+          }, 100);
+        }
         
         // 모바일에서 수정/삭제 버튼 터치 이벤트 추가
         if (isMobile) {
