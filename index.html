@@ -50,6 +50,11 @@
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
             scroll-behavior: smooth;
+            /* 스크롤 민감도 향상 */
+            touch-action: pan-y;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
         }
@@ -538,6 +543,11 @@
                 -webkit-overflow-scrolling: touch;
                 /* 터치 스크롤 성능 향상 */
                 will-change: scroll-position;
+                /* 스크롤 민감도 향상 */
+                touch-action: pan-y;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
             }
         }
         
@@ -829,6 +839,11 @@
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
             scroll-behavior: smooth;
+            /* 스크롤 민감도 향상 */
+            touch-action: pan-y;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         
         .info-section {
@@ -1653,6 +1668,11 @@
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
             scroll-behavior: smooth;
+            /* 스크롤 민감도 향상 */
+            touch-action: pan-y;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         
         /* 메뉴 그룹 자체에도 overflow 적용 */
@@ -1980,11 +2000,23 @@
             }, { passive: false });
           }
           
-          // 모바일에서 스크롤 성능 최적화 - 자연스러운 스크롤 허용
-          document.addEventListener('touchmove', function(event) {
-            // info-content와 customMapMenu 내부의 스크롤은 자연스럽게 허용
+          // 모바일에서 스크롤 성능 최적화 - 즉시 반응하는 스크롤
+          document.addEventListener('touchstart', function(event) {
+            // 스크롤 가능한 영역에서 터치 시작 시 즉시 스크롤 활성화
             if (event.target.closest('.info-content') || event.target.closest('#customMapMenu')) {
-              // 스크롤 이벤트는 그대로 전파되도록 함
+              const target = event.target.closest('.info-content') || event.target.closest('#customMapMenu');
+              if (target) {
+                // 터치 시작 시 즉시 스크롤 준비
+                target.style.touchAction = 'pan-y';
+                target.style.webkitOverflowScrolling = 'touch';
+              }
+            }
+          }, { passive: true });
+          
+          document.addEventListener('touchmove', function(event) {
+            // 스크롤 가능한 영역에서는 이벤트 방해하지 않음
+            if (event.target.closest('.info-content') || event.target.closest('#customMapMenu')) {
+              // 스크롤 이벤트는 완전히 자연스럽게 허용
               return;
             }
           }, { passive: true });
@@ -3106,6 +3138,12 @@
           
           // 모바일에서 사이드 패널 스크롤 최적화
           if (isMobile) {
+            customMapMenu.addEventListener('touchstart', function(e) {
+              // 터치 시작 시 즉시 스크롤 활성화
+              this.style.touchAction = 'pan-y';
+              this.style.webkitOverflowScrolling = 'touch';
+            }, { passive: true });
+            
             customMapMenu.addEventListener('touchmove', function(e) {
               // 스크롤 중 부드러운 애니메이션 비활성화
               this.style.scrollBehavior = 'auto';
@@ -11411,9 +11449,11 @@
         if (isMobile) {
           const infoContent = infoDiv.querySelector('.info-content');
           if (infoContent) {
-            // 터치 이벤트 최적화
+            // 터치 이벤트 최적화 - 즉시 스크롤 활성화
             infoContent.addEventListener('touchstart', function(e) {
-              // 터치 시작 시 스크롤 위치 기록
+              // 터치 시작 시 즉시 스크롤 활성화
+              this.style.touchAction = 'pan-y';
+              this.style.webkitOverflowScrolling = 'touch';
               this.scrollTop = this.scrollTop;
             }, { passive: true });
             
