@@ -141,7 +141,7 @@
         }
         
         .marker-info-container.swiped .marker-info-content {
-            transform: translateX(-160px);
+            transform: translateX(var(--swipe-distance, -80px));
         }
         
         .marker-swipe-edit-btn {
@@ -168,7 +168,7 @@
         }
         
         .marker-info-container.swiped .marker-swipe-edit-btn {
-            right: 88px;
+            right: calc(100% - var(--swipe-distance, 80px) - 80px);
         }
         
         .marker-swipe-edit-btn:hover {
@@ -6837,9 +6837,9 @@
         }
         
         const info = `
-          <div class="marker-info-container" style="padding: 8px; min-width: 100px; position: relative;">
+          <div class="marker-info-container" style="padding: 8px; min-width: 160px; position: relative;">
             <div class="marker-info-content" style="display: flex; align-items: center; justify-content: flex-start;">
-              <h4 style="margin: 0; font-size: 14px; font-weight: bold; flex: 1; padding: 4px 8px; border-radius: 4px;">${titleDisplay}</h4>
+              <h4 style="margin: 0; font-size: 14px; font-weight: bold; flex: 1; padding: 4px 8px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${titleDisplay}</h4>
               <button class="marker-swipe-edit-btn" onclick="editMarkerInfo('${markerGroupName}', ${index})" title="편집">편집</button>
             </div>
           </div>
@@ -6899,6 +6899,27 @@
         let startTime = 0;
         let hasSwiped = false;
         
+        // 동적 스와이프 거리 계산 함수
+        function calculateSwipeDistance() {
+          const content = markerInfoContainer.querySelector('.marker-info-content');
+          const title = content.querySelector('h4');
+          const editBtn = markerInfoContainer.querySelector('.marker-swipe-edit-btn');
+          
+          // 편집 버튼의 너비 (60px + padding)
+          const editBtnWidth = 80;
+          
+          // 제목의 실제 너비 계산
+          const titleWidth = title.scrollWidth;
+          
+          // 컨테이너의 현재 너비
+          const containerWidth = markerInfoContainer.offsetWidth;
+          
+          // 스와이프 거리 = 제목 너비 + 편집 버튼 너비 - 컨테이너 너비
+          const swipeDistance = Math.max(80, titleWidth + editBtnWidth - containerWidth + 16);
+          
+          return swipeDistance;
+        }
+        
         // 터치 시작 이벤트
         markerInfoContainer.addEventListener('touchstart', function(e) {
           // 편집 버튼이나 닫기 버튼을 터치한 경우에는 스와이프 방지
@@ -6927,9 +6948,12 @@
             e.preventDefault();
             hasSwiped = true;
             
+            // 동적 스와이프 거리 계산
+            const maxSwipeDistance = calculateSwipeDistance();
+            
             // 스와이프 진행 중 시각적 피드백
-            const progress = Math.min(Math.abs(diffX) / 80, 1);
-            const translateX = -Math.min(Math.abs(diffX), 80);
+            const progress = Math.min(Math.abs(diffX) / maxSwipeDistance, 1);
+            const translateX = -Math.min(Math.abs(diffX), maxSwipeDistance);
             markerInfoContainer.querySelector('.marker-info-content').style.transform = `translateX(${translateX}px)`;
           }
         }, { passive: false });
@@ -6943,10 +6967,15 @@
           const currentX = e.changedTouches[0].clientX;
           const diffX = startX - currentX;
           
-          // 스와이프 완료 조건: 30px 이상 이동, 1초 이내, 수평 이동
-          if (diffX > 30 && diffTime < 1000) {
+          // 동적 스와이프 거리 계산
+          const maxSwipeDistance = calculateSwipeDistance();
+          const threshold = Math.min(30, maxSwipeDistance * 0.3); // 최소 30px 또는 스와이프 거리의 30%
+          
+          // 스와이프 완료 조건: 임계값 이상 이동, 1초 이내, 수평 이동
+          if (diffX > threshold && diffTime < 1000) {
             // 스와이프 완료 - 편집 버튼 표시
             markerInfoContainer.classList.add('swiped');
+            markerInfoContainer.style.setProperty('--swipe-distance', `${maxSwipeDistance}px`);
           } else {
             // 스와이프 취소 - 원래 위치로 복원
             markerInfoContainer.classList.remove('swiped');
@@ -6999,8 +7028,11 @@
             const diffX = dragStartX - e.clientX;
             
             if (Math.abs(diffX) > 3) {
-              // 드래그 진행 중 시각적 피드백 - 더 민감하게 조정
-              const translateX = -Math.min(Math.abs(diffX), 80);
+              // 동적 스와이프 거리 계산
+              const maxSwipeDistance = calculateSwipeDistance();
+              
+              // 드래그 진행 중 시각적 피드백
+              const translateX = -Math.min(Math.abs(diffX), maxSwipeDistance);
               markerInfoContainer.querySelector('.marker-info-content').style.transform = `translateX(${translateX}px)`;
             }
           });
@@ -7010,10 +7042,14 @@
             
             const diffX = dragStartX - e.clientX;
             
-            // 정보창 크기를 고려하여 더 작은 거리로 조정 (20px)
-            if (diffX > 20) {
+            // 동적 스와이프 거리 계산
+            const maxSwipeDistance = calculateSwipeDistance();
+            const threshold = Math.min(20, maxSwipeDistance * 0.3); // 최소 20px 또는 스와이프 거리의 30%
+            
+            if (diffX > threshold) {
               // 드래그 완료 - 편집 버튼 표시
               markerInfoContainer.classList.add('swiped');
+              markerInfoContainer.style.setProperty('--swipe-distance', `${maxSwipeDistance}px`);
             } else {
               // 드래그 취소 - 원래 위치로 복원
               markerInfoContainer.classList.remove('swiped');
