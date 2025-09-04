@@ -677,19 +677,12 @@
         /* 모바일에서 추가 성능 최적화 */
         @media (max-width: 768px) {
             /* 모바일에서 하드웨어 가속 활성화 */
-            #map, .info-content, .user-added-item, #userAddedItems {
+            #map, .info-content, .user-added-item {
                 -webkit-transform: translateZ(0);
                 -moz-transform: translateZ(0);
                 -ms-transform: translateZ(0);
                 transform: translateZ(0);
                 will-change: transform;
-            }
-            
-            /* userAddedItems 컨테이너 모바일 스크롤 최적화 */
-            #userAddedItems {
-                -webkit-overflow-scrolling: touch;
-                overscroll-behavior: contain;
-                scroll-behavior: smooth;
             }
             
             /* 모바일에서 터치 피드백 최적화 */
@@ -1157,15 +1150,6 @@
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
-        }
-        
-        /* userAddedItems 컨테이너 스크롤 최적화 */
-        #userAddedItems {
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            touch-action: pan-y;
-            will-change: scroll-position;
-            contain: layout style paint;
         }
         
         .user-added-item:hover {
@@ -2989,6 +2973,12 @@
            return;
          }
          
+         // 동기화 중이면 무시
+         if (isSyncing) {
+           updateSyncStatus('동기화 중입니다. 잠시 후 다시 시도해주세요', 'warning');
+           return;
+         }
+         
          // 현재 활성 섹션 확인
          const activeSection = window.currentActiveSection || '';
          
@@ -3004,60 +2994,28 @@
          };
          
          try {
-           // 즉시 UI 업데이트 (일정항목 방식과 동일)
-           const titleElement = link 
-             ? `<span onclick="openUserItemLink('${link}')" style="cursor: pointer;">${title}</span>`
-             : `${title}`;
+           // 동기화 상태 설정
+           isSyncing = true;
+           updateSyncStatus('새 항목 저장 중...', 'info');
            
-           const itemHtml = `
-             <div class="user-added-item" data-item-id="${newItem.id}" data-item-type="user">
-               <div class="item-content">
-                 <input type="checkbox" id="${newItem.id}" class="prep-checkbox" onchange="saveCheckboxStates()">
-                 <span>${titleElement}</span>
-               </div>
-               <button class="swipe-edit-btn" onclick="editUserItem('${newItem.id}', '${newItem.title}', '${newItem.description || ''}', '${newItem.link || ''}')" title="수정">수정</button>
-               <button class="swipe-delete-btn" onclick="deleteUserItem('${newItem.id}')" title="삭제">삭제</button>
-             </div>
-           `;
+           // Firebase에 저장
+           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+             userAddedItems: window.firestore.arrayUnion(newItem)
+           });
            
-           // userAddedItems 컨테이너에 즉시 추가
-           const container = document.getElementById('userAddedItems');
-           if (container) {
-             container.innerHTML += itemHtml;
-             
-             // 스와이프 및 드래그 초기화
-             initializeSwipeDelete();
-             
-             // 클릭 가능한 텍스트 끝에 ❗ 표시 추가
-             if (typeof appendExclamationToLinks === 'function') {
-               appendExclamationToLinks(container);
-             }
-             
-             // 사이드패널 터치 이벤트 설정
-             setupSidePanelTouchEvents();
-           }
-           
-           // 전역 변수에 즉시 추가
-           if (!window.firebaseUserItems) {
-             window.firebaseUserItems = [];
-           }
-           window.firebaseUserItems.push(newItem);
+           // 전역 변수는 Firebase 동기화를 통해 업데이트됨
+           // UI 업데이트는 Firebase onSnapshot 리스너에서 처리
            
            // 폼 초기화
            clearForm();
            
+                     // 성공 메시지 (UI 업데이트는 Firebase 동기화로 처리)
+          onFirebaseUploadSuccess('새 항목');
+           
            // 항목 추가 후 폼 자동 숨기기
            hideAddForm();
            
-           // Firebase에 저장 (일정항목 방식과 동일)
-           if (window.db && window.firestore) {
-             await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
-               userAddedItems: window.firestore.arrayUnion(newItem),
-               lastUpdated: window.firestore.serverTimestamp()
-             });
-             
-             onFirebaseUploadSuccess('새 항목');
-           }
+
            
          } catch (error) {
            console.error('Firebase 저장 실패:', error);
@@ -3068,6 +3026,10 @@
              data: newItem
            });
            
+           // 성공한 것처럼 처리 (사용자 경험 향상)
+           clearForm();
+           hideAddForm();
+           
            // 구체적인 오류 메시지
            let errorMessage = '항목이 임시 저장되었습니다.';
            if (error.message.includes('Firebase') || error.code === 'unavailable') {
@@ -3077,6 +3039,11 @@
            }
            
            updateSyncStatus(errorMessage, 'warning');
+
+           
+         } finally {
+           // 동기화 상태 해제 (즉시 해제하여 실시간 동기화 허용)
+           isSyncing = false;
          }
        }
       
@@ -3205,33 +3172,7 @@
                 !e.target.closest('.user-added-item')) {
               clearAllSwipeStates();
             }
-          }, { passive: true }); // passive: true로 스크롤 성능 향상
-        }
-        
-        // userAddedItems 컨테이너에 스크롤 최적화 이벤트 추가
-        const userAddedItemsContainer = document.getElementById('userAddedItems');
-        if (userAddedItemsContainer) {
-          // 터치 시작 시 스크롤 최적화
-          userAddedItemsContainer.addEventListener('touchstart', function(e) {
-            // 스와이프 버튼이나 체크박스를 터치한 경우가 아니면 스크롤 허용
-            if (!e.target.classList.contains('swipe-edit-btn') &&
-                !e.target.classList.contains('swipe-delete-btn') &&
-                !e.target.classList.contains('prep-checkbox')) {
-              // 스크롤을 위한 터치 이벤트 허용
-              e.stopPropagation();
-            }
-          }, { passive: true });
-          
-          // 터치 이동 시 스크롤 최적화
-          userAddedItemsContainer.addEventListener('touchmove', function(e) {
-            // 스와이프 버튼이나 체크박스를 터치한 경우가 아니면 스크롤 허용
-            if (!e.target.classList.contains('swipe-edit-btn') &&
-                !e.target.classList.contains('swipe-delete-btn') &&
-                !e.target.classList.contains('prep-checkbox')) {
-              // 스크롤을 위한 터치 이벤트 허용
-              e.stopPropagation();
-            }
-          }, { passive: true });
+          });
         }
       }
       
@@ -9698,17 +9639,6 @@
                 // 사용자 추가 항목 동기화 (Firebase에서 직접)
                 if (data.userAddedItems) {
                   console.log('사용자 항목 동기화 중...');
-                  
-                  // 즉시 UI 업데이트가 이미 수행된 경우에도 전역 변수는 업데이트 (일시적으로 비활성화)
-                  // if (window.skipNextUserItemsUIUpdate) {
-                  //   console.log('즉시 UI 업데이트로 인해 Firebase 동기화 UI 업데이트 건너뜀');
-                  //   window.skipNextUserItemsUIUpdate = false;
-                  //   // 전역 변수만 업데이트 (UI는 이미 업데이트됨)
-                  //   window.firebaseUserItems = data.userAddedItems;
-                  //   // 동기화 완료 상태 업데이트
-                  //   updateSyncStatus('사용자 항목 동기화 완료', 'success');
-                  //   return;
-                  // }
                   
                   // 기존 항목과 비교하여 변경사항이 있는지 확인
                   const currentItems = window.firebaseUserItems || [];
