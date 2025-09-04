@@ -3027,8 +3027,8 @@
            }
            window.firebaseUserItems.push(newItem);
            
-           // Firebase 동기화에서 중복 UI 업데이트 방지를 위한 플래그 설정
-           window.skipNextUserItemsUIUpdate = true;
+           // Firebase 동기화에서 중복 UI 업데이트 방지를 위한 플래그 설정 (일시적으로 비활성화)
+           // window.skipNextUserItemsUIUpdate = true;
            
            // 폼 초기화
            clearForm();
@@ -3037,12 +3037,14 @@
            hideAddForm();
            
            // Firebase에 저장 (일정항목 방식과 동일)
-           await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
-             userAddedItems: window.firestore.arrayUnion(newItem),
-             lastUpdated: window.firestore.serverTimestamp()
-           });
-           
-           onFirebaseUploadSuccess('새 항목');
+           if (window.db && window.firestore) {
+             await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+               userAddedItems: window.firestore.arrayUnion(newItem),
+               lastUpdated: window.firestore.serverTimestamp()
+             });
+             
+             onFirebaseUploadSuccess('새 항목');
+           }
            
          } catch (error) {
            console.error('Firebase 저장 실패:', error);
@@ -9658,16 +9660,16 @@
                 if (data.userAddedItems) {
                   console.log('사용자 항목 동기화 중...');
                   
-                  // 즉시 UI 업데이트가 이미 수행된 경우에도 전역 변수는 업데이트
-                  if (window.skipNextUserItemsUIUpdate) {
-                    console.log('즉시 UI 업데이트로 인해 Firebase 동기화 UI 업데이트 건너뜀');
-                    window.skipNextUserItemsUIUpdate = false;
-                    // 전역 변수만 업데이트 (UI는 이미 업데이트됨)
-                    window.firebaseUserItems = data.userAddedItems;
-                    // 동기화 완료 상태 업데이트
-                    updateSyncStatus('사용자 항목 동기화 완료', 'success');
-                    return;
-                  }
+                  // 즉시 UI 업데이트가 이미 수행된 경우에도 전역 변수는 업데이트 (일시적으로 비활성화)
+                  // if (window.skipNextUserItemsUIUpdate) {
+                  //   console.log('즉시 UI 업데이트로 인해 Firebase 동기화 UI 업데이트 건너뜀');
+                  //   window.skipNextUserItemsUIUpdate = false;
+                  //   // 전역 변수만 업데이트 (UI는 이미 업데이트됨)
+                  //   window.firebaseUserItems = data.userAddedItems;
+                  //   // 동기화 완료 상태 업데이트
+                  //   updateSyncStatus('사용자 항목 동기화 완료', 'success');
+                  //   return;
+                  // }
                   
                   // 기존 항목과 비교하여 변경사항이 있는지 확인
                   const currentItems = window.firebaseUserItems || [];
