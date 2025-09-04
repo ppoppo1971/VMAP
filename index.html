@@ -526,8 +526,6 @@
             /* 모바일에서 스크롤 최적화 */
             .info-content {
                 -webkit-overflow-scrolling: touch;
-                overscroll-behavior: contain;
-                scroll-behavior: smooth;
             }
         }
         
@@ -813,10 +811,6 @@
             overflow-y: auto;
             flex: 1;
             min-height: 0;
-            /* 모바일에서 스크롤 성능 최적화 */
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
-            scroll-behavior: smooth;
         }
         
         .info-section {
@@ -937,13 +931,6 @@
             border-radius: 8px;
             transition: background-color 0.2s ease;
             position: relative; /* 스와이프 버튼 위치를 위해 추가 */
-            /* 드래그 중 텍스트 선택 방지 */
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            /* 터치 액션 최적화 - 세로 스크롤 허용, 가로 스와이프도 허용 */
-            touch-action: pan-y pan-x;
         }
         
         .checklist-item:hover {
@@ -957,8 +944,6 @@
             accent-color: #1d4ed8;
             cursor: pointer;
             flex-shrink: 0;
-            /* 터치 액션 최적화 - 세로 스크롤 허용 */
-            touch-action: manipulation;
         }
         
         .prep-checkbox:checked {
@@ -983,11 +968,6 @@
             width: 100%;
             transition: transform 0.3s ease;
             flex: 1;
-            /* 드래그 중 텍스트 선택 방지 */
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
         }
         
         /* 사용자 추가 항목 폼 스타일 */
@@ -1163,7 +1143,7 @@
             transition: background-color 0.2s ease;
             position: relative;
             overflow: hidden;
-            touch-action: pan-y pan-x;
+            touch-action: pan-y;
         }
         
         .user-added-item:hover {
@@ -1306,11 +1286,6 @@
             transition: transform 0.3s ease;
             font-size: inherit;
             flex: 1;
-            /* 드래그 중 텍스트 선택 방지 */
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
         }
         
         .user-added-item.swiped .item-content,
@@ -1707,11 +1682,6 @@
         /* 드래그앤드롭 애니메이션 개선 */
         .user-added-item {
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            /* 드래그 중 텍스트 선택 방지 */
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
         }
 
         .user-added-item.dragging {
@@ -1720,11 +1690,6 @@
             z-index: 10000;
             border-radius: 12px;
             background-color: #ffffff;
-            /* 드래그 중 텍스트 선택 방지 */
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
         }
 
         .drag-placeholder {
@@ -2975,12 +2940,6 @@
          // 현재 활성 섹션 확인
          const activeSection = window.currentActiveSection || '';
          
-         // 전체 항목들 중 가장 큰 order 값 찾기 (현재 섹션만이 아닌 전체)
-         const currentItems = window.firebaseUserItems || [];
-         const maxOrder = currentItems.length > 0 
-           ? Math.max(...currentItems.map(item => item.order || 0))
-           : -1;
-         
          // 새 항목 생성 (기존 항목과 동일한 스타일)
          const newItem = {
            id: 'user_' + Date.now(),
@@ -2989,8 +2948,7 @@
            link: link || null,
            checked: false,
            timestamp: new Date().toISOString(),
-           section: activeSection, // 섹션 정보 추가
-           order: maxOrder + 1 // 맨 아래에 위치하도록 order 설정
+           section: activeSection // 섹션 정보 추가
          };
          
          try {
@@ -3015,9 +2973,6 @@
            // 항목 추가 후 폼 자동 숨기기
            hideAddForm();
            
-           // 새 항목 ID를 전역 변수에 저장 (Firebase 동기화 후 스크롤용)
-           window.lastAddedItemId = newItem.id;
-           
 
            
          } catch (error) {
@@ -3032,9 +2987,6 @@
            // 성공한 것처럼 처리 (사용자 경험 향상)
            clearForm();
            hideAddForm();
-           
-           // 새 항목 ID를 전역 변수에 저장 (오프라인 모드에서도)
-           window.lastAddedItemId = newItem.id;
            
            // 구체적인 오류 메시지
            let errorMessage = '항목이 임시 저장되었습니다.';
@@ -3058,35 +3010,6 @@
         document.getElementById('newItemTitle').value = '';
         document.getElementById('newItemLink').value = '';
         document.getElementById('newItemTitle').focus();
-      }
-      
-      // 새 항목으로 자동 스크롤 함수
-      function scrollToNewItem(itemId) {
-        const newItemElement = document.querySelector(`[data-item-id="${itemId}"]`);
-        if (newItemElement) {
-          // 세부항목 창의 스크롤 컨테이너 찾기
-          const infoContent = document.querySelector('.info-content');
-          if (infoContent) {
-            // 새 항목이 보이는 위치로 부드럽게 스크롤
-            newItemElement.scrollIntoView({
-              behavior: 'smooth',
-              block: 'center',
-              inline: 'nearest'
-            });
-            
-            // 새 항목에 하이라이트 효과 추가
-            newItemElement.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-            newItemElement.style.border = '2px solid rgba(59, 130, 246, 0.3)';
-            newItemElement.style.borderRadius = '8px';
-            
-            // 2초 후 하이라이트 제거
-            setTimeout(() => {
-              newItemElement.style.backgroundColor = '';
-              newItemElement.style.border = '';
-              newItemElement.style.borderRadius = '';
-            }, 2000);
-          }
-        }
       }
       
       // 사용자 추가 항목들 표시 함수
@@ -8499,9 +8422,6 @@
             hasSwiped = false;
             this.classList.add('swiping');
             
-            // 스와이프 기능을 위해 preventDefault 호출 (스크롤은 터치 이동에서 처리)
-            e.preventDefault();
-            
             // 기존 타이머 취소
             if (currentLongPressTimer) {
               clearTimeout(currentLongPressTimer);
@@ -8532,7 +8452,7 @@
             }, 800);
           }, { passive: false });
           
-          // 터치 이동 - 모바일 최적화 (조건부 passive)
+          // 터치 이동 - 모바일 최적화
           item.addEventListener('touchmove', function(e) {
             if (!isSwiping) return;
             
@@ -8547,24 +8467,6 @@
               e.preventDefault();
               handleDragMove(this, e);
               return;
-            }
-            
-            // 세로 스크롤인지 확인 (세로 움직임이 가로보다 크면 스크롤로 간주)
-            if (diffY > Math.abs(diffX) && diffY > 15) {
-              // 세로 스크롤인 경우 preventDefault 호출하지 않음
-              console.log('세로 스크롤 감지 - preventDefault 호출하지 않음');
-              // 스와이프 상태 해제
-              isSwiping = false;
-              this.classList.remove('swiping');
-              return;
-            }
-            
-            // 가로 스와이프인 경우 preventDefault 호출
-            e.preventDefault();
-            
-            // 롱프레스 타이머가 실행 중이거나 드래그 모드일 때만 텍스트 선택 방지
-            if (currentLongPressTimer || isDraggingGlobal) {
-              // 이미 preventDefault 호출됨
             }
             
             // 롱프레스 타이머 취소 (움직임이 감지되면)
@@ -8588,7 +8490,7 @@
               this.querySelector('.item-content').style.transform = `translateX(-${translateX}px)`;
               hasSwiped = true;
             }
-          }, { passive: false }); // preventDefault가 필요하므로 false
+          }, { passive: false });
           
           // 터치 종료 - 모바일 최적화
           item.addEventListener('touchend', function(e) {
@@ -8615,19 +8517,6 @@
             
             const diffX = startX - currentX;
             const diffTime = Date.now() - startTime;
-            
-            // 짧은 터치(클릭)인지 확인 - 300ms 이내이고 움직임이 적으면 클릭으로 처리
-            if (diffTime < 300 && Math.abs(diffX) < 10 && Math.abs(diffY) < 10 && !hasSwiped) {
-              // 클릭 이벤트 허용 - preventDefault 호출하지 않음
-              console.log('짧은 터치 감지 - 클릭 이벤트 허용');
-              return;
-            }
-            
-            // 세로 스크롤인 경우 스와이프 처리하지 않음
-            if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 15) {
-              console.log('세로 스크롤 감지 - 스와이프 처리하지 않음');
-              return;
-            }
             
             // 모바일에서 더 민감한 스와이프 감지
             if (hasSwiped && diffX > 30 && diffTime < 1000) {
@@ -8675,9 +8564,6 @@
               this.classList.add('swiping');
               currentDragItem = this;
               
-              // 스와이프 기능을 위해 preventDefault 호출
-              e.preventDefault();
-              
               console.log('데스크탑 마우스 다운:', this.dataset.itemId);
               
               // 데스크탑에서는 300ms 후 드래그 모드 (더 빠름)
@@ -8716,21 +8602,6 @@
                   };
                   handleDragMove(this, mockEvent);
                   return;
-                }
-                
-                // 세로 스크롤인지 확인 (세로 움직임이 가로보다 크면 스크롤로 간주)
-                if (diffY > Math.abs(diffX) && diffY > 15) {
-                  // 세로 스크롤인 경우 preventDefault 호출하지 않음
-                  console.log('마우스 세로 스크롤 감지 - preventDefault 호출하지 않음');
-                  return;
-                }
-                
-                // 가로 스와이프인 경우 preventDefault 호출
-                e.preventDefault();
-                
-                // 롱프레스 타이머가 실행 중이거나 드래그 모드일 때만 텍스트 선택 방지
-                if (mouseDragTimer || isDraggingGlobal) {
-                  // 이미 preventDefault 호출됨
                 }
                 
                 // 세로 움직임이 크면 드래그 타이머 취소
@@ -8788,22 +8659,6 @@
                 this.classList.remove('swiping');
                 currentDragItem = null;
                 
-                const diffX = startX - currentX;
-                const diffTime = Date.now() - mouseStartTime;
-                
-                // 짧은 클릭인지 확인 - 200ms 이내이고 움직임이 적으면 클릭으로 처리
-                if (diffTime < 200 && Math.abs(diffX) < 5 && Math.abs(diffY) < 5 && !hasSwiped) {
-                  // 클릭 이벤트 허용 - preventDefault 호출하지 않음
-                  console.log('짧은 클릭 감지 - 클릭 이벤트 허용');
-                  return;
-                }
-                
-                // 세로 스크롤인 경우 스와이프 처리하지 않음
-                if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 15) {
-                  console.log('마우스 세로 스크롤 감지 - 스와이프 처리하지 않음');
-                  return;
-                }
-                
                 if (hasSwiped && (startX - currentX) > 50) {
                   // 스와이프 완료 - 수정/삭제 버튼 표시
                   this.classList.add('swiped');
@@ -8842,12 +8697,6 @@
         // 드래그된 항목 타입 설정
         draggedItemType = element.getAttribute('data-item-type') || 'user';
         console.log('드래그된 항목 타입:', draggedItemType);
-        
-        // 전역적으로 텍스트 선택 방지
-        document.body.style.userSelect = 'none';
-        document.body.style.webkitUserSelect = 'none';
-        document.body.style.mozUserSelect = 'none';
-        document.body.style.msUserSelect = 'none';
         
         // 스와이프 상태 초기화
         element.classList.remove('swiped');
@@ -9077,12 +8926,6 @@
         if (dragPlaceholder) {
           dragPlaceholder.remove();
         }
-        
-        // 전역적으로 텍스트 선택 복원
-        document.body.style.userSelect = '';
-        document.body.style.webkitUserSelect = '';
-        document.body.style.mozUserSelect = '';
-        document.body.style.msUserSelect = '';
         
         dragElement = null;
         dragPlaceholder = null;
@@ -9955,35 +9798,9 @@
         
         // 현재 활성 섹션에 맞는 항목만 필터링하고 순서대로 정렬
         const currentSection = window.currentActiveSection || '';
-        const sectionItems = userItems.filter(item => item.section === currentSection);
-        
-        // order 속성이 없는 기존 항목들에 order 할당 (호환성 보장)
-        let hasItemsWithoutOrder = false;
-        sectionItems.forEach((item, index) => {
-          if (item.order === undefined) {
-            item.order = index;
-            hasItemsWithoutOrder = true;
-          }
-        });
-        
-        // order 속성이 없는 항목이 있으면 Firebase에 업데이트
-        if (hasItemsWithoutOrder) {
-          console.log('기존 항목들에 order 속성 할당 중...');
-          // 비동기로 Firebase 업데이트 (UI 블로킹 방지)
-          setTimeout(async () => {
-            try {
-              await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
-                userAddedItems: userItems,
-                lastUpdated: window.firestore.serverTimestamp()
-              });
-              console.log('기존 항목 order 속성 업데이트 완료');
-            } catch (error) {
-              console.warn('기존 항목 order 속성 업데이트 실패:', error);
-            }
-          }, 100);
-        }
-        
-        const filteredItems = sectionItems.sort((a, b) => a.order - b.order);
+        const filteredItems = userItems
+          .filter(item => item.section === currentSection)
+          .sort((a, b) => (a.order || 0) - (b.order || 0)); // order 속성으로 정렬
         
         if (filteredItems.length === 0) {
           container.innerHTML = '';
@@ -10022,14 +9839,6 @@
         
         // 사이드패널 터치 이벤트 설정
         setupSidePanelTouchEvents();
-        
-        // 새 항목이 추가된 경우 자동 스크롤 (전역 변수로 확인)
-        if (window.lastAddedItemId) {
-          setTimeout(() => {
-            scrollToNewItem(window.lastAddedItemId);
-            window.lastAddedItemId = null; // 스크롤 후 초기화
-          }, 100);
-        }
         
         // 모바일에서 수정/삭제 버튼 터치 이벤트 추가
         if (isMobile) {
