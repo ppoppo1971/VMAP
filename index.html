@@ -1144,6 +1144,10 @@
             position: relative;
             overflow: hidden;
             touch-action: pan-y;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
         
         .user-added-item:hover {
@@ -1690,6 +1694,11 @@
             z-index: 10000;
             border-radius: 12px;
             background-color: #ffffff;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            pointer-events: none;
         }
 
         .drag-placeholder {
@@ -8410,6 +8419,9 @@
               return;
             }
             
+            // 텍스트 선택 방지
+            e.preventDefault();
+            
             // 다른 아이템의 스와이프 상태 해제
             clearAllSwipeStates();
             
@@ -8456,6 +8468,9 @@
           item.addEventListener('touchmove', function(e) {
             if (!isSwiping) return;
             
+            // 텍스트 선택 방지
+            e.preventDefault();
+            
             currentX = e.touches[0].clientX;
             currentY = e.touches[0].clientY;
             const diffX = startX - currentX;
@@ -8464,7 +8479,6 @@
             
             // 드래그 모드일 때
             if (isDraggingGlobal) {
-              e.preventDefault();
               handleDragMove(this, e);
               return;
             }
@@ -8554,6 +8568,9 @@
                   e.target.classList.contains('swipe-edit-btn')) {
                 return;
               }
+              
+              // 텍스트 선택 방지
+              e.preventDefault();
               
               startX = e.clientX;
               startY = e.clientY;
@@ -8703,6 +8720,18 @@
         if (element.querySelector('.item-content')) {
           element.querySelector('.item-content').style.transform = 'translateX(0)';
         }
+        
+        // 텍스트 선택 방지
+        element.style.userSelect = 'none';
+        element.style.webkitUserSelect = 'none';
+        element.style.mozUserSelect = 'none';
+        element.style.msUserSelect = 'none';
+        
+        // 전체 문서에서 텍스트 선택 방지
+        document.body.style.userSelect = 'none';
+        document.body.style.webkitUserSelect = 'none';
+        document.body.style.mozUserSelect = 'none';
+        document.body.style.msUserSelect = 'none';
         
         // 햅틱 피드백 (지원하는 기기에서)
         if (navigator.vibrate) {
@@ -8872,6 +8901,18 @@
             dragElement.style.borderRadius = '';
             dragElement.style.backgroundColor = '';
             
+            // 텍스트 선택 복원
+            dragElement.style.userSelect = '';
+            dragElement.style.webkitUserSelect = '';
+            dragElement.style.mozUserSelect = '';
+            dragElement.style.msUserSelect = '';
+            
+            // 전체 문서 텍스트 선택 복원
+            document.body.style.userSelect = '';
+            document.body.style.webkitUserSelect = '';
+            document.body.style.mozUserSelect = '';
+            document.body.style.msUserSelect = '';
+            
             // 플레이스홀더 제거
             if (dragPlaceholder) {
               dragPlaceholder.remove();
@@ -8921,7 +8962,19 @@
           dragElement.style.height = '';
           dragElement.style.borderRadius = '';
           dragElement.style.backgroundColor = '';
+          
+          // 텍스트 선택 복원
+          dragElement.style.userSelect = '';
+          dragElement.style.webkitUserSelect = '';
+          dragElement.style.mozUserSelect = '';
+          dragElement.style.msUserSelect = '';
         }
+        
+        // 전체 문서 텍스트 선택 복원
+        document.body.style.userSelect = '';
+        document.body.style.webkitUserSelect = '';
+        document.body.style.mozUserSelect = '';
+        document.body.style.msUserSelect = '';
         
         if (dragPlaceholder) {
           dragPlaceholder.remove();
