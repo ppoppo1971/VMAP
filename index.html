@@ -1296,7 +1296,6 @@
         
         .user-added-item.swiped .item-content,
         .checklist-item.swiped .item-content {
-            width: 50%;
             transition: width 0.3s ease;
             white-space: nowrap;
             overflow: hidden;
@@ -1305,7 +1304,6 @@
         
         /* 일정 항목은 사이드패널에서 세부항목과 동일한 거리로 스와이프 */
         .user-added-item[data-item-type="schedule"].swiped .item-content {
-            width: 50%;
             transition: width 0.3s ease;
             white-space: nowrap;
             overflow: hidden;
@@ -8570,11 +8568,20 @@
             
             // 빠른 스와이프 감지 (모바일에서 더 민감하게)
             if (diffX > 30 && diffTime < 500 && diffY < 30) {
-              // 내용 컨테이너 너비를 50%로 고정
+              // 동적 내용 컨테이너 너비 계산
               const itemContent = this.querySelector('.item-content');
+              const editBtn = this.querySelector('.swipe-edit-btn');
+              const deleteBtn = this.querySelector('.swipe-delete-btn');
+              
+              // 편집/삭제 버튼의 너비 (50px * 2 + 여백)
+              const buttonWidth = 108; // 50px + 50px + 8px 여백
+              const containerWidth = this.offsetWidth;
+              const maxContentWidth = containerWidth - buttonWidth - 16; // 16px 여백
+              
+              // 스와이프 진행 중 시각적 피드백 - 내용 컨테이너 너비 조정
               const progress = Math.min(diffX / 80, 1);
-              const contentWidth = 50 * (1 - progress * 0.2); // 50%에서 최대 40%까지 축소
-              itemContent.style.width = `${contentWidth}%`;
+              const contentWidth = maxContentWidth * (1 - progress * 0.2); // 최대 20% 축소
+              itemContent.style.width = `${contentWidth}px`;
               itemContent.style.whiteSpace = 'nowrap';
               itemContent.style.overflow = 'hidden';
               itemContent.style.textOverflow = 'ellipsis';
@@ -8613,9 +8620,13 @@
               // 스와이프 완료 - 수정/삭제 버튼 표시
               this.classList.add('swiped');
               
-              // 내용 컨테이너 너비를 50%로 고정하고 ellipsis 적용
+              // 동적 내용 컨테이너 너비 계산
               const itemContent = this.querySelector('.item-content');
-              itemContent.style.width = '50%';
+              const buttonWidth = 108; // 50px + 50px + 8px 여백
+              const containerWidth = this.offsetWidth;
+              const maxContentWidth = containerWidth - buttonWidth - 16; // 16px 여백
+              
+              itemContent.style.width = `${maxContentWidth}px`;
               itemContent.style.whiteSpace = 'nowrap';
               itemContent.style.overflow = 'hidden';
               itemContent.style.textOverflow = 'ellipsis';
@@ -8716,11 +8727,16 @@
                 
                 // 스와이프 처리 (가로 움직임)
                 if (diffX > 50 && diffY < 30) {
-                  // 내용 컨테이너 너비를 50%로 고정
+                  // 동적 내용 컨테이너 너비 계산
                   const itemContent = this.querySelector('.item-content');
+                  const buttonWidth = 108; // 50px + 50px + 8px 여백
+                  const containerWidth = this.offsetWidth;
+                  const maxContentWidth = containerWidth - buttonWidth - 16; // 16px 여백
+                  
+                  // 스와이프 진행 중 시각적 피드백 - 내용 컨테이너 너비 조정
                   const progress = Math.min(diffX / 80, 1);
-                  const contentWidth = 50 * (1 - progress * 0.2); // 50%에서 최대 40%까지 축소
-                  itemContent.style.width = `${contentWidth}%`;
+                  const contentWidth = maxContentWidth * (1 - progress * 0.2); // 최대 20% 축소
+                  itemContent.style.width = `${contentWidth}px`;
                   itemContent.style.whiteSpace = 'nowrap';
                   itemContent.style.overflow = 'hidden';
                   itemContent.style.textOverflow = 'ellipsis';
@@ -8770,9 +8786,13 @@
                   // 스와이프 완료 - 수정/삭제 버튼 표시
                   this.classList.add('swiped');
                   
-                  // 내용 컨테이너 너비를 50%로 고정하고 ellipsis 적용
+                  // 동적 내용 컨테이너 너비 계산
                   const itemContent = this.querySelector('.item-content');
-                  itemContent.style.width = '50%';
+                  const buttonWidth = 108; // 50px + 50px + 8px 여백
+                  const containerWidth = this.offsetWidth;
+                  const maxContentWidth = containerWidth - buttonWidth - 16; // 16px 여백
+                  
+                  itemContent.style.width = `${maxContentWidth}px`;
                   itemContent.style.whiteSpace = 'nowrap';
                   itemContent.style.overflow = 'hidden';
                   itemContent.style.textOverflow = 'ellipsis';
