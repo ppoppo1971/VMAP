@@ -942,8 +942,8 @@
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
-            /* 터치 액션 최적화 - 세로 스크롤 허용 */
-            touch-action: pan-y;
+            /* 터치 액션 최적화 - 세로 스크롤 허용, 가로 스와이프도 허용 */
+            touch-action: pan-y pan-x;
         }
         
         .checklist-item:hover {
@@ -1163,7 +1163,7 @@
             transition: background-color 0.2s ease;
             position: relative;
             overflow: hidden;
-            touch-action: pan-y;
+            touch-action: pan-y pan-x;
         }
         
         .user-added-item:hover {
@@ -8499,7 +8499,8 @@
             hasSwiped = false;
             this.classList.add('swiping');
             
-            // 터치 시작 시에는 preventDefault 호출하지 않음 (스크롤 허용)
+            // 스와이프 기능을 위해 preventDefault 호출 (스크롤은 터치 이동에서 처리)
+            e.preventDefault();
             
             // 기존 타이머 취소
             if (currentLongPressTimer) {
@@ -8529,7 +8530,7 @@
                 startDragMode(this, mockEvent);
               }
             }, 800);
-          }, { passive: true });
+          }, { passive: false });
           
           // 터치 이동 - 모바일 최적화 (조건부 passive)
           item.addEventListener('touchmove', function(e) {
@@ -8549,15 +8550,21 @@
             }
             
             // 세로 스크롤인지 확인 (세로 움직임이 가로보다 크면 스크롤로 간주)
-            if (diffY > Math.abs(diffX) && diffY > 10) {
+            if (diffY > Math.abs(diffX) && diffY > 15) {
               // 세로 스크롤인 경우 preventDefault 호출하지 않음
               console.log('세로 스크롤 감지 - preventDefault 호출하지 않음');
+              // 스와이프 상태 해제
+              isSwiping = false;
+              this.classList.remove('swiping');
               return;
             }
             
+            // 가로 스와이프인 경우 preventDefault 호출
+            e.preventDefault();
+            
             // 롱프레스 타이머가 실행 중이거나 드래그 모드일 때만 텍스트 선택 방지
             if (currentLongPressTimer || isDraggingGlobal) {
-              e.preventDefault();
+              // 이미 preventDefault 호출됨
             }
             
             // 롱프레스 타이머 취소 (움직임이 감지되면)
@@ -8617,7 +8624,7 @@
             }
             
             // 세로 스크롤인 경우 스와이프 처리하지 않음
-            if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 10) {
+            if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 15) {
               console.log('세로 스크롤 감지 - 스와이프 처리하지 않음');
               return;
             }
@@ -8631,7 +8638,7 @@
               this.classList.remove('swiped');
               this.querySelector('.item-content').style.transform = 'translateX(0)';
             }
-          }, { passive: true });
+          }, { passive: false });
           
           // 클릭 시 스와이프 상태 해제 - 모바일 최적화
           item.addEventListener('click', function(e) {
@@ -8668,7 +8675,8 @@
               this.classList.add('swiping');
               currentDragItem = this;
               
-              // 터치 시작 시에는 preventDefault 호출하지 않음 (스크롤 허용)
+              // 스와이프 기능을 위해 preventDefault 호출
+              e.preventDefault();
               
               console.log('데스크탑 마우스 다운:', this.dataset.itemId);
               
@@ -8711,15 +8719,18 @@
                 }
                 
                 // 세로 스크롤인지 확인 (세로 움직임이 가로보다 크면 스크롤로 간주)
-                if (diffY > Math.abs(diffX) && diffY > 10) {
+                if (diffY > Math.abs(diffX) && diffY > 15) {
                   // 세로 스크롤인 경우 preventDefault 호출하지 않음
                   console.log('마우스 세로 스크롤 감지 - preventDefault 호출하지 않음');
                   return;
                 }
                 
+                // 가로 스와이프인 경우 preventDefault 호출
+                e.preventDefault();
+                
                 // 롱프레스 타이머가 실행 중이거나 드래그 모드일 때만 텍스트 선택 방지
                 if (mouseDragTimer || isDraggingGlobal) {
-                  e.preventDefault();
+                  // 이미 preventDefault 호출됨
                 }
                 
                 // 세로 움직임이 크면 드래그 타이머 취소
@@ -8788,7 +8799,7 @@
                 }
                 
                 // 세로 스크롤인 경우 스와이프 처리하지 않음
-                if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 10) {
+                if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 15) {
                   console.log('마우스 세로 스크롤 감지 - 스와이프 처리하지 않음');
                   return;
                 }
