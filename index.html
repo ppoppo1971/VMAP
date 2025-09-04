@@ -3003,20 +3003,14 @@
              userAddedItems: window.firestore.arrayUnion(newItem)
            });
            
-           // 즉시 로컬 상태 업데이트 (일정추가와 동일한 방식)
-           if (!window.firebaseUserItems) {
-             window.firebaseUserItems = [];
-           }
-           window.firebaseUserItems.push(newItem);
-           
-           // 즉시 UI 업데이트
-           displayUserAddedItemsFromFirebase(window.firebaseUserItems);
+           // 전역 변수는 Firebase 동기화를 통해 업데이트됨
+           // UI 업데이트는 Firebase onSnapshot 리스너에서 처리
            
            // 폼 초기화
            clearForm();
            
-           // 성공 메시지
-           onFirebaseUploadSuccess('새 항목');
+                     // 성공 메시지 (UI 업데이트는 Firebase 동기화로 처리)
+          onFirebaseUploadSuccess('새 항목');
            
            // 항목 추가 후 폼 자동 숨기기
            hideAddForm();
