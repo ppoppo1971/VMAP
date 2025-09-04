@@ -8447,8 +8447,8 @@
             hasSwiped = false;
             this.classList.add('swiping');
             
-            // 롱프레스 시작 시 텍스트 선택 방지
-            e.preventDefault();
+            // 롱프레스 시작 시에만 텍스트 선택 방지 (즉시 preventDefault 하지 않음)
+            // 실제 드래그가 시작될 때만 preventDefault 호출
             
             // 기존 타이머 취소
             if (currentLongPressTimer) {
@@ -8497,8 +8497,8 @@
               return;
             }
             
-            // 롱프레스 타이머가 실행 중이면 텍스트 선택 방지
-            if (currentLongPressTimer) {
+            // 롱프레스 타이머가 실행 중이거나 드래그 모드일 때만 텍스트 선택 방지
+            if (currentLongPressTimer || isDraggingGlobal) {
               e.preventDefault();
             }
             
@@ -8551,6 +8551,13 @@
             const diffX = startX - currentX;
             const diffTime = Date.now() - startTime;
             
+            // 짧은 터치(클릭)인지 확인 - 300ms 이내이고 움직임이 적으면 클릭으로 처리
+            if (diffTime < 300 && Math.abs(diffX) < 10 && !hasSwiped) {
+              // 클릭 이벤트 허용 - preventDefault 호출하지 않음
+              console.log('짧은 터치 감지 - 클릭 이벤트 허용');
+              return;
+            }
+            
             // 모바일에서 더 민감한 스와이프 감지
             if (hasSwiped && diffX > 30 && diffTime < 1000) {
               // 스와이프 완료 - 수정/삭제 버튼 표시
@@ -8597,8 +8604,8 @@
               this.classList.add('swiping');
               currentDragItem = this;
               
-              // 롱프레스 시작 시 텍스트 선택 방지
-              e.preventDefault();
+              // 롱프레스 시작 시에는 텍스트 선택 방지하지 않음 (클릭 이벤트 보호)
+              // 실제 드래그가 시작될 때만 preventDefault 호출
               
               console.log('데스크탑 마우스 다운:', this.dataset.itemId);
               
@@ -8640,8 +8647,8 @@
                   return;
                 }
                 
-                // 롱프레스 타이머가 실행 중이면 텍스트 선택 방지
-                if (mouseDragTimer) {
+                // 롱프레스 타이머가 실행 중이거나 드래그 모드일 때만 텍스트 선택 방지
+                if (mouseDragTimer || isDraggingGlobal) {
                   e.preventDefault();
                 }
                 
@@ -8699,6 +8706,16 @@
                 isSwiping = false;
                 this.classList.remove('swiping');
                 currentDragItem = null;
+                
+                const diffX = startX - currentX;
+                const diffTime = Date.now() - mouseStartTime;
+                
+                // 짧은 클릭인지 확인 - 200ms 이내이고 움직임이 적으면 클릭으로 처리
+                if (diffTime < 200 && Math.abs(diffX) < 5 && !hasSwiped) {
+                  // 클릭 이벤트 허용 - preventDefault 호출하지 않음
+                  console.log('짧은 클릭 감지 - 클릭 이벤트 허용');
+                  return;
+                }
                 
                 if (hasSwiped && (startX - currentX) > 50) {
                   // 스와이프 완료 - 수정/삭제 버튼 표시
