@@ -2965,6 +2965,13 @@
          // 현재 활성 섹션 확인
          const activeSection = window.currentActiveSection || '';
          
+         // 현재 섹션의 항목들 중 가장 큰 order 값 찾기
+         const currentItems = window.firebaseUserItems || [];
+         const currentSectionItems = currentItems.filter(item => item.section === activeSection);
+         const maxOrder = currentSectionItems.length > 0 
+           ? Math.max(...currentSectionItems.map(item => item.order || 0))
+           : -1;
+         
          // 새 항목 생성 (기존 항목과 동일한 스타일)
          const newItem = {
            id: 'user_' + Date.now(),
@@ -2973,7 +2980,8 @@
            link: link || null,
            checked: false,
            timestamp: new Date().toISOString(),
-           section: activeSection // 섹션 정보 추가
+           section: activeSection, // 섹션 정보 추가
+           order: maxOrder + 1 // 맨 아래에 위치하도록 order 설정
          };
          
          try {
@@ -9868,9 +9876,35 @@
         
         // 현재 활성 섹션에 맞는 항목만 필터링하고 순서대로 정렬
         const currentSection = window.currentActiveSection || '';
-        const filteredItems = userItems
-          .filter(item => item.section === currentSection)
-          .sort((a, b) => (a.order || 0) - (b.order || 0)); // order 속성으로 정렬
+        const sectionItems = userItems.filter(item => item.section === currentSection);
+        
+        // order 속성이 없는 기존 항목들에 order 할당 (호환성 보장)
+        let hasItemsWithoutOrder = false;
+        sectionItems.forEach((item, index) => {
+          if (item.order === undefined) {
+            item.order = index;
+            hasItemsWithoutOrder = true;
+          }
+        });
+        
+        // order 속성이 없는 항목이 있으면 Firebase에 업데이트
+        if (hasItemsWithoutOrder) {
+          console.log('기존 항목들에 order 속성 할당 중...');
+          // 비동기로 Firebase 업데이트 (UI 블로킹 방지)
+          setTimeout(async () => {
+            try {
+              await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+                userAddedItems: userItems,
+                lastUpdated: window.firestore.serverTimestamp()
+              });
+              console.log('기존 항목 order 속성 업데이트 완료');
+            } catch (error) {
+              console.warn('기존 항목 order 속성 업데이트 실패:', error);
+            }
+          }, 100);
+        }
+        
+        const filteredItems = sectionItems.sort((a, b) => a.order - b.order);
         
         if (filteredItems.length === 0) {
           container.innerHTML = '';
