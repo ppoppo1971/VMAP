@@ -942,6 +942,8 @@
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
+            /* 터치 액션 최적화 - 세로 스크롤 허용 */
+            touch-action: pan-y;
         }
         
         .checklist-item:hover {
@@ -955,6 +957,8 @@
             accent-color: #1d4ed8;
             cursor: pointer;
             flex-shrink: 0;
+            /* 터치 액션 최적화 - 세로 스크롤 허용 */
+            touch-action: manipulation;
         }
         
         .prep-checkbox:checked {
@@ -8495,8 +8499,7 @@
             hasSwiped = false;
             this.classList.add('swiping');
             
-            // 롱프레스 시작 시에만 텍스트 선택 방지 (즉시 preventDefault 하지 않음)
-            // 실제 드래그가 시작될 때만 preventDefault 호출
+            // 터치 시작 시에는 preventDefault 호출하지 않음 (스크롤 허용)
             
             // 기존 타이머 취소
             if (currentLongPressTimer) {
@@ -8526,9 +8529,9 @@
                 startDragMode(this, mockEvent);
               }
             }, 800);
-          }, { passive: false });
+          }, { passive: true });
           
-          // 터치 이동 - 모바일 최적화
+          // 터치 이동 - 모바일 최적화 (조건부 passive)
           item.addEventListener('touchmove', function(e) {
             if (!isSwiping) return;
             
@@ -8542,6 +8545,13 @@
             if (isDraggingGlobal) {
               e.preventDefault();
               handleDragMove(this, e);
+              return;
+            }
+            
+            // 세로 스크롤인지 확인 (세로 움직임이 가로보다 크면 스크롤로 간주)
+            if (diffY > Math.abs(diffX) && diffY > 10) {
+              // 세로 스크롤인 경우 preventDefault 호출하지 않음
+              console.log('세로 스크롤 감지 - preventDefault 호출하지 않음');
               return;
             }
             
@@ -8571,7 +8581,7 @@
               this.querySelector('.item-content').style.transform = `translateX(-${translateX}px)`;
               hasSwiped = true;
             }
-          }, { passive: false });
+          }, { passive: false }); // preventDefault가 필요하므로 false
           
           // 터치 종료 - 모바일 최적화
           item.addEventListener('touchend', function(e) {
@@ -8600,9 +8610,15 @@
             const diffTime = Date.now() - startTime;
             
             // 짧은 터치(클릭)인지 확인 - 300ms 이내이고 움직임이 적으면 클릭으로 처리
-            if (diffTime < 300 && Math.abs(diffX) < 10 && !hasSwiped) {
+            if (diffTime < 300 && Math.abs(diffX) < 10 && Math.abs(diffY) < 10 && !hasSwiped) {
               // 클릭 이벤트 허용 - preventDefault 호출하지 않음
               console.log('짧은 터치 감지 - 클릭 이벤트 허용');
+              return;
+            }
+            
+            // 세로 스크롤인 경우 스와이프 처리하지 않음
+            if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 10) {
+              console.log('세로 스크롤 감지 - 스와이프 처리하지 않음');
               return;
             }
             
@@ -8615,7 +8631,7 @@
               this.classList.remove('swiped');
               this.querySelector('.item-content').style.transform = 'translateX(0)';
             }
-          }, { passive: false });
+          }, { passive: true });
           
           // 클릭 시 스와이프 상태 해제 - 모바일 최적화
           item.addEventListener('click', function(e) {
@@ -8652,8 +8668,7 @@
               this.classList.add('swiping');
               currentDragItem = this;
               
-              // 롱프레스 시작 시에는 텍스트 선택 방지하지 않음 (클릭 이벤트 보호)
-              // 실제 드래그가 시작될 때만 preventDefault 호출
+              // 터치 시작 시에는 preventDefault 호출하지 않음 (스크롤 허용)
               
               console.log('데스크탑 마우스 다운:', this.dataset.itemId);
               
@@ -8692,6 +8707,13 @@
                     clientY: e.clientY
                   };
                   handleDragMove(this, mockEvent);
+                  return;
+                }
+                
+                // 세로 스크롤인지 확인 (세로 움직임이 가로보다 크면 스크롤로 간주)
+                if (diffY > Math.abs(diffX) && diffY > 10) {
+                  // 세로 스크롤인 경우 preventDefault 호출하지 않음
+                  console.log('마우스 세로 스크롤 감지 - preventDefault 호출하지 않음');
                   return;
                 }
                 
@@ -8759,9 +8781,15 @@
                 const diffTime = Date.now() - mouseStartTime;
                 
                 // 짧은 클릭인지 확인 - 200ms 이내이고 움직임이 적으면 클릭으로 처리
-                if (diffTime < 200 && Math.abs(diffX) < 5 && !hasSwiped) {
+                if (diffTime < 200 && Math.abs(diffX) < 5 && Math.abs(diffY) < 5 && !hasSwiped) {
                   // 클릭 이벤트 허용 - preventDefault 호출하지 않음
                   console.log('짧은 클릭 감지 - 클릭 이벤트 허용');
+                  return;
+                }
+                
+                // 세로 스크롤인 경우 스와이프 처리하지 않음
+                if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 10) {
+                  console.log('마우스 세로 스크롤 감지 - 스와이프 처리하지 않음');
                   return;
                 }
                 
