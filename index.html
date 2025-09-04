@@ -1166,9 +1166,9 @@
             background: transparent;
             color: #000;
             border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-size: 0.9rem;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -1176,21 +1176,21 @@
             z-index: 10;
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
-            min-height: 44px;
-            min-width: 60px;
+            min-height: 36px;
+            min-width: 50px;
         }
         
         /* 일정 항목(사이드패널)용 스와이프 버튼 - 모바일 클릭 정확도 개선 */
         .user-added-item[data-item-type="schedule"] .swipe-edit-btn {
             right: -80px;
-            width: 60px;
-            min-width: 60px;
-            max-width: 60px;
-            padding: 12px 8px;
-            font-size: 0.8rem;
-            height: 44px;
-            min-height: 44px;
-            max-height: 44px;
+            width: 50px;
+            min-width: 50px;
+            max-width: 50px;
+            padding: 6px 8px;
+            font-size: 0.75rem;
+            height: 36px;
+            min-height: 36px;
+            max-height: 36px;
             line-height: 1;
             display: flex;
             align-items: center;
@@ -1201,14 +1201,14 @@
         
         .user-added-item[data-item-type="schedule"] .swipe-delete-btn {
             right: -80px;
-            width: 60px;
-            min-width: 60px;
-            max-width: 60px;
-            padding: 12px 8px;
-            font-size: 0.8rem;
-            height: 44px;
-            min-height: 44px;
-            max-height: 44px;
+            width: 50px;
+            min-width: 50px;
+            max-width: 50px;
+            padding: 6px 8px;
+            font-size: 0.75rem;
+            height: 36px;
+            min-height: 36px;
+            max-height: 36px;
             line-height: 1;
             display: flex;
             align-items: center;
@@ -1296,13 +1296,13 @@
         
         .user-added-item.swiped .item-content,
         .checklist-item.swiped .item-content {
-            width: var(--content-width, 100%);
+            width: 50%;
             transition: width 0.3s ease;
         }
         
         /* 일정 항목은 사이드패널에서 세부항목과 동일한 거리로 스와이프 */
         .user-added-item[data-item-type="schedule"].swiped .item-content {
-            width: var(--content-width, 100%);
+            width: 50%;
             transition: width 0.3s ease;
         }
         
@@ -1313,16 +1313,16 @@
         
         .user-added-item.swiped .swipe-delete-btn,
         .checklist-item.swiped .swipe-delete-btn {
-            right: 8px;
+            right: 58px; /* 수정 버튼 너비(50px) + 여백(8px) */
         }
         
         /* 일정 항목 스와이프 완료 시 위치 조정 - 세부항목과 동일한 위치 */
         .user-added-item[data-item-type="schedule"].swiped .swipe-edit-btn {
-            right: 88px;
+            right: 8px;
         }
         
         .user-added-item[data-item-type="schedule"].swiped .swipe-delete-btn {
-            right: 8px;
+            right: 58px; /* 수정 버튼 너비(50px) + 여백(8px) */
         }
         
 
@@ -8564,20 +8564,11 @@
             
             // 빠른 스와이프 감지 (모바일에서 더 민감하게)
             if (diffX > 30 && diffTime < 500 && diffY < 30) {
-              // 동적 내용 컨테이너 너비 계산
+              // 내용 컨테이너 너비를 50%로 고정
               const itemContent = this.querySelector('.item-content');
-              const editBtn = this.querySelector('.swipe-edit-btn');
-              const deleteBtn = this.querySelector('.swipe-delete-btn');
-              
-              // 편집/삭제 버튼의 너비 (80px * 2 + 여백)
-              const buttonWidth = 160;
-              const containerWidth = this.offsetWidth;
-              const maxContentWidth = containerWidth - buttonWidth - 16; // 16px 여백
-              
-              // 스와이프 진행 중 시각적 피드백 - 내용 컨테이너 너비 조정
               const progress = Math.min(diffX / 80, 1);
-              const contentWidth = maxContentWidth * (1 - progress * 0.3); // 최대 30% 축소
-              itemContent.style.width = `${contentWidth}px`;
+              const contentWidth = 50 * (1 - progress * 0.2); // 50%에서 최대 40%까지 축소
+              itemContent.style.width = `${contentWidth}%`;
               hasSwiped = true;
             }
           }, { passive: false });
@@ -8613,12 +8604,8 @@
               // 스와이프 완료 - 수정/삭제 버튼 표시
               this.classList.add('swiped');
               
-              // 동적 내용 컨테이너 너비 계산
-              const itemContent = this.querySelector('.item-content');
-              const buttonWidth = 160;
-              const containerWidth = this.offsetWidth;
-              const maxContentWidth = containerWidth - buttonWidth - 16;
-              this.style.setProperty('--content-width', `${maxContentWidth}px`);
+              // 내용 컨테이너 너비를 50%로 고정
+              this.querySelector('.item-content').style.width = '50%';
             } else {
               // 스와이프 취소 - 원래 위치로 복원
               this.classList.remove('swiped');
@@ -8712,16 +8699,11 @@
                 
                 // 스와이프 처리 (가로 움직임)
                 if (diffX > 50 && diffY < 30) {
-                  // 동적 내용 컨테이너 너비 계산
+                  // 내용 컨테이너 너비를 50%로 고정
                   const itemContent = this.querySelector('.item-content');
-                  const buttonWidth = 160;
-                  const containerWidth = this.offsetWidth;
-                  const maxContentWidth = containerWidth - buttonWidth - 16;
-                  
-                  // 스와이프 진행 중 시각적 피드백 - 내용 컨테이너 너비 조정
                   const progress = Math.min(diffX / 80, 1);
-                  const contentWidth = maxContentWidth * (1 - progress * 0.3); // 최대 30% 축소
-                  itemContent.style.width = `${contentWidth}px`;
+                  const contentWidth = 50 * (1 - progress * 0.2); // 50%에서 최대 40%까지 축소
+                  itemContent.style.width = `${contentWidth}%`;
                   hasSwiped = true;
                   
                   // 드래그 타이머 취소 (스와이프 중)
@@ -8768,11 +8750,8 @@
                   // 스와이프 완료 - 수정/삭제 버튼 표시
                   this.classList.add('swiped');
                   
-                  // 동적 내용 컨테이너 너비 계산
-                  const buttonWidth = 160;
-                  const containerWidth = this.offsetWidth;
-                  const maxContentWidth = containerWidth - buttonWidth - 16;
-                  this.style.setProperty('--content-width', `${maxContentWidth}px`);
+                  // 내용 컨테이너 너비를 50%로 고정
+                  this.querySelector('.item-content').style.width = '50%';
                 } else {
                   // 스와이프 취소 - 원래 위치로 복원
                   this.classList.remove('swiped');
