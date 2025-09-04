@@ -8458,6 +8458,13 @@
               return;
             }
             
+            // 터치 시작 시 즉시 스크롤 활성화
+            const scrollContainer = this.closest('.info-content') || this.closest('#customMapMenu');
+            if (scrollContainer) {
+              scrollContainer.style.touchAction = 'pan-y';
+              scrollContainer.style.webkitOverflowScrolling = 'touch';
+            }
+            
             // 다른 아이템의 스와이프 상태 해제
             clearAllSwipeStates();
             
@@ -8498,7 +8505,7 @@
                 startDragMode(this, mockEvent);
               }
             }, 800);
-          }, { passive: false });
+          }, { passive: true });
           
           // 터치 이동 - 모바일 최적화
           item.addEventListener('touchmove', function(e) {
@@ -8517,8 +8524,19 @@
               return;
             }
             
-            // 스와이프 중일 때만 preventDefault 호출
-            if (Math.abs(diffX) > 10 || diffY > 10) {
+            // 세로 움직임이 가로보다 크면 스크롤 우선, 스와이프 취소
+            if (diffY > Math.abs(diffX) && diffY > 15) {
+              clearTimeout(currentLongPressTimer);
+              currentLongPressTimer = null;
+              currentDragItem = null;
+              isSwiping = false;
+              this.classList.remove('swiping');
+              // 세로 스크롤은 방해하지 않음
+              return;
+            }
+            
+            // 가로 스와이프가 세로보다 크고 임계값을 넘으면 스와이프 처리
+            if (Math.abs(diffX) > diffY && Math.abs(diffX) > 15) {
               e.preventDefault();
             }
             
@@ -8527,14 +8545,6 @@
               clearTimeout(currentLongPressTimer);
               currentLongPressTimer = null;
               currentDragItem = null;
-            }
-            
-            // 세로 움직임이 가로보다 크면 스와이프 취소
-            if (diffY > Math.abs(diffX) && diffY > 20) {
-              clearTimeout(currentLongPressTimer);
-              currentLongPressTimer = null;
-              currentDragItem = null;
-              return;
             }
             
             // 빠른 스와이프 감지 (모바일에서 더 민감하게)
@@ -8575,10 +8585,10 @@
               // 스와이프 완료 - 수정/삭제 버튼 표시 (CSS에서 처리)
               this.classList.add('swiped');
             } else {
-              // 스와이프 취소 - 원래 위치로 복원
-              this.classList.remove('swiped');
-            }
-          }, { passive: false });
+                          // 스와이프 취소 - 원래 위치로 복원
+            this.classList.remove('swiped');
+          }
+        }, { passive: true });
           
           // 클릭 시 스와이프 상태 해제 - 모바일 최적화
           item.addEventListener('click', function(e) {
@@ -9927,6 +9937,21 @@
         
         // 스와이프 삭제 기능 초기화
         initializeSwipeDelete();
+        
+        // 항목 터치 시 즉시 스크롤 활성화
+        if (isMobile) {
+          const scrollableItems = container.querySelectorAll('.user-added-item, .checklist-item');
+          scrollableItems.forEach(item => {
+            item.addEventListener('touchstart', function(e) {
+              // 터치 시작 시 즉시 스크롤 활성화
+              const scrollContainer = this.closest('.info-content') || this.closest('#customMapMenu');
+              if (scrollContainer) {
+                scrollContainer.style.touchAction = 'pan-y';
+                scrollContainer.style.webkitOverflowScrolling = 'touch';
+              }
+            }, { passive: true });
+          });
+        }
         
         // 사이드패널 터치 이벤트 설정
         setupSidePanelTouchEvents();
