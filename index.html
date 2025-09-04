@@ -141,12 +141,12 @@
         }
         
         .marker-info-container.swiped .marker-info-content {
-            transform: translateX(-100px);
+            transform: translateX(-80px);
         }
         
         .marker-swipe-edit-btn {
             position: absolute;
-            right: -30px;
+            right: -80px;
             top: 50%;
             transform: translateY(-50%);
             background: transparent;
@@ -168,7 +168,7 @@
         }
         
         .marker-info-container.swiped .marker-swipe-edit-btn {
-            right: 16px;
+            right: 8px;
         }
         
         .marker-swipe-edit-btn:hover {
@@ -6914,8 +6914,8 @@
             hasSwiped = true;
             
             // 스와이프 진행 중 시각적 피드백
-            const progress = Math.min(Math.abs(diffX) / 100, 1);
-            const translateX = -Math.min(Math.abs(diffX), 100);
+            const progress = Math.min(Math.abs(diffX) / 80, 1);
+            const translateX = -Math.min(Math.abs(diffX), 80);
             markerInfoContainer.querySelector('.marker-info-content').style.transform = `translateX(${translateX}px)`;
           }
         }, { passive: false });
@@ -6986,7 +6986,7 @@
             
             if (Math.abs(diffX) > 3) {
               // 드래그 진행 중 시각적 피드백 - 더 민감하게 조정
-              const translateX = -Math.min(Math.abs(diffX), 100);
+              const translateX = -Math.min(Math.abs(diffX), 80);
               markerInfoContainer.querySelector('.marker-info-content').style.transform = `translateX(${translateX}px)`;
             }
           });
