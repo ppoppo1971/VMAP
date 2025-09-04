@@ -1,0 +1,714 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+#map {
+    width: 100vw;
+    height: 100vh;
+    min-height: 100%;
+    touch-action: manipulation;
+}
+h1 {
+    display: none;
+}
+
+/* 사이드바 스타일 - 모바일 최적화 */
+#customMapMenu {
+    position: absolute;
+    top: 20px;
+    left: 15px;
+    z-index: 10;
+    width: 200px;
+    max-width: 85vw;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    padding: 15px 12px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transition: all 0.3s ease;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+}
+#customMapMenu.hide {
+    left: -220px;
+    opacity: 0;
+    pointer-events: none;
+}
+#customMapMenu h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    color: #1a1a1a;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+.menu-group {
+    margin-bottom: 2px;
+}
+.menu-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 5px;
+    display: block;
+    color: #1a1a1a;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+/* 공통 버튼 스타일 - 터치 친화적 */
+.menu-group button, .toggle-btn, .map-type-btn {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 8px;
+    padding: 8px 6px;
+    margin-bottom: 2px;
+    font-size: 0.9rem;
+    color: #1a1a1a;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 31px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.menu-group button:hover, .toggle-btn:hover, .map-type-btn:hover {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(255, 255, 255, 0.6);
+    color: #000;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.menu-group button:active, .toggle-btn:active, .map-type-btn:active {
+    background: rgba(255, 255, 255, 0.7);
+    transform: scale(0.98);
+}
+.menu-group .submenu {
+    margin-left: 10px;
+    margin-top: 3px;
+}
+
+/* 마커 타이틀 라벨 스타일 */
+.marker-title-label {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 3px 8px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    white-space: nowrap;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 마커 정보창 스와이프 편집 기능을 위한 스타일 */
+.marker-info-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.marker-info-content {
+    position: relative;
+    transition: transform 0.3s ease;
+    background: transparent;
+    border-radius: 8px;
+    cursor: grab;
+}
+
+.marker-info-content:active {
+    cursor: grabbing;
+}
+
+.marker-info-container.swiped .marker-info-content {
+    transform: translateX(-80px);
+}
+
+.marker-swipe-edit-btn {
+    position: absolute;
+    right: -80px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    color: #8b5cf6;
+    border: 1px solid #8b5cf6;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 32px;
+    min-width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.marker-info-container.swiped .marker-swipe-edit-btn {
+    right: 8px;
+}
+
+.marker-swipe-edit-btn:hover {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: #7c3aed;
+    color: #7c3aed;
+}
+
+.marker-swipe-edit-btn:active {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: #6d28d9;
+    color: #6d28d9;
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* 데스크톱에서 항상 표시되는 편집 버튼 */
+@media (min-width: 769px) {
+    .marker-info-container .marker-swipe-edit-btn {
+        position: static;
+        right: auto;
+        top: auto;
+        transform: none;
+        margin-left: 8px;
+        display: flex;
+    }
+    
+    .marker-info-container .marker-info-content {
+        cursor: default;
+    }
+    
+    .marker-info-container .marker-info-content:active {
+        cursor: default;
+    }
+    
+    .route-info-container .route-swipe-edit-btn {
+        position: static;
+        right: auto;
+        top: auto;
+        transform: none;
+        margin-left: 8px;
+        display: flex;
+    }
+    
+    .route-info-container .route-info-content {
+        cursor: default;
+    }
+    
+    .route-info-container .route-info-content:active {
+        cursor: default;
+    }
+}
+
+/* 경로 정보창 스와이프 편집 기능을 위한 스타일 */
+.route-info-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.route-info-content {
+    position: relative;
+    transition: transform 0.3s ease;
+    background: transparent;
+    border-radius: 8px;
+    cursor: grab;
+}
+
+.route-info-content:active {
+    cursor: grabbing;
+}
+
+.route-info-container.swiped .route-info-content {
+    transform: translateX(-80px);
+}
+
+.route-swipe-edit-btn {
+    position: absolute;
+    right: -80px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    color: #3b82f6;
+    border: 1px solid #3b82f6;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 32px;
+    min-width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.route-info-container.swiped .route-swipe-edit-btn {
+    right: 8px;
+}
+
+.route-swipe-edit-btn:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #2563eb;
+    color: #2563eb;
+}
+
+.route-swipe-edit-btn:active {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: #1d4ed8;
+    color: #1d4ed8;
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* 사이드 패널 토글 버튼 - 모바일 최적화 */
+#menuToggleBtn {
+    position: absolute;
+    top: 20px;
+    left: 15px;
+    z-index: 20;
+    background: rgba(29, 78, 216, 0.5);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    font-size: 1.4rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s ease;
+}
+#menuToggleBtn.show {
+    display: flex;
+}
+#menuToggleBtn:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.toggle-btn {
+    text-align: left;
+    font-weight: 600;
+}
+
+/* 하위 옵션 들여쓰기 */
+.submenu {
+    margin-left: 15px;
+}
+.submenu .submenu {
+    margin-left: 15px;
+}
+.submenu button {
+    width: 90%;
+    margin-left: 0;
+}
+
+/* 구글맵 하위 옵션 들여쓰기 */
+#googleMapMenu > .toggle-btn {
+    margin-left: 15px;
+}
+
+/* 오른쪽 상단 지도 타입 선택 버튼 - 모바일 최적화 */
+#mapTypeSelector {
+    position: absolute;
+    top: 20px;
+    right: 15px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+}
+
+#mapTypeSelector.hide {
+    right: -180px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* GPS 위치 버튼 스타일 */
+#locationBtn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 10;
+    background: transparent;
+    color: #333;
+    border: none;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s ease;
+}
+
+#locationBtn:hover {
+    background: rgba(51, 51, 51, 0.1);
+    transform: scale(1.05);
+}
+
+#locationBtn:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+#locationBtn.loading {
+    background: #6b7280;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* 오른쪽 상단 토글 버튼 - 모바일 최적화 */
+#rightMenuToggleBtn {
+    position: absolute;
+    top: 20px;
+    right: 15px;
+    z-index: 20;
+    background: rgba(29, 78, 216, 0.5);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    font-size: 1.4rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s ease;
+}
+#rightMenuToggleBtn:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.map-type-btn {
+    justify-content: center;
+    font-weight: 600;
+    padding: 12px 16px;
+}
+
+.map-type-btn.active {
+    background: #1d4ed8;
+    color: white;
+    border-color: #1d4ed8;
+}
+
+.map-type-btn.sub-option {
+    margin-left: 0;
+    font-size: 0.9rem;
+    padding: 12px 16px;
+}
+
+/* 모바일 최적화를 위한 미디어 쿼리 */
+@media (max-width: 768px) {
+    #customMapMenu {
+        width: 180px;
+        max-width: 80vw;
+        top: 15px;
+        left: 10px;
+        padding: 12px 10px 10px 10px;
+        max-height: calc(100vh - 30px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    #customMapMenu.hide {
+        left: -200px;
+    }
+    
+    #menuToggleBtn, #rightMenuToggleBtn {
+        width: 44px;
+        height: 44px;
+        font-size: 1.3rem;
+        top: 15px;
+    }
+    
+    #menuToggleBtn {
+        left: 10px;
+    }
+    
+    #rightMenuToggleBtn {
+        right: 10px;
+    }
+    
+    #mapTypeSelector {
+        top: 15px;
+        right: 10px;
+    }
+    
+    .map-type-btn {
+        padding: 7px 10px;
+        font-size: 0.85rem;
+        min-height: 28px;
+    }
+    
+    .map-type-btn.sub-option {
+        margin-left: 0;
+        padding: 7px 10px;
+        font-size: 0.85rem;
+        min-height: 28px;
+    }
+    
+    .toggle-btn {
+        padding: 7px 6px;
+        min-height: 28px;
+        font-size: 0.85rem;
+    }
+    
+    #locationBtn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.3rem;
+        bottom: 15px;
+        right: 15px;
+    }
+    
+    /* 모바일에서 터치 최적화 */
+    .menu-group button, .toggle-btn, .map-type-btn {
+        min-height: 34px; /* 30% 줄인 높이 */
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+    
+    /* 모바일에서 스크롤 최적화 */
+    .info-content {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+@media (max-width: 480px) {
+    #customMapMenu {
+        width: 160px;
+        max-width: 75vw;
+        top: 10px;
+        left: 8px;
+        padding: 10px 8px 8px 8px;
+        max-height: calc(100vh - 20px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    #customMapMenu.hide {
+        left: -180px;
+    }
+    
+    #menuToggleBtn, #rightMenuToggleBtn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+        top: 10px;
+    }
+    
+    #menuToggleBtn {
+        left: 8px;
+    }
+    
+    #rightMenuToggleBtn {
+        right: 8px;
+    }
+    
+    #mapTypeSelector {
+        top: 10px;
+        right: 8px;
+    }
+    
+    .map-type-btn {
+        padding: 6px 8px;
+        font-size: 0.8rem;
+        min-height: 25px;
+    }
+    
+    .map-type-btn.sub-option {
+        margin-left: 0;
+        padding: 6px 8px;
+        font-size: 0.8rem;
+        min-height: 25px;
+    }
+    
+    .toggle-btn {
+        padding: 6px 4px;
+        min-height: 25px;
+        font-size: 0.8rem;
+    }
+    
+    #locationBtn {
+        width: 37px;
+        height: 37px;
+        font-size: 1rem;
+        bottom: 10px;
+        right: 10px;
+    }
+    
+    /* 작은 화면에서 정보창 최적화 */
+    #preparationInfo, #routeSaveDialog, #markerSaveDialog {
+        width: 95vw;
+        max-width: 95vw;
+        left: 2.5vw !important;
+        transform: none !important;
+    }
+    
+    .user-added-item .swipe-delete-btn {
+        min-height: 52px;
+        min-width: 80px;
+        font-size: 1.1rem;
+        padding: 14px 24px;
+    }
+}
+
+/* 터치 최적화를 위한 추가 스타일 */
+* {
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 스크롤바 숨기기 */
+::-webkit-scrollbar {
+    display: none;
+}
+
+/* 모바일에서 더블탭 줌 방지 및 한 손가락 드래그 최적화 */
+#map {
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 모바일에서 버튼 터치 최적화 */
+button, .toggle-btn, .map-type-btn {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    cursor: pointer;
+}
+
+/* 모바일에서 입력 필드 최적화 */
+input[type="text"], input[type="url"] {
+    appearance: none;
+    border-radius: 6px;
+    font-size: 16px; /* iOS에서 줌 방지 */
+}
+
+/* 모바일에서 체크박스 최적화 */
+input[type="checkbox"] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    position: relative;
+}
+
+input[type="checkbox"]:checked {
+    background: #1d4ed8;
+}
+
+input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+/* 모바일에서 추가 성능 최적화 */
+@media (max-width: 768px) {
+    /* 모바일에서 하드웨어 가속 활성화 */
+    #map, .info-content, .user-added-item {
+        -webkit-transform: translateZ(0);
+        -moz-transform: translateZ(0);
+        -ms-transform: translateZ(0);
+        transform: translateZ(0);
+        will-change: transform;
+    }
+    
+    /* 모바일에서 터치 피드백 최적화 */
+    button:active, .toggle-btn:active, .map-type-btn:active {
+        -webkit-transform: scale(0.95) translateZ(0);
+        transform: scale(0.95) translateZ(0);
+        transition: transform 0.1s ease;
+    }
+    
+    /* 모바일에서 스크롤 성능 향상 */
+    .info-content::-webkit-scrollbar {
+        width: 4px;
+    }
+    
+    .info-content::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 2px;
+    }
+    
+    .info-content::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 2px;
+    }
+    
+    .user-added-item .swipe-delete-btn {
+        min-height: 48px;
+        min-width: 70px;
+        font-size: 1rem;
+        padding: 12px 20px;
+    }
+}
+
+/* 모바일에서 안전 영역 지원 */
+@supports (padding: max(0px)) {
+    @media (max-width: 768px) {
+        #customMapMenu {
+            padding-top: max(15px, env(safe-area-inset-top));
+            padding-left: max(10px, env(safe-area-inset-left));
+        }
+        
+        #menuToggleBtn, #rightMenuToggleBtn {
+            top: max(15px, env(safe-area-inset-top));
+        }
+        
+        #menuToggleBtn {
+            left: max(10px, env(safe-area-inset-left));
+        }
+        
+        #rightMenuToggleBtn {
+            right: max(10px, env(safe-area-inset-right));
+        }
+    }
+}
