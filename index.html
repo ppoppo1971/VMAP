@@ -1244,10 +1244,13 @@
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(10px);
         }
         
         .user-added-item:hover {
-            background-color: rgba(29, 78, 216, 0.05);
+            background: rgba(255, 255, 255, 0.18);
+            transform: translateY(-1px);
         }
         
         
@@ -1800,7 +1803,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행1128</h2>
+      <h2>홋카이도 여행1135</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
