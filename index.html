@@ -1229,7 +1229,7 @@
         .checklist-swipe-edit-btn:hover {
             background: rgba(255, 255, 255, 0.1);
         }
-        
+
         .checklist-swipe-delete-btn:hover {
             background: rgba(255, 255, 255, 0.1);
         }
@@ -1766,7 +1766,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행0116</h2>
+      <h2>홋카이도 여행0130</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -2990,9 +2990,14 @@
           // 스와이프 버튼 생성
           const swipeButtons = document.createElement('div');
           swipeButtons.className = 'checklist-swipe-buttons';
+          // 현재 제목과 링크 가져오기
+          const titleSpan = item.querySelector('span');
+          const currentTitle = titleSpan ? titleSpan.textContent : '';
+          const currentLink = titleSpan && titleSpan.onclick ? titleSpan.onclick.toString().match(/openUserItemLink\('([^']+)'\)/)?.[1] || '' : '';
+          
           swipeButtons.innerHTML = `
-            <button class="checklist-swipe-edit-btn" onclick="editChecklistItem('${itemId}')">수정</button>
-            <button class="checklist-swipe-delete-btn" onclick="deleteChecklistItem('${itemId}')">삭제</button>
+            <button class="checklist-swipe-edit-btn" onclick="editUserItem('${itemId}', '${currentTitle}', '', '${currentLink}')">수정</button>
+            <button class="checklist-swipe-delete-btn" onclick="deleteUserItem('${itemId}')">삭제</button>
           `;
           item.appendChild(swipeButtons);
           
@@ -3017,9 +3022,12 @@
           // 스와이프 버튼 생성
           const swipeButtons = document.createElement('div');
           swipeButtons.className = 'schedule-swipe-buttons';
+          // 현재 제목 가져오기
+          const currentTitle = item.getAttribute('data-schedule-title') || '';
+          
           swipeButtons.innerHTML = `
-            <button class="schedule-swipe-edit-btn" onclick="editScheduleItem('${scheduleId}')">수정</button>
-            <button class="schedule-swipe-delete-btn" onclick="deleteScheduleItem('${scheduleId}')">삭제</button>
+            <button class="schedule-swipe-edit-btn" onclick="editSchedule('${scheduleId}', '${currentTitle}')">수정</button>
+            <button class="schedule-swipe-delete-btn" onclick="deleteSchedule('${scheduleId}', '${currentTitle}')">삭제</button>
           `;
           item.appendChild(swipeButtons);
           
@@ -8496,7 +8504,7 @@
       // 기존 스와이프 기능은 제거됨 - 새로운 스와이프 기능 사용
       function initializeSwipeDelete() {
         // 이 함수는 더 이상 사용되지 않음
-        return;
+              return;
       }
       
       // 드래그 앤 드롭 관련 전역 변수
