@@ -1039,6 +1039,7 @@
         .checklist-swipe-delete-btn {
             width: 50px;
             height: 100%;
+            max-height: 40px;
             border: none;
             color: #1a1a1a;
             font-size: inherit;
@@ -1279,6 +1280,7 @@
         .schedule-swipe-delete-btn {
             width: 50px !important;
             height: 100% !important;
+            max-height: 40px !important;
             border: none !important;
             color: #1a1a1a !important;
             font-size: inherit !important;
@@ -1789,7 +1791,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행1223</h2>
+      <h2>홋카이도 여행1247</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -3410,78 +3412,114 @@
         
         const label = item.querySelector('label');
         const currentText = label ? label.textContent : item.textContent.trim();
+        const currentLink = item.getAttribute('data-link') || '';
         
         // 기존 수정 폼이 있으면 제거
         const existingForm = document.getElementById('editChecklistForm');
+        const existingOverlay = document.getElementById('checklistDialogOverlay');
         if (existingForm) {
           existingForm.remove();
         }
+        if (existingOverlay) {
+          existingOverlay.remove();
+        }
         
-        // 수정 폼 생성
-        const editForm = document.createElement('div');
-        editForm.id = 'editChecklistForm';
-        editForm.style.cssText = `
+        // 배경 오버레이 생성
+        const overlay = document.createElement('div');
+        overlay.id = 'checklistDialogOverlay';
+        overlay.style.cssText = `
           position: fixed;
           top: 0;
           left: 0;
           width: 100%;
           height: 100%;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 10000;
+          z-index: 999;
+          background: transparent;
+        `;
+        overlay.onclick = function() {
+          closeEditChecklistForm();
+        };
+        overlay.ontouchstart = function(e) {
+          e.preventDefault();
+          closeEditChecklistForm();
+        };
+        overlay.ontouchend = function(e) {
+          e.preventDefault();
+          closeEditChecklistForm();
+        };
+        
+        // 수정 폼 생성 (일정추가 다이얼로그와 동일한 스타일)
+        const editForm = document.createElement('div');
+        editForm.id = 'editChecklistForm';
+        editForm.style.cssText = `
+          position: fixed;
+          top: 120px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 1000;
+          width: 380px;
+          max-width: 90vw;
+          background: rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 20px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          overflow: hidden;
+          transition: all 0.3s ease;
         `;
         
+        // 다이얼로그 내부 클릭/터치 시 이벤트 버블링 방지
+        editForm.onclick = function(e) {
+          e.stopPropagation();
+        };
+        editForm.ontouchstart = function(e) {
+          e.stopPropagation();
+        };
+        editForm.ontouchend = function(e) {
+          e.stopPropagation();
+        };
+        
         editForm.innerHTML = `
-          <div style="
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-          ">
-            <h3 style="margin: 0 0 20px 0; color: #333; font-size: 18px;">체크리스트 항목 수정</h3>
-            <input type="text" id="editChecklistInput" value="${currentText}" style="
-              width: 100%;
-              padding: 12px;
-              border: 2px solid #e5e7eb;
-              border-radius: 8px;
-              font-size: 16px;
-              margin-bottom: 20px;
-              box-sizing: border-box;
-            ">
-            <div style="display: flex; gap: 12px; justify-content: flex-end;">
-              <button onclick="closeEditChecklistForm()" style="
-                padding: 10px 20px;
-                border: 1px solid #d1d5db;
-                background: white;
-                color: #374151;
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 14px;
-              ">취소</button>
-              <button onclick="saveChecklistItem('${itemId}')" style="
-                padding: 10px 20px;
-                border: none;
-                background: #3b82f6;
-                color: white;
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 14px;
-              ">저장</button>
+          <style>
+            #editChecklistTitle::placeholder, #editChecklistLink::placeholder {
+              color: rgba(0, 0, 0, 0.5);
+            }
+          </style>
+          <div class="edit-form-header">
+            <h4>체크리스트 항목 수정</h4>
+            <button type="button" onclick="closeEditChecklistForm()" class="close-btn">×</button>
+          </div>
+          <div style="padding: 20px 24px 24px 24px;">
+            <div style="margin-bottom: 16px;">
+              <input type="text" id="editChecklistTitle" placeholder="항목 제목을 입력하세요" maxlength="50" value="${currentText}"
+                     style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);" 
+                     onfocus="this.style.background='rgba(255, 255, 255, 0.18)'; this.style.boxShadow='0 0 0 2px rgba(16, 185, 129, 0.3)'"
+                     onblur="this.style.background='rgba(255, 255, 255, 0.12)'; this.style.boxShadow='none'"
+                     onkeypress="if(event.key==='Enter') saveChecklistItem('${itemId}')">
+            </div>
+            <div style="margin-bottom: 24px;">
+              <input type="url" id="editChecklistLink" placeholder="링크를 입력하세요 (선택사항)" maxlength="200" value="${currentLink}"
+                     style="width: 100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);" 
+                     onfocus="this.style.background='rgba(255, 255, 255, 0.18)'; this.style.boxShadow='0 0 0 2px rgba(16, 185, 129, 0.3)'"
+                     onblur="this.style.background='rgba(255, 255, 255, 0.12)'; this.style.boxShadow='none'"
+                     onkeypress="if(event.key==='Enter') saveChecklistItem('${itemId}')">
+            </div>
+            <div style="text-align: center;">
+              <button onclick="saveChecklistItem('${itemId}')" style="background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 32px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px); min-width: 120px;" onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'; this.style.transform='translateY(0)'">
+                저장
+              </button>
             </div>
           </div>
         `;
         
+        document.body.appendChild(overlay);
         document.body.appendChild(editForm);
         
-        // 입력 필드에 포커스
+        // 제목 입력란에 포커스
         setTimeout(() => {
-          const input = document.getElementById('editChecklistInput');
-          input.focus();
-          input.select();
+          document.getElementById('editChecklistTitle').focus();
         }, 100);
         
         // 스와이프 상태 해제
@@ -3526,10 +3564,10 @@
             window.firebaseUserItems = updatedItems;
             
             // 파이어베이스에 저장
-            if (window.db && window.user) {
-              const userRef = window.db.collection('users').doc(window.user.uid);
-              userRef.update({
-                userItems: updatedItems
+            if (window.db && window.firestore) {
+              window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+                userAddedItems: updatedItems,
+                lastUpdated: window.firestore.serverTimestamp()
               }).then(() => {
                 console.log('체크리스트 항목이 삭제되었습니다.');
                 // UI 업데이트
@@ -3548,15 +3586,21 @@
       // 체크리스트 수정 폼 닫기
       function closeEditChecklistForm() {
         const form = document.getElementById('editChecklistForm');
+        const overlay = document.getElementById('checklistDialogOverlay');
         if (form) {
           form.remove();
+        }
+        if (overlay) {
+          overlay.remove();
         }
       }
       
       // 체크리스트 항목 저장
       function saveChecklistItem(itemId) {
-        const input = document.getElementById('editChecklistInput');
-        const newText = input.value.trim();
+        const titleInput = document.getElementById('editChecklistTitle');
+        const linkInput = document.getElementById('editChecklistLink');
+        const newText = titleInput.value.trim();
+        const newLink = linkInput.value.trim();
         
         if (!newText) {
           alert('항목 내용을 입력해주세요.');
@@ -3596,17 +3640,17 @@
           if (window.firebaseUserItems) {
             const updatedItems = window.firebaseUserItems.map(item => {
               if (item.id === itemId) {
-                return { ...item, title: newText };
+                return { ...item, title: newText, link: newLink || null };
               }
               return item;
             });
             window.firebaseUserItems = updatedItems;
             
             // 파이어베이스에 저장
-            if (window.db && window.user) {
-              const userRef = window.db.collection('users').doc(window.user.uid);
-              userRef.update({
-                userItems: updatedItems
+            if (window.db && window.firestore) {
+              window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
+                userAddedItems: updatedItems,
+                lastUpdated: window.firestore.serverTimestamp()
               }).then(() => {
                 console.log('체크리스트 항목이 수정되었습니다.');
                 // UI 업데이트
