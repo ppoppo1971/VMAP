@@ -3061,7 +3061,29 @@
       
       // 체크리스트 항목에 스와이프 기능 추가
       function addSwipeToChecklistItems() {
-        document.querySelectorAll('.checklist-item[data-item-id]').forEach(item => {
+        // 기존 체크리스트 항목들 (data-item-type="existing")
+        document.querySelectorAll('.checklist-item[data-item-type="existing"]').forEach(item => {
+          // 이미 스와이프 버튼이 있으면 건너뛰기
+          if (item.querySelector('.checklist-swipe-buttons')) return;
+          
+          const itemId = item.getAttribute('data-item-id');
+          if (!itemId) return;
+          
+          // 스와이프 버튼 생성
+          const swipeButtons = document.createElement('div');
+          swipeButtons.className = 'checklist-swipe-buttons';
+          swipeButtons.innerHTML = `
+            <button class="checklist-swipe-edit-btn" onclick="editChecklistItem('${itemId}')">수정</button>
+            <button class="checklist-swipe-delete-btn" onclick="deleteChecklistItem('${itemId}')">삭제</button>
+          `;
+          item.appendChild(swipeButtons);
+          
+          // 터치 이벤트 추가
+          addSwipeTouchEvents(item, 'checklist');
+        });
+        
+        // 사용자 추가 체크리스트 항목들 (data-item-type="user")
+        document.querySelectorAll('.user-added-item[data-item-type="user"]').forEach(item => {
           // 이미 스와이프 버튼이 있으면 건너뛰기
           if (item.querySelector('.checklist-swipe-buttons')) return;
           
@@ -3369,11 +3391,15 @@
       
       // 체크리스트 항목 수정 함수
       function editChecklistItem(itemId) {
-        const item = document.querySelector(`.checklist-item[data-item-id="${itemId}"]`);
+        // 기존 체크리스트 항목과 사용자 추가 항목 모두 확인
+        let item = document.querySelector(`.checklist-item[data-item-id="${itemId}"]`);
+        if (!item) {
+          item = document.querySelector(`.user-added-item[data-item-id="${itemId}"]`);
+        }
         if (!item) return;
         
         const label = item.querySelector('label');
-        const currentText = label.textContent;
+        const currentText = label ? label.textContent : item.textContent.trim();
         
         // 기존 수정 폼이 있으면 제거
         const existingForm = document.getElementById('editChecklistForm');
@@ -3456,23 +3482,52 @@
       function deleteChecklistItem(itemId) {
         if (!confirm('이 항목을 삭제하시겠습니까?')) return;
         
-        // 파이어베이스에서 삭제
-        if (window.firebaseUserItems) {
-          const updatedItems = window.firebaseUserItems.filter(item => item.id !== itemId);
-          window.firebaseUserItems = updatedItems;
+        // 기존 체크리스트 항목인지 사용자 추가 항목인지 확인
+        let item = document.querySelector(`.checklist-item[data-item-id="${itemId}"]`);
+        let isExistingItem = true;
+        
+        if (!item) {
+          item = document.querySelector(`.user-added-item[data-item-id="${itemId}"]`);
+          isExistingItem = false;
+        }
+        
+        if (!item) return;
+        
+        if (isExistingItem) {
+          // 기존 체크리스트 항목은 숨김 처리
+          item.style.display = 'none';
           
-          // 파이어베이스에 저장
-          if (window.db && window.user) {
-            const userRef = window.db.collection('users').doc(window.user.uid);
-            userRef.update({
-              userItems: updatedItems
-            }).then(() => {
-              console.log('체크리스트 항목이 삭제되었습니다.');
-              // UI 업데이트
-              displayUserAddedItemsFromFirebase(updatedItems);
-            }).catch(error => {
-              console.error('체크리스트 항목 삭제 실패:', error);
-            });
+          // 숨김 목록에 추가
+          if (!window.hiddenExistingItems) {
+            window.hiddenExistingItems = [];
+          }
+          if (!window.hiddenExistingItems.includes(itemId)) {
+            window.hiddenExistingItems.push(itemId);
+          }
+          
+          // 로컬 스토리지에 저장
+          localStorage.setItem('hiddenExistingItems', JSON.stringify(window.hiddenExistingItems));
+          
+          console.log('기존 체크리스트 항목이 숨겨졌습니다.');
+        } else {
+          // 사용자 추가 항목은 파이어베이스에서 삭제
+          if (window.firebaseUserItems) {
+            const updatedItems = window.firebaseUserItems.filter(item => item.id !== itemId);
+            window.firebaseUserItems = updatedItems;
+            
+            // 파이어베이스에 저장
+            if (window.db && window.user) {
+              const userRef = window.db.collection('users').doc(window.user.uid);
+              userRef.update({
+                userItems: updatedItems
+              }).then(() => {
+                console.log('체크리스트 항목이 삭제되었습니다.');
+                // UI 업데이트
+                displayUserAddedItemsFromFirebase(updatedItems);
+              }).catch(error => {
+                console.error('체크리스트 항목 삭제 실패:', error);
+              });
+            }
           }
         }
         
@@ -3498,28 +3553,58 @@
           return;
         }
         
-        // 파이어베이스에서 업데이트
-        if (window.firebaseUserItems) {
-          const updatedItems = window.firebaseUserItems.map(item => {
-            if (item.id === itemId) {
-              return { ...item, title: newText };
-            }
-            return item;
-          });
-          window.firebaseUserItems = updatedItems;
+        // 기존 체크리스트 항목인지 사용자 추가 항목인지 확인
+        let item = document.querySelector(`.checklist-item[data-item-id="${itemId}"]`);
+        let isExistingItem = true;
+        
+        if (!item) {
+          item = document.querySelector(`.user-added-item[data-item-id="${itemId}"]`);
+          isExistingItem = false;
+        }
+        
+        if (!item) return;
+        
+        if (isExistingItem) {
+          // 기존 체크리스트 항목은 오버라이드 처리
+          if (!window.existingItemOverrides) {
+            window.existingItemOverrides = {};
+          }
+          window.existingItemOverrides[itemId] = { title: newText };
           
-          // 파이어베이스에 저장
-          if (window.db && window.user) {
-            const userRef = window.db.collection('users').doc(window.user.uid);
-            userRef.update({
-              userItems: updatedItems
-            }).then(() => {
-              console.log('체크리스트 항목이 수정되었습니다.');
-              // UI 업데이트
-              displayUserAddedItemsFromFirebase(updatedItems);
-            }).catch(error => {
-              console.error('체크리스트 항목 수정 실패:', error);
+          // 로컬 스토리지에 저장
+          localStorage.setItem('existingItemOverrides', JSON.stringify(window.existingItemOverrides));
+          
+          // UI 업데이트
+          const label = item.querySelector('label');
+          if (label) {
+            label.textContent = newText;
+          }
+          
+          console.log('기존 체크리스트 항목이 수정되었습니다.');
+        } else {
+          // 사용자 추가 항목은 파이어베이스에서 업데이트
+          if (window.firebaseUserItems) {
+            const updatedItems = window.firebaseUserItems.map(item => {
+              if (item.id === itemId) {
+                return { ...item, title: newText };
+              }
+              return item;
             });
+            window.firebaseUserItems = updatedItems;
+            
+            // 파이어베이스에 저장
+            if (window.db && window.user) {
+              const userRef = window.db.collection('users').doc(window.user.uid);
+              userRef.update({
+                userItems: updatedItems
+              }).then(() => {
+                console.log('체크리스트 항목이 수정되었습니다.');
+                // UI 업데이트
+                displayUserAddedItemsFromFirebase(updatedItems);
+              }).catch(error => {
+                console.error('체크리스트 항목 수정 실패:', error);
+              });
+            }
           }
         }
         
@@ -3590,23 +3675,6 @@
         editForm.innerHTML = `
           <div style="padding: 28px 24px 8px 24px; text-align: center; position: relative; flex-shrink: 0;">
             <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">일정 수정</h3>
-            <button class="schedule-close-btn" onclick="closeEditScheduleForm()" style="
-              position: absolute;
-              top: 50%;
-              right: 20px;
-              transform: translateY(-50%);
-              background: rgba(0, 0, 0, 0.1);
-              border: none;
-              border-radius: 50%;
-              width: 32px;
-              height: 32px;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 18px;
-              color: #666;
-            ">×</button>
           </div>
           <div style="padding: 0 24px 24px 24px;">
             <input type="text" id="editScheduleTitle" value="${title}" placeholder="일정 제목을 입력하세요" style="
@@ -3623,7 +3691,7 @@
               transition: all 0.3s ease;
             " onfocus="this.style.borderColor='rgba(59, 130, 246, 0.5)'; this.style.background='rgba(255, 255, 255, 0.2)'" onblur="this.style.borderColor='rgba(255, 255, 255, 0.3)'; this.style.background='rgba(255, 255, 255, 0.1)'">
             <div style="display: flex; gap: 12px; justify-content: center;">
-              <button onclick="closeEditScheduleForm()" style="
+              <button onclick="saveScheduleItem('${scheduleId}')" style="
                 padding: 12px 24px;
                 border: 2px solid rgba(255, 255, 255, 0.3);
                 background: rgba(255, 255, 255, 0.1);
@@ -3635,19 +3703,7 @@
                 transition: all 0.3s ease;
                 backdrop-filter: blur(10px);
                 -webkit-backdrop-filter: blur(10px);
-              " onmouseover="this.style.background='rgba(255, 255, 255, 0.2)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'">취소</button>
-              <button onclick="saveScheduleItem('${scheduleId}')" style="
-                padding: 12px 24px;
-                border: none;
-                background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-                color: white;
-                border-radius: 12px;
-                cursor: pointer;
-                font-size: 14px;
-                font-weight: 500;
-                transition: all 0.3s ease;
-                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-              " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(59, 130, 246, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.3)'">저장</button>
+              " onmouseover="this.style.background='rgba(255, 255, 255, 0.2)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'">저장</button>
             </div>
           </div>
         `;
