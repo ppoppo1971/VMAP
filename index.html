@@ -1766,7 +1766,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행0211</h2>
+      <h2>홋카이도 여행0219</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -3494,15 +3494,8 @@
       
              // 사용자 항목 수정 함수
       function editUserItem(itemId, currentTitle, currentDescription, currentLink) {
-        // 스와이프 상태 해제
-        const item = document.querySelector(`[data-item-id="${itemId}"]`);
-        if (item) {
-          item.classList.remove('swiped');
-          const itemContent = item.querySelector('.item-content');
-          if (itemContent) {
-            itemContent.style.width = '100%';
-          }
-        }
+        // 모든 스와이프 상태 해제
+        clearAllSwipeStates();
         
         // 수정 폼 표시
         showEditForm(itemId, currentTitle, currentDescription, currentLink, 'user');
@@ -11529,15 +11522,8 @@
           contextMenu.remove();
         }
         
-        // 스와이프 상태 해제
-        const item = document.querySelector(`[data-schedule-id="${scheduleId}"]`);
-        if (item) {
-          item.classList.remove('swiped');
-          const itemContent = item.querySelector('.item-content');
-          if (itemContent) {
-            itemContent.style.width = '100%';
-          }
-        }
+        // 모든 스와이프 상태 해제
+        clearAllSwipeStates();
         
         // 일정 수정 다이얼로그 표시
         showEditScheduleDialog(scheduleId, currentTitle);
