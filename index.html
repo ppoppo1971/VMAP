@@ -1766,7 +1766,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행0142</h2>
+      <h2>홋카이도 여행0204</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -3049,13 +3049,16 @@
         });
       }
       
-      // 스와이프 터치 이벤트 추가
+      // 스와이프 터치 이벤트 추가 (롱프레스 드래그앤드롭 포함)
       function addSwipeTouchEvents(item, type) {
         let startX = 0;
         let startY = 0;
+        let currentX = 0;
+        let currentY = 0;
         let hasSwiped = false;
         let startTime = 0;
         let isScrolling = false;
+        let isSwiping = false;
         
         item.addEventListener('touchstart', function(e) {
           // 스와이프 버튼을 터치한 경우에는 스와이프 방지
@@ -3075,15 +3078,69 @@
           startTime = Date.now();
           hasSwiped = false;
           isScrolling = false;
-        }, { passive: true });
+          isSwiping = true;
+          this.classList.add('swiping');
+          
+          // 기존 롱프레스 타이머 취소
+          if (currentLongPressTimer) {
+            clearTimeout(currentLongPressTimer);
+          }
+          
+          // 현재 드래그 아이템 설정
+          currentDragItem = this;
+          
+          // 롱프레스 타이머 시작 (800ms 후 드래그 모드 활성화)
+          currentLongPressTimer = setTimeout(() => {
+            console.log('롱프레스 타이머 실행:', {
+              isSwiping,
+              hasSwiped,
+              currentDragItem: currentDragItem === this,
+              element: this.dataset.itemId || this.dataset.scheduleId
+            });
+            
+            if (isSwiping && !hasSwiped && currentDragItem === this) {
+              // 가상 이벤트 객체 생성 (현재 터치 위치 기준)
+              const mockEvent = {
+                touches: [{
+                  clientX: startX,
+                  clientY: startY
+                }]
+              };
+              startDragMode(this, mockEvent);
+            }
+          }, 800);
+        }, { passive: false });
         
         item.addEventListener('touchmove', function(e) {
-          if (!startX || !startY) return;
+          if (!isSwiping) return;
           
-          const currentX = e.touches[0].clientX;
-          const currentY = e.touches[0].clientY;
+          currentX = e.touches[0].clientX;
+          currentY = e.touches[0].clientY;
           const diffX = startX - currentX;
           const diffY = Math.abs(startY - currentY);
+          const diffTime = Date.now() - startTime;
+          
+          // 드래그 모드일 때
+          if (isDraggingGlobal) {
+            e.preventDefault();
+            handleDragMove(this, e);
+            return;
+          }
+          
+          // 롱프레스 타이머 취소 (움직임이 감지되면)
+          if (currentLongPressTimer && (Math.abs(diffX) > 10 || diffY > 10)) {
+            clearTimeout(currentLongPressTimer);
+            currentLongPressTimer = null;
+            currentDragItem = null;
+          }
+          
+          // 세로 움직임이 가로보다 크면 스와이프 취소
+          if (diffY > Math.abs(diffX) && diffY > 20) {
+            clearTimeout(currentLongPressTimer);
+            currentLongPressTimer = null;
+            currentDragItem = null;
+            return;
+          }
           
           // 수직 스크롤이 수평 스와이프보다 크면 스와이프 방지
           if (diffY > Math.abs(diffX)) {
@@ -3091,8 +3148,14 @@
             return;
           }
           
+          // 빠른 스와이프 감지 (모바일에서 더 민감하게)
+          if (diffX > 30 && diffTime < 500 && diffY < 30) {
+            const translateX = Math.min(diffX, 160);
+            this.querySelector('.item-content').style.transform = `translateX(-${translateX}px)`;
+            hasSwiped = true;
+          }
           // 왼쪽으로 스와이프 (버튼 표시)
-          if (diffX > 10 && !isScrolling) {
+          else if (diffX > 10 && !isScrolling) {
             hasSwiped = true;
             e.preventDefault();
             item.classList.add('swiped');
@@ -3108,6 +3171,27 @@
         }, { passive: false });
         
         item.addEventListener('touchend', function(e) {
+          // 롱프레스 타이머 취소
+          if (currentLongPressTimer) {
+            clearTimeout(currentLongPressTimer);
+            currentLongPressTimer = null;
+            currentDragItem = null;
+          }
+          
+          if (!isSwiping) return;
+          
+          // 드래그 모드 종료
+          if (isDraggingGlobal) {
+            handleDragEnd(this, e);
+            isDraggingGlobal = false;
+            isSwiping = false;
+            this.classList.remove('swiping');
+            return;
+          }
+          
+          isSwiping = false;
+          this.classList.remove('swiping');
+          
           if (!hasSwiped || isScrolling) return;
           
           const endTime = Date.now();
@@ -3115,11 +3199,27 @@
           const currentX = e.changedTouches[0].clientX;
           const diffX = startX - currentX;
           
-          // 스와이프가 너무 빠르거나 거리가 부족하면 원래 상태로
-          if (diffTime < 150 || Math.abs(diffX) < 20) {
-            item.classList.remove('swiped');
+          // 모바일에서 더 민감한 스와이프 감지
+          if (hasSwiped && diffX > 30 && diffTime < 1000) {
+            // 스와이프 완료 - 수정/삭제 버튼 표시
+            this.classList.add('swiped');
+          } else {
+            // 스와이프 취소 - 원래 위치로 복원
+            this.classList.remove('swiped');
+            this.querySelector('.item-content').style.transform = 'translateX(0)';
           }
-        }, { passive: true });
+        }, { passive: false });
+        
+        // 클릭 시 스와이프 상태 해제 - 모바일 최적화
+        item.addEventListener('click', function(e) {
+          // 수정/삭제 버튼 클릭이 아닌 경우에만 스와이프 해제
+          if (!e.target.classList.contains('checklist-swipe-edit-btn') &&
+              !e.target.classList.contains('checklist-swipe-delete-btn') &&
+              !e.target.classList.contains('schedule-swipe-edit-btn') &&
+              !e.target.classList.contains('schedule-swipe-delete-btn')) {
+            clearAllSwipeStates();
+          }
+        });
       }
 
       // 사이드패널을 닫는 함수
