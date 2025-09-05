@@ -1027,11 +1027,11 @@
             z-index: 1000;
         }
         
-        .checklist-item.swiped .checklist-swipe-buttons {
+        .user-added-item[data-item-type="user"].swiped .checklist-swipe-buttons {
             right: 0;
         }
         
-        .checklist-item.swiped .item-content {
+        .user-added-item[data-item-type="user"].swiped .item-content {
             transform: translateX(-100px);
         }
         
@@ -1803,7 +1803,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행1135</h2>
+      <h2>홋카이도 여행1143</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -2982,12 +2982,12 @@
         }
         
         // 체크리스트 항목 스와이프 상태 해제
-        document.querySelectorAll('.checklist-item.swiped').forEach(item => {
+        document.querySelectorAll('.user-added-item[data-item-type="user"].swiped').forEach(item => {
           item.classList.remove('swiped');
         });
         
         // 일정 항목 스와이프 상태 해제
-        document.querySelectorAll('.user-added-item.swiped').forEach(item => {
+        document.querySelectorAll('.user-added-item[data-item-type="schedule"].swiped').forEach(item => {
           item.classList.remove('swiped');
         });
         
@@ -3080,8 +3080,8 @@
       function addSwipeToChecklistItems() {
         console.log('체크리스트 스와이프 기능 추가 시작');
         
-        // 모든 체크리스트 항목들 찾기 (기존 + 사용자 추가)
-        const allChecklistItems = document.querySelectorAll('.checklist-item, .user-added-item[data-item-type="user"]');
+        // 체크리스트 항목들만 찾기 (data-item-type="user"인 user-added-item)
+        const allChecklistItems = document.querySelectorAll('.user-added-item[data-item-type="user"]');
         console.log('전체 체크리스트 항목 개수:', allChecklistItems.length);
         
         allChecklistItems.forEach((item, index) => {
@@ -3217,8 +3217,8 @@
           customMapMenu.addEventListener('touchstart', function(e) {
             // 일정 버튼을 터치한 경우가 아니면 스와이프 상태 해제
             if (!e.target.classList.contains('toggle-btn') &&
-                !e.target.closest('.user-added-item') &&
-                !e.target.closest('.checklist-item')) {
+                !e.target.closest('.user-added-item[data-item-type="user"]') &&
+                !e.target.closest('.user-added-item[data-item-type="schedule"]')) {
               clearAllSwipeStates();
             }
           });
@@ -10164,7 +10164,7 @@
         
         // 항목 터치 시 즉시 스크롤 활성화
         if (isMobile) {
-          const scrollableItems = container.querySelectorAll('.user-added-item, .checklist-item');
+          const scrollableItems = container.querySelectorAll('.user-added-item[data-item-type="user"], .user-added-item[data-item-type="schedule"]');
           scrollableItems.forEach(item => {
             item.addEventListener('touchstart', function(e) {
               // 터치 시작 시 즉시 스크롤 활성화
