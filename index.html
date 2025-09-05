@@ -1012,12 +1012,13 @@
         /* 체크리스트 스와이프 버튼 스타일 */
         .checklist-swipe-buttons {
             position: absolute;
-            right: -160px;
+            right: -120px;
             top: 0;
             height: 100%;
             display: flex;
             align-items: center;
             transition: right 0.3s ease;
+            z-index: 10;
         }
         
         .checklist-item.swiped .checklist-swipe-buttons {
@@ -1025,16 +1026,16 @@
         }
         
         .checklist-item.swiped .item-content {
-            transform: translateX(-160px);
+            transform: translateX(-120px);
         }
         
         .checklist-swipe-edit-btn,
         .checklist-swipe-delete-btn {
-            width: 80px;
+            width: 60px;
             height: 100%;
             border: none;
             color: white;
-            font-size: 0.7rem;
+            font-size: 0.6rem;
             font-weight: 500;
             cursor: pointer;
             display: flex;
@@ -3061,13 +3062,20 @@
       
       // 체크리스트 항목에 스와이프 기능 추가
       function addSwipeToChecklistItems() {
+        console.log('체크리스트 스와이프 기능 추가 시작');
+        
         // 기존 체크리스트 항목들 (data-item-type="existing")
-        document.querySelectorAll('.checklist-item[data-item-type="existing"]').forEach(item => {
+        const existingItems = document.querySelectorAll('.checklist-item[data-item-type="existing"]');
+        console.log('기존 체크리스트 항목 개수:', existingItems.length);
+        
+        existingItems.forEach(item => {
           // 이미 스와이프 버튼이 있으면 건너뛰기
           if (item.querySelector('.checklist-swipe-buttons')) return;
           
           const itemId = item.getAttribute('data-item-id');
           if (!itemId) return;
+          
+          console.log('기존 체크리스트 항목에 스와이프 버튼 추가:', itemId);
           
           // 스와이프 버튼 생성
           const swipeButtons = document.createElement('div');
@@ -3083,12 +3091,17 @@
         });
         
         // 사용자 추가 체크리스트 항목들 (data-item-type="user")
-        document.querySelectorAll('.user-added-item[data-item-type="user"]').forEach(item => {
+        const userItems = document.querySelectorAll('.user-added-item[data-item-type="user"]');
+        console.log('사용자 추가 체크리스트 항목 개수:', userItems.length);
+        
+        userItems.forEach(item => {
           // 이미 스와이프 버튼이 있으면 건너뛰기
           if (item.querySelector('.checklist-swipe-buttons')) return;
           
           const itemId = item.getAttribute('data-item-id');
           if (!itemId) return;
+          
+          console.log('사용자 추가 체크리스트 항목에 스와이프 버튼 추가:', itemId);
           
           // 스와이프 버튼 생성
           const swipeButtons = document.createElement('div');
@@ -3102,6 +3115,8 @@
           // 터치 이벤트 추가
           addSwipeTouchEvents(item, 'checklist');
         });
+        
+        console.log('체크리스트 스와이프 기능 추가 완료');
       }
       
       // 일정 항목에 스와이프 기능 추가
@@ -3143,6 +3158,7 @@
             return;
           }
           
+          console.log('터치 시작:', type, e.touches[0].clientX, e.touches[0].clientY);
           startX = e.touches[0].clientX;
           startY = e.touches[0].clientY;
           startTime = Date.now();
@@ -3161,16 +3177,18 @@
           if (diffY > Math.abs(diffX)) return;
           
           // 왼쪽으로 스와이프 (버튼 표시)
-          if (diffX > 10) {
+          if (diffX > 5) {
             hasSwiped = true;
             e.preventDefault();
             item.classList.add('swiped');
+            console.log('스와이프 버튼 표시:', type, diffX);
           }
           // 오른쪽으로 스와이프 (버튼 숨김)
-          else if (diffX < -10) {
+          else if (diffX < -5) {
             hasSwiped = true;
             e.preventDefault();
             item.classList.remove('swiped');
+            console.log('스와이프 버튼 숨김:', type, diffX);
           }
         }, { passive: false });
         
@@ -3183,7 +3201,7 @@
           const diffX = startX - currentX;
           
           // 스와이프가 너무 빠르거나 거리가 부족하면 원래 상태로
-          if (diffTime < 100 || Math.abs(diffX) < 50) {
+          if (diffTime < 100 || Math.abs(diffX) < 30) {
             item.classList.remove('swiped');
           }
         }, { passive: true });
