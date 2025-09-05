@@ -1012,13 +1012,12 @@
         /* 체크리스트 스와이프 버튼 스타일 */
         .checklist-swipe-buttons {
             position: absolute;
-            right: -120px;
+            right: -160px;
             top: 0;
             height: 100%;
             display: flex;
             align-items: center;
             transition: right 0.3s ease;
-            z-index: 10;
         }
         
         .checklist-item.swiped .checklist-swipe-buttons {
@@ -1026,16 +1025,16 @@
         }
         
         .checklist-item.swiped .item-content {
-            transform: translateX(-120px);
+            transform: translateX(-160px);
         }
         
         .checklist-swipe-edit-btn,
         .checklist-swipe-delete-btn {
-            width: 60px;
+            width: 80px;
             height: 100%;
             border: none;
             color: white;
-            font-size: 0.6rem;
+            font-size: 0.7rem;
             font-weight: 500;
             cursor: pointer;
             display: flex;
@@ -2229,6 +2228,13 @@
             return;
           }
           
+          // 체크리스트창이 열려있으면 체크리스트창만 닫기
+          const preparationInfo = document.getElementById('preparationInfo');
+          if (preparationInfo) {
+            closeScheduleInfo();
+            return;
+          }
+          
           // 마커생성 모드일 때는 마커 생성
           if (isMarkerMode) {
             addCustomMarker(event.latLng);
@@ -3177,14 +3183,14 @@
           if (diffY > Math.abs(diffX)) return;
           
           // 왼쪽으로 스와이프 (버튼 표시)
-          if (diffX > 5) {
+          if (diffX > 10) {
             hasSwiped = true;
             e.preventDefault();
             item.classList.add('swiped');
             console.log('스와이프 버튼 표시:', type, diffX);
           }
           // 오른쪽으로 스와이프 (버튼 숨김)
-          else if (diffX < -5) {
+          else if (diffX < -10) {
             hasSwiped = true;
             e.preventDefault();
             item.classList.remove('swiped');
@@ -3201,7 +3207,7 @@
           const diffX = startX - currentX;
           
           // 스와이프가 너무 빠르거나 거리가 부족하면 원래 상태로
-          if (diffTime < 100 || Math.abs(diffX) < 30) {
+          if (diffTime < 100 || Math.abs(diffX) < 50) {
             item.classList.remove('swiped');
           }
         }, { passive: true });
