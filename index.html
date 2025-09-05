@@ -1766,7 +1766,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행0130</h2>
+      <h2>홋카이도 여행0142</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -2205,6 +2205,19 @@
           if (currentInfoWindow) {
             closeAllDialogsAndMenus();
             return;
+          }
+          
+          // 수정창이 열려있으면 수정창만 닫기 (패널창은 유지)
+          const editItemForm = document.getElementById('editItemForm');
+          const editScheduleDialog = document.getElementById('editScheduleDialog');
+          if (editItemForm || editScheduleDialog) {
+            if (editItemForm) {
+              editItemForm.remove();
+            }
+            if (editScheduleDialog) {
+              editScheduleDialog.remove();
+            }
+            return; // 수정창만 닫고 패널창은 유지
           }
           
           // 마커생성 모드일 때는 마커 생성
@@ -11588,18 +11601,36 @@
         }
         
         try {
-          // Firebase에서 해당 일정 제거
+          // Firebase에서 해당 일정과 관련된 체크리스트 항목들도 함께 제거
           if (window.db && window.firestore) {
             const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
-            if (docSnap.exists() && docSnap.data().customSchedules) {
-              const customSchedules = docSnap.data().customSchedules;
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              const customSchedules = data.customSchedules || [];
+              const userAddedItems = data.userAddedItems || [];
+              const preparationCheckboxes = data.preparationCheckboxes || {};
+              
+              // 해당 일정 제거
               const updatedSchedules = customSchedules.filter(schedule => schedule.id !== scheduleId);
+              
+              // 해당 일정과 관련된 체크리스트 항목들 제거 (section이 일정 제목과 일치하는 항목들)
+              const updatedUserItems = userAddedItems.filter(item => item.section !== scheduleTitle);
+              
+              // 해당 체크리스트 항목들의 체크박스 상태도 제거
+              const updatedCheckboxes = { ...preparationCheckboxes };
+              userAddedItems.forEach(item => {
+                if (item.section === scheduleTitle) {
+                  delete updatedCheckboxes[item.id];
+                }
+              });
               
               // Firebase에 저장
               await window.firestore.updateDoc(
                 window.firestore.doc(window.db, 'users', 'currentUser'),
                 {
                   customSchedules: updatedSchedules,
+                  userAddedItems: updatedUserItems,
+                  preparationCheckboxes: updatedCheckboxes,
                   lastUpdated: window.firestore.serverTimestamp()
                 }
               );
@@ -11610,7 +11641,11 @@
                 scheduleContainer.remove();
               }
               
-              onFirebaseUploadSuccess('일정 삭제');
+              // UI에서 관련된 체크리스트 항목들도 제거
+              const relatedItems = document.querySelectorAll(`[data-item-type="user"][data-section="${scheduleTitle}"]`);
+              relatedItems.forEach(item => item.remove());
+              
+              onFirebaseUploadSuccess('일정 및 관련 체크리스트 삭제');
             }
           }
           
