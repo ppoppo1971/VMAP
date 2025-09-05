@@ -1766,7 +1766,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행1120</h2>
+      <h2>홋카이도 여행1127</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -9853,8 +9853,6 @@
                 <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
                 <span>${titleElement}</span>
               </div>
-              <button class="swipe-edit-btn" onclick="editUserItem('${item.id}', '${item.title}', '${item.description || ''}', '${item.link || ''}')" title="수정">수정</button>
-              <button class="swipe-delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">삭제</button>
             </div>
           `;
         });
@@ -9866,8 +9864,10 @@
           appendExclamationToLinks(container);
         }
         
-        // 스와이프 삭제 기능 초기화
-        initializeSwipeDelete();
+        // 스와이프 기능 활성화
+        setTimeout(() => {
+          addSwipeToChecklistItems();
+        }, 100);
         
         // 항목 터치 시 즉시 스크롤 활성화
         if (isMobile) {
