@@ -972,6 +972,7 @@
             -ms-user-select: none;
             width: 100%;
             min-height: 32px;
+            -webkit-overflow-scrolling: touch;
         }
         
         .checklist-item:hover {
@@ -1014,7 +1015,7 @@
         /* 체크리스트 스와이프 버튼 스타일 */
         .checklist-swipe-buttons {
             position: absolute;
-            right: -120px;
+            right: -100px;
             top: 0;
             height: 100%;
             display: flex;
@@ -1028,16 +1029,16 @@
         }
         
         .checklist-item.swiped .item-content {
-            transform: translateX(-120px);
+            transform: translateX(-100px);
         }
         
         .checklist-swipe-edit-btn,
         .checklist-swipe-delete-btn {
-            width: 60px;
+            width: 50px;
             height: 100%;
             border: none;
             color: white;
-            font-size: 0.6rem;
+            font-size: 0.5rem;
             font-weight: 500;
             cursor: pointer;
             display: flex;
@@ -1047,19 +1048,19 @@
         }
         
         .checklist-swipe-edit-btn {
-            background: #3b82f6;
+            background: rgba(59, 130, 246, 0.8);
         }
         
         .checklist-swipe-edit-btn:hover {
-            background: #2563eb;
+            background: rgba(37, 99, 235, 0.9);
         }
         
         .checklist-swipe-delete-btn {
-            background: #ef4444;
+            background: rgba(239, 68, 68, 0.8);
         }
         
         .checklist-swipe-delete-btn:hover {
-            background: #dc2626;
+            background: rgba(220, 38, 38, 0.9);
         }
         
         /* 사용자 추가 항목 폼 스타일 */
@@ -1259,7 +1260,7 @@
         /* 일정 항목 스와이프 버튼 스타일 */
         .schedule-swipe-buttons {
             position: absolute;
-            right: -160px;
+            right: -100px;
             top: 0;
             height: 100%;
             display: flex;
@@ -1272,16 +1273,16 @@
         }
         
         .user-added-item.swiped .item-content {
-            transform: translateX(-160px);
+            transform: translateX(-100px);
         }
         
         .schedule-swipe-edit-btn,
         .schedule-swipe-delete-btn {
-            width: 60px;
+            width: 50px;
             height: 100%;
             border: none;
             color: white;
-            font-size: 0.6rem;
+            font-size: 0.5rem;
             font-weight: 500;
             cursor: pointer;
             display: flex;
@@ -3139,6 +3140,7 @@
         let startY = 0;
         let hasSwiped = false;
         let startTime = 0;
+        let isScrolling = false;
         
         item.addEventListener('touchstart', function(e) {
           // 스와이프 버튼을 터치한 경우에는 스와이프 방지
@@ -3154,6 +3156,7 @@
           startY = e.touches[0].clientY;
           startTime = Date.now();
           hasSwiped = false;
+          isScrolling = false;
         }, { passive: true });
         
         item.addEventListener('touchmove', function(e) {
@@ -3165,17 +3168,20 @@
           const diffY = Math.abs(startY - currentY);
           
           // 수직 스크롤이 수평 스와이프보다 크면 스와이프 방지
-          if (diffY > Math.abs(diffX)) return;
+          if (diffY > Math.abs(diffX)) {
+            isScrolling = true;
+            return;
+          }
           
           // 왼쪽으로 스와이프 (버튼 표시)
-          if (diffX > 5) {
+          if (diffX > 10 && !isScrolling) {
             hasSwiped = true;
             e.preventDefault();
             item.classList.add('swiped');
             console.log('스와이프 버튼 표시:', type, diffX);
           }
           // 오른쪽으로 스와이프 (버튼 숨김)
-          else if (diffX < -5) {
+          else if (diffX < -10 && !isScrolling) {
             hasSwiped = true;
             e.preventDefault();
             item.classList.remove('swiped');
@@ -3184,7 +3190,7 @@
         }, { passive: false });
         
         item.addEventListener('touchend', function(e) {
-          if (!hasSwiped) return;
+          if (!hasSwiped || isScrolling) return;
           
           const endTime = Date.now();
           const diffTime = endTime - startTime;
@@ -3192,7 +3198,7 @@
           const diffX = startX - currentX;
           
           // 스와이프가 너무 빠르거나 거리가 부족하면 원래 상태로
-          if (diffTime < 100 || Math.abs(diffX) < 30) {
+          if (diffTime < 150 || Math.abs(diffX) < 20) {
             item.classList.remove('swiped');
           }
         }, { passive: true });
