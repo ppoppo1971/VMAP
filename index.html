@@ -1041,7 +1041,7 @@
             height: 100%;
             border: none;
             color: #1a1a1a;
-            font-size: 0.665rem;
+            font-size: inherit;
             font-weight: 400;
             cursor: pointer;
             display: flex;
@@ -1267,36 +1267,36 @@
             transition: right 0.3s ease;
         }
         
-        .user-added-item.swiped .schedule-swipe-buttons {
+        .user-added-item[data-item-type="schedule"].swiped .schedule-swipe-buttons {
             right: 0;
         }
         
-        .user-added-item.swiped .item-content {
+        .user-added-item[data-item-type="schedule"].swiped .item-content {
             transform: translateX(-100px);
         }
         
         .schedule-swipe-edit-btn,
         .schedule-swipe-delete-btn {
-            width: 50px;
-            height: 100%;
-            border: none;
-            color: #1a1a1a;
-            font-size: 0.665rem;
-            font-weight: 400;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            background: transparent;
+            width: 50px !important;
+            height: 100% !important;
+            border: none !important;
+            color: #1a1a1a !important;
+            font-size: inherit !important;
+            font-weight: 400 !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.2s ease !important;
+            background: transparent !important;
         }
         
         .schedule-swipe-edit-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.1) !important;
         }
         
         .schedule-swipe-delete-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.1) !important;
         }
         
         
@@ -1789,7 +1789,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행1151</h2>
+      <h2>홋카이도 여행1223</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -3142,6 +3142,9 @@
               e.target.classList.contains('schedule-swipe-delete-btn')) {
             return;
           }
+          
+          // 다른 항목의 스와이프 상태 해제
+          clearAllSwipeStates();
           
           console.log('터치 시작:', type, e.touches[0].clientX, e.touches[0].clientY);
           startX = e.touches[0].clientX;
