@@ -1766,7 +1766,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행0204</h2>
+      <h2>홋카이도 여행0211</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -2937,6 +2937,8 @@
 
       // 모든 스와이프 상태를 해제하는 공통 함수
       function clearAllSwipeStates() {
+        console.log('모든 스와이프 상태 해제 시작');
+        
         // 마커 정보창 스와이프 상태 해제
         const markerInfoContainer = document.querySelector('.marker-info-container');
         if (markerInfoContainer) {
@@ -2944,17 +2946,38 @@
           const content = markerInfoContainer.querySelector('.marker-info-content');
           if (content) {
             content.style.width = '100%';
+            content.style.transform = 'translateX(0)';
           }
         }
         
-        // 체크리스트 항목 스와이프 상태 해제
-        document.querySelectorAll('.user-added-item[data-item-type="user"].swiped').forEach(item => {
+        // 모든 사용자 추가 항목의 스와이프 상태 해제 (더 포괄적으로)
+        document.querySelectorAll('.user-added-item.swiped').forEach(item => {
           item.classList.remove('swiped');
+          const itemContent = item.querySelector('.item-content');
+          if (itemContent) {
+            itemContent.style.transform = 'translateX(0)';
+            itemContent.style.width = '100%';
+          }
         });
         
-        // 일정 항목 스와이프 상태 해제
-        document.querySelectorAll('.user-added-item[data-item-type="schedule"].swiped').forEach(item => {
+        // 체크리스트 항목 스와이프 상태 해제 (추가 보장)
+        document.querySelectorAll('.user-added-item[data-item-type="user"]').forEach(item => {
           item.classList.remove('swiped');
+          const itemContent = item.querySelector('.item-content');
+          if (itemContent) {
+            itemContent.style.transform = 'translateX(0)';
+            itemContent.style.width = '100%';
+          }
+        });
+        
+        // 일정 항목 스와이프 상태 해제 (추가 보장)
+        document.querySelectorAll('.user-added-item[data-item-type="schedule"]').forEach(item => {
+          item.classList.remove('swiped');
+          const itemContent = item.querySelector('.item-content');
+          if (itemContent) {
+            itemContent.style.transform = 'translateX(0)';
+            itemContent.style.width = '100%';
+          }
         });
         
         // 루트 정보창 스와이프 상태 해제
@@ -2964,8 +2987,16 @@
           const content = routeInfoContainer.querySelector('.route-info-content');
           if (content) {
             content.style.width = '100%';
+            content.style.transform = 'translateX(0)';
           }
         }
+        
+        // 모든 스와이프 관련 클래스 제거 (추가 보장)
+        document.querySelectorAll('.swiped, .swiping').forEach(element => {
+          element.classList.remove('swiped', 'swiping');
+        });
+        
+        console.log('모든 스와이프 상태 해제 완료');
       }
 
       // 스와이프 기능 초기화
@@ -3069,8 +3100,16 @@
             return;
           }
           
-          // 다른 항목의 스와이프 상태 해제
+          // 다른 항목의 스와이프 상태 해제 (즉시 실행)
           clearAllSwipeStates();
+          
+          // 현재 항목의 스와이프 상태도 초기화
+          this.classList.remove('swiped', 'swiping');
+          const itemContent = this.querySelector('.item-content');
+          if (itemContent) {
+            itemContent.style.transform = 'translateX(0)';
+            itemContent.style.width = '100%';
+          }
           
           console.log('터치 시작:', type, e.touches[0].clientX, e.touches[0].clientY);
           startX = e.touches[0].clientX;
@@ -3151,7 +3190,11 @@
           // 빠른 스와이프 감지 (모바일에서 더 민감하게)
           if (diffX > 30 && diffTime < 500 && diffY < 30) {
             const translateX = Math.min(diffX, 160);
-            this.querySelector('.item-content').style.transform = `translateX(-${translateX}px)`;
+            const itemContent = this.querySelector('.item-content');
+            if (itemContent) {
+              itemContent.style.transform = `translateX(-${translateX}px)`;
+              itemContent.style.width = 'calc(100% - 160px)'; // 버튼 공간 확보
+            }
             hasSwiped = true;
           }
           // 왼쪽으로 스와이프 (버튼 표시)
@@ -3159,6 +3202,10 @@
             hasSwiped = true;
             e.preventDefault();
             item.classList.add('swiped');
+            const itemContent = item.querySelector('.item-content');
+            if (itemContent) {
+              itemContent.style.width = 'calc(100% - 160px)'; // 버튼 공간 확보
+            }
             console.log('스와이프 버튼 표시:', type, diffX);
           }
           // 오른쪽으로 스와이프 (버튼 숨김)
@@ -3166,6 +3213,11 @@
             hasSwiped = true;
             e.preventDefault();
             item.classList.remove('swiped');
+            const itemContent = item.querySelector('.item-content');
+            if (itemContent) {
+              itemContent.style.width = '100%';
+              itemContent.style.transform = 'translateX(0)';
+            }
             console.log('스와이프 버튼 숨김:', type, diffX);
           }
         }, { passive: false });
@@ -3203,10 +3255,18 @@
           if (hasSwiped && diffX > 30 && diffTime < 1000) {
             // 스와이프 완료 - 수정/삭제 버튼 표시
             this.classList.add('swiped');
+            const itemContent = this.querySelector('.item-content');
+            if (itemContent) {
+              itemContent.style.width = 'calc(100% - 160px)'; // 버튼 공간 확보
+            }
           } else {
             // 스와이프 취소 - 원래 위치로 복원
             this.classList.remove('swiped');
-            this.querySelector('.item-content').style.transform = 'translateX(0)';
+            const itemContent = this.querySelector('.item-content');
+            if (itemContent) {
+              itemContent.style.transform = 'translateX(0)';
+              itemContent.style.width = '100%';
+            }
           }
         }, { passive: false });
         
