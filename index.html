@@ -628,12 +628,6 @@
             
 
             
-            .user-added-item .swipe-delete-btn {
-                min-height: 52px;
-                min-width: 80px;
-                font-size: 1.1rem;
-                padding: 14px 24px;
-            }
         }
         
         /* 터치 최적화를 위한 추가 스타일 */
@@ -731,12 +725,6 @@
             
 
             
-            .user-added-item .swipe-delete-btn {
-                min-height: 48px;
-                min-width: 70px;
-                font-size: 1rem;
-                padding: 12px 20px;
-            }
         }
         
         /* 모바일에서 안전 영역 지원 */
@@ -1187,134 +1175,8 @@
             background-color: rgba(29, 78, 216, 0.05);
         }
         
-        /* 스와이프 수정/삭제 기능을 위한 스타일 */
-        .user-added-item .swipe-edit-btn,
-        .checklist-item .swipe-edit-btn {
-            position: absolute;
-            right: -80px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: transparent;
-            color: #000;
-            border: none;
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            z-index: 10;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-            min-height: 36px;
-            min-width: 50px;
-        }
         
-        /* 일정 항목(사이드패널)용 스와이프 버튼 - 모바일 클릭 정확도 개선 */
-        .user-added-item[data-item-type="schedule"] .swipe-edit-btn {
-            right: -80px;
-            width: 50px;
-            min-width: 50px;
-            max-width: 50px;
-            padding: 6px 8px;
-            font-size: 0.75rem;
-            height: 36px;
-            min-height: 36px;
-            max-height: 36px;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            box-sizing: border-box;
-        }
         
-        .user-added-item[data-item-type="schedule"] .swipe-delete-btn {
-            right: -80px;
-            width: 50px;
-            min-width: 50px;
-            max-width: 50px;
-            padding: 6px 8px;
-            font-size: 0.75rem;
-            height: 36px;
-            min-height: 36px;
-            max-height: 36px;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            box-sizing: border-box;
-        }
-        
-        .user-added-item .swipe-edit-btn:hover,
-        .checklist-item .swipe-edit-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .user-added-item .swipe-edit-btn:active,
-        .checklist-item .swipe-edit-btn:active {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-50%);
-        }
-        
-        /* 일정 항목의 수정 버튼은 active 애니메이션 제거 */
-        .user-added-item[data-item-type="schedule"] .swipe-edit-btn:active {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-50%);
-        }
-        
-        .user-added-item .swipe-delete-btn,
-        .checklist-item .swipe-delete-btn {
-            position: absolute;
-            right: -80px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: transparent;
-            color: #000;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            z-index: 10;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-            min-height: 44px;
-            min-width: 60px;
-        }
-        
-        .user-added-item .swipe-delete-btn:hover,
-        .checklist-item .swipe-delete-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-
-        /* 스와이프 버튼 hover 시 위치 고정 (일정/세부 공통) */
-        .user-added-item .swipe-edit-btn:hover,
-        .user-added-item .swipe-delete-btn:hover,
-        .user-added-item[data-item-type="schedule"] .swipe-edit-btn:hover,
-        .user-added-item[data-item-type="schedule"] .swipe-delete-btn:hover {
-            transform: translateY(-50%) !important;
-        }
-
-
-        
-        .user-added-item .swipe-delete-btn:active,
-        .checklist-item .swipe-delete-btn:active {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-50%);
-        }
-        
-        /* 일정 항목의 삭제 버튼은 active 애니메이션 제거 */
-        .user-added-item[data-item-type="schedule"] .swipe-delete-btn:active {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-50%);
-        }
         
         .user-added-item .item-content {
             display: flex;
@@ -1325,60 +1187,7 @@
             flex: 1;
         }
         
-        .user-added-item.swiped .item-content,
-        .checklist-item.swiped .item-content {
-            width: calc(100% - 120px) !important; /* 버튼 너비(108px) + 여백(12px) */
-            transition: width 0.3s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
         
-        /* 일정 항목은 사이드패널에서 세부항목과 동일한 거리로 스와이프 */
-        .user-added-item[data-item-type="schedule"] .item-content {
-            width: 100%;
-            transition: width 0.3s ease;
-        }
-        
-        .user-added-item[data-item-type="schedule"] .item-content .toggle-btn {
-            width: 100%;
-            transition: width 0.3s ease;
-        }
-        
-        .user-added-item[data-item-type="schedule"].swiped .item-content {
-            width: calc(100% - 120px) !important; /* 버튼 너비(108px) + 여백(12px) */
-            transition: width 0.3s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .user-added-item[data-item-type="schedule"].swiped .item-content .toggle-btn {
-            width: 100% !important;
-            transition: width 0.3s ease;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .user-added-item.swiped .swipe-edit-btn,
-        .checklist-item.swiped .swipe-edit-btn {
-            right: 8px;
-        }
-        
-        .user-added-item.swiped .swipe-delete-btn,
-        .checklist-item.swiped .swipe-delete-btn {
-            right: 58px; /* 수정 버튼 너비(50px) + 여백(8px) */
-        }
-        
-        /* 일정 항목 스와이프 완료 시 위치 조정 - 세부항목과 동일한 위치 */
-        .user-added-item[data-item-type="schedule"].swiped .swipe-edit-btn {
-            right: 8px;
-        }
-        
-        .user-added-item[data-item-type="schedule"].swiped .swipe-delete-btn {
-            right: 58px; /* 수정 버튼 너비(50px) + 여백(8px) */
-        }
         
         /* 체크리스트 스와이프 버튼 스타일 (새로운 방식) */
         .checklist-swipe-buttons {
@@ -1957,7 +1766,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행0106</h2>
+      <h2>홋카이도 여행0116</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -2114,7 +1923,7 @@
           buttons.forEach(button => {
             // 일정 항목의 스와이프 버튼은 터치 애니메이션 제외
             const isScheduleSwipeBtn = button.closest('[data-item-type="schedule"]') && 
-                                      (button.classList.contains('swipe-edit-btn') || button.classList.contains('swipe-delete-btn'));
+                                      (button.classList.contains('schedule-swipe-edit-btn') || button.classList.contains('schedule-swipe-delete-btn'));
             
             if (!isScheduleSwipeBtn) {
               button.addEventListener('touchstart', function() {
@@ -3372,8 +3181,10 @@
         if (customMapMenu) {
           customMapMenu.addEventListener('touchstart', function(e) {
             // 스와이프 버튼이나 일정 버튼을 터치한 경우가 아니면 스와이프 상태 해제
-            if (!e.target.classList.contains('swipe-edit-btn') &&
-                !e.target.classList.contains('swipe-delete-btn') &&
+            if (!e.target.classList.contains('checklist-swipe-edit-btn') &&
+                !e.target.classList.contains('checklist-swipe-delete-btn') &&
+                !e.target.classList.contains('schedule-swipe-edit-btn') &&
+                !e.target.classList.contains('schedule-swipe-delete-btn') &&
                 !e.target.classList.contains('toggle-btn') &&
                 !e.target.closest('.user-added-item')) {
               clearAllSwipeStates();
@@ -9872,8 +9683,6 @@
                 <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
                 <span>${titleElement}</span>
               </div>
-              <button class="swipe-edit-btn" onclick="editUserItem('${item.id}', '${item.title}', '${item.description || ''}', '${item.link || ''}')" title="수정">수정</button>
-              <button class="swipe-delete-btn" onclick="deleteUserItem('${item.id}')" title="삭제">삭제</button>
             </div>
           `;
         });
@@ -9908,65 +9717,7 @@
         // 사이드패널 터치 이벤트 설정
         setupSidePanelTouchEvents();
         
-        // 모바일에서 수정/삭제 버튼 터치 이벤트 추가
-        if (isMobile) {
-          const editButtons = container.querySelectorAll('.swipe-edit-btn');
-          const deleteButtons = container.querySelectorAll('.swipe-delete-btn');
-          
-          // 수정 버튼 터치 이벤트 - 모바일 클릭 정확도 개선
-          editButtons.forEach(btn => {
-            btn.addEventListener('touchstart', function(e) {
-              e.stopPropagation();
-              e.preventDefault();
-              this.style.transform = 'translateY(-50%)';
-              this.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-            }, { passive: false });
-            
-            btn.addEventListener('touchend', function(e) {
-              e.stopPropagation();
-              e.preventDefault();
-              this.style.transform = 'translateY(-50%)';
-              this.style.backgroundColor = 'transparent';
-              
-              // 터치 종료 시 클릭 이벤트 발생
-              const clickEvent = new Event('click', { bubbles: true });
-              this.dispatchEvent(clickEvent);
-            }, { passive: false });
-            
-            btn.addEventListener('touchcancel', function(e) {
-              e.stopPropagation();
-              this.style.transform = 'translateY(-50%)';
-              this.style.backgroundColor = 'transparent';
-            }, { passive: true });
-          });
-          
-          // 삭제 버튼 터치 이벤트 - 모바일 클릭 정확도 개선
-          deleteButtons.forEach(btn => {
-            btn.addEventListener('touchstart', function(e) {
-              e.stopPropagation();
-              e.preventDefault();
-              this.style.transform = 'translateY(-50%)';
-              this.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-            }, { passive: false });
-            
-            btn.addEventListener('touchend', function(e) {
-              e.stopPropagation();
-              e.preventDefault();
-              this.style.transform = 'translateY(-50%)';
-              this.style.backgroundColor = 'transparent';
-              
-              // 터치 종료 시 클릭 이벤트 발생
-              const clickEvent = new Event('click', { bubbles: true });
-              this.dispatchEvent(clickEvent);
-            }, { passive: false });
-            
-            btn.addEventListener('touchcancel', function(e) {
-              e.stopPropagation();
-              this.style.transform = 'translateY(-50%)';
-              this.style.backgroundColor = 'transparent';
-            }, { passive: true });
-          });
-        }
+        // 기존 스와이프 버튼은 제거됨 - 새로운 스와이프 기능 사용
       }
       
       // 클릭 가능한 텍스트(링크 역할) 끝에 ❗ 표시를 위첨자처럼 덧붙이는 함수
@@ -10631,8 +10382,6 @@
               <div class="item-content">
                 <button class="toggle-btn" onclick="showScheduleInfo('${title}')" data-schedule-id="${scheduleId}" data-schedule-title="${title}">${title}</button>
               </div>
-              <button class="swipe-edit-btn" onclick="editSchedule('${scheduleId}', '${title}')" title="수정">수정</button>
-              <button class="swipe-delete-btn" onclick="deleteSchedule('${scheduleId}', '${title}')" title="삭제">삭제</button>
             </div>
           `;
           
@@ -11514,8 +11263,6 @@
                     <div class="item-content">
                       <button class="toggle-btn" onclick="showScheduleInfo('${schedule.title}', '${schedule.description || ''}')" data-schedule-id="${schedule.id}" data-schedule-title="${schedule.title}">${schedule.title}</button>
                     </div>
-                    <button class="swipe-edit-btn" onclick="editSchedule('${schedule.id}', '${schedule.title}')" title="수정">수정</button>
-                    <button class="swipe-delete-btn" onclick="deleteSchedule('${schedule.id}', '${schedule.title}')" title="삭제">삭제</button>
                   </div>
                 `;
               });
