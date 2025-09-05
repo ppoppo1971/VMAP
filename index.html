@@ -1766,7 +1766,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행1127</h2>
+      <h2>홋카이도 여행1136</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -3034,10 +3034,10 @@
           // 스와이프 버튼 생성
           const swipeButtons = document.createElement('div');
           swipeButtons.className = 'checklist-swipe-buttons';
-          // 현재 제목과 링크 가져오기
-          const titleSpan = item.querySelector('span');
-          const currentTitle = titleSpan ? titleSpan.textContent : '';
-          const currentLink = titleSpan && titleSpan.onclick ? titleSpan.onclick.toString().match(/openUserItemLink\('([^']+)'\)/)?.[1] || '' : '';
+          // Firebase 데이터에서 직접 제목과 링크 가져오기
+          const firebaseItem = window.firebaseUserItems?.find(firebaseItem => firebaseItem.id === itemId);
+          const currentTitle = firebaseItem?.title || '';
+          const currentLink = firebaseItem?.link || '';
           
           swipeButtons.innerHTML = `
             <button class="checklist-swipe-edit-btn" onclick="editUserItem('${itemId}', '${currentTitle}', '', '${currentLink}')">수정</button>
