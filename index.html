@@ -3061,16 +3061,19 @@
       
       // 체크리스트 항목에 스와이프 기능 추가
       function addSwipeToChecklistItems() {
-        document.querySelectorAll('.checklist-item').forEach(item => {
+        document.querySelectorAll('.checklist-item[data-item-id]').forEach(item => {
           // 이미 스와이프 버튼이 있으면 건너뛰기
           if (item.querySelector('.checklist-swipe-buttons')) return;
+          
+          const itemId = item.getAttribute('data-item-id');
+          if (!itemId) return;
           
           // 스와이프 버튼 생성
           const swipeButtons = document.createElement('div');
           swipeButtons.className = 'checklist-swipe-buttons';
           swipeButtons.innerHTML = `
-            <button class="checklist-swipe-edit-btn" onclick="editChecklistItem('${item.getAttribute('data-item-id')}')">수정</button>
-            <button class="checklist-swipe-delete-btn" onclick="deleteChecklistItem('${item.getAttribute('data-item-id')}')">삭제</button>
+            <button class="checklist-swipe-edit-btn" onclick="editChecklistItem('${itemId}')">수정</button>
+            <button class="checklist-swipe-delete-btn" onclick="deleteChecklistItem('${itemId}')">삭제</button>
           `;
           item.appendChild(swipeButtons);
           
@@ -3081,16 +3084,19 @@
       
       // 일정 항목에 스와이프 기능 추가
       function addSwipeToScheduleItems() {
-        document.querySelectorAll('.user-added-item').forEach(item => {
+        document.querySelectorAll('.user-added-item[data-schedule-id]').forEach(item => {
           // 이미 스와이프 버튼이 있으면 건너뛰기
           if (item.querySelector('.schedule-swipe-buttons')) return;
+          
+          const scheduleId = item.getAttribute('data-schedule-id');
+          if (!scheduleId) return;
           
           // 스와이프 버튼 생성
           const swipeButtons = document.createElement('div');
           swipeButtons.className = 'schedule-swipe-buttons';
           swipeButtons.innerHTML = `
-            <button class="schedule-swipe-edit-btn" onclick="editScheduleItem('${item.getAttribute('data-schedule-id')}')">수정</button>
-            <button class="schedule-swipe-delete-btn" onclick="deleteScheduleItem('${item.getAttribute('data-schedule-id')}')">삭제</button>
+            <button class="schedule-swipe-edit-btn" onclick="editScheduleItem('${scheduleId}')">수정</button>
+            <button class="schedule-swipe-delete-btn" onclick="deleteScheduleItem('${scheduleId}')">삭제</button>
           `;
           item.appendChild(swipeButtons);
           
@@ -3527,93 +3533,126 @@
         if (!item) return;
         
         const title = item.getAttribute('data-schedule-title');
-        const description = item.getAttribute('data-schedule-description') || '';
-        const link = item.getAttribute('data-schedule-link') || '';
         
         // 기존 수정 폼이 있으면 제거
         const existingForm = document.getElementById('editScheduleForm');
+        const existingOverlay = document.getElementById('editScheduleOverlay');
         if (existingForm) {
           existingForm.remove();
         }
+        if (existingOverlay) {
+          existingOverlay.remove();
+        }
         
-        // 수정 폼 생성
-        const editForm = document.createElement('div');
-        editForm.id = 'editScheduleForm';
-        editForm.style.cssText = `
+        // 배경 오버레이 생성
+        const overlay = document.createElement('div');
+        overlay.id = 'editScheduleOverlay';
+        overlay.style.cssText = `
           position: fixed;
           top: 0;
           left: 0;
           width: 100%;
           height: 100%;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 10000;
+          z-index: 999;
+          background: transparent;
+        `;
+        overlay.onclick = function() {
+          closeEditScheduleForm();
+        };
+        overlay.ontouchstart = function(e) {
+          e.preventDefault();
+          closeEditScheduleForm();
+        };
+        overlay.ontouchend = function(e) {
+          e.preventDefault();
+          closeEditScheduleForm();
+        };
+        
+        // 수정 폼 생성 (새 일정추가 창과 동일한 스타일)
+        const editForm = document.createElement('div');
+        editForm.id = 'editScheduleForm';
+        editForm.style.cssText = `
+          position: fixed;
+          top: 120px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 1000;
+          width: 380px;
+          max-width: 90vw;
+          background: rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 20px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
         `;
         
         editForm.innerHTML = `
-          <div style="
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-          ">
-            <h3 style="margin: 0 0 20px 0; color: #333; font-size: 18px;">일정 항목 수정</h3>
-            <input type="text" id="editScheduleTitle" value="${title}" placeholder="일정 제목" style="
+          <div style="padding: 28px 24px 8px 24px; text-align: center; position: relative; flex-shrink: 0;">
+            <h3 style="color: #000; margin: 0; font-size: 18px; font-weight: 500; letter-spacing: -0.01em;">일정 수정</h3>
+            <button class="schedule-close-btn" onclick="closeEditScheduleForm()" style="
+              position: absolute;
+              top: 50%;
+              right: 20px;
+              transform: translateY(-50%);
+              background: rgba(0, 0, 0, 0.1);
+              border: none;
+              border-radius: 50%;
+              width: 32px;
+              height: 32px;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 18px;
+              color: #666;
+            ">×</button>
+          </div>
+          <div style="padding: 0 24px 24px 24px;">
+            <input type="text" id="editScheduleTitle" value="${title}" placeholder="일정 제목을 입력하세요" style="
               width: 100%;
-              padding: 12px;
-              border: 2px solid #e5e7eb;
-              border-radius: 8px;
-              font-size: 16px;
-              margin-bottom: 12px;
-              box-sizing: border-box;
-            ">
-            <textarea id="editScheduleDescription" placeholder="일정 설명" style="
-              width: 100%;
-              padding: 12px;
-              border: 2px solid #e5e7eb;
-              border-radius: 8px;
-              font-size: 16px;
-              margin-bottom: 12px;
-              box-sizing: border-box;
-              height: 80px;
-              resize: vertical;
-            ">${description}</textarea>
-            <input type="url" id="editScheduleLink" value="${link}" placeholder="관련 링크 (선택사항)" style="
-              width: 100%;
-              padding: 12px;
-              border: 2px solid #e5e7eb;
-              border-radius: 8px;
+              padding: 16px 20px;
+              border: 2px solid rgba(255, 255, 255, 0.3);
+              border-radius: 12px;
+              background: rgba(255, 255, 255, 0.1);
+              color: #000;
               font-size: 16px;
               margin-bottom: 20px;
               box-sizing: border-box;
-            ">
-            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+              outline: none;
+              transition: all 0.3s ease;
+            " onfocus="this.style.borderColor='rgba(59, 130, 246, 0.5)'; this.style.background='rgba(255, 255, 255, 0.2)'" onblur="this.style.borderColor='rgba(255, 255, 255, 0.3)'; this.style.background='rgba(255, 255, 255, 0.1)'">
+            <div style="display: flex; gap: 12px; justify-content: center;">
               <button onclick="closeEditScheduleForm()" style="
-                padding: 10px 20px;
-                border: 1px solid #d1d5db;
-                background: white;
-                color: #374151;
-                border-radius: 8px;
+                padding: 12px 24px;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                background: rgba(255, 255, 255, 0.1);
+                color: #000;
+                border-radius: 12px;
                 cursor: pointer;
                 font-size: 14px;
-              ">취소</button>
+                font-weight: 500;
+                transition: all 0.3s ease;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+              " onmouseover="this.style.background='rgba(255, 255, 255, 0.2)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.1)'">취소</button>
               <button onclick="saveScheduleItem('${scheduleId}')" style="
-                padding: 10px 20px;
+                padding: 12px 24px;
                 border: none;
-                background: #3b82f6;
+                background: linear-gradient(135deg, #3b82f6, #1d4ed8);
                 color: white;
-                border-radius: 8px;
+                border-radius: 12px;
                 cursor: pointer;
                 font-size: 14px;
-              ">저장</button>
+                font-weight: 500;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+              " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(59, 130, 246, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.3)'">저장</button>
             </div>
           </div>
         `;
         
+        document.body.appendChild(overlay);
         document.body.appendChild(editForm);
         
         // 입력 필드에 포커스
@@ -3628,27 +3667,37 @@
       }
       
       // 일정 항목 삭제 함수
-      function deleteScheduleItem(scheduleId) {
+      async function deleteScheduleItem(scheduleId) {
         if (!confirm('이 일정을 삭제하시겠습니까?')) return;
         
-        // 파이어베이스에서 삭제
-        if (window.customSchedules) {
-          const updatedSchedules = window.customSchedules.filter(schedule => schedule.id !== scheduleId);
-          window.customSchedules = updatedSchedules;
-          
-          // 파이어베이스에 저장
-          if (window.db && window.user) {
-            const userRef = window.db.collection('users').doc(window.user.uid);
-            userRef.update({
-              customSchedules: updatedSchedules
-            }).then(() => {
+        try {
+          if (window.db && window.firestore) {
+            const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+            if (docSnap.exists() && docSnap.data().customSchedules) {
+              const customSchedules = docSnap.data().customSchedules;
+              const updatedSchedules = customSchedules.filter(schedule => schedule.id !== scheduleId);
+              
+              // Firebase에 저장
+              await window.firestore.updateDoc(
+                window.firestore.doc(window.db, 'users', 'currentUser'),
+                {
+                  customSchedules: updatedSchedules,
+                  lastUpdated: window.firestore.serverTimestamp()
+                }
+              );
+              
+              // UI에서 일정 컨테이너 제거
+              const scheduleContainer = document.querySelector(`[data-schedule-id="${scheduleId}"]`);
+              if (scheduleContainer) {
+                scheduleContainer.remove();
+              }
+              
               console.log('일정이 삭제되었습니다.');
-              // UI 업데이트
-              displayCustomSchedulesFromFirebase(updatedSchedules);
-            }).catch(error => {
-              console.error('일정 삭제 실패:', error);
-            });
+            }
           }
+        } catch (error) {
+          console.error('일정 삭제 실패:', error);
+          alert('일정 삭제에 실패했습니다.');
         }
         
         // 스와이프 상태 해제
@@ -3658,45 +3707,64 @@
       // 일정 수정 폼 닫기
       function closeEditScheduleForm() {
         const form = document.getElementById('editScheduleForm');
+        const overlay = document.getElementById('editScheduleOverlay');
         if (form) {
           form.remove();
+        }
+        if (overlay) {
+          overlay.remove();
         }
       }
       
       // 일정 항목 저장
-      function saveScheduleItem(scheduleId) {
+      async function saveScheduleItem(scheduleId) {
         const title = document.getElementById('editScheduleTitle').value.trim();
-        const description = document.getElementById('editScheduleDescription').value.trim();
-        const link = document.getElementById('editScheduleLink').value.trim();
         
         if (!title) {
           alert('일정 제목을 입력해주세요.');
           return;
         }
         
-        // 파이어베이스에서 업데이트
-        if (window.customSchedules) {
-          const updatedSchedules = window.customSchedules.map(schedule => {
-            if (schedule.id === scheduleId) {
-              return { ...schedule, title, description, link };
+        try {
+          if (window.db && window.firestore) {
+            const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+            if (docSnap.exists() && docSnap.data().customSchedules) {
+              const customSchedules = docSnap.data().customSchedules;
+              const scheduleIndex = customSchedules.findIndex(schedule => schedule.id === scheduleId);
+              
+              if (scheduleIndex !== -1) {
+                // 기존 제목 저장 (연관 데이터 업데이트용)
+                const oldTitle = customSchedules[scheduleIndex].title;
+                
+                // 일정 업데이트
+                customSchedules[scheduleIndex].title = title;
+                customSchedules[scheduleIndex].timestamp = new Date().toISOString();
+                
+                // Firebase에 저장
+                await window.firestore.updateDoc(
+                  window.firestore.doc(window.db, 'users', 'currentUser'),
+                  {
+                    customSchedules: customSchedules,
+                    lastUpdated: window.firestore.serverTimestamp()
+                  }
+                );
+                
+                // UI 업데이트
+                const scheduleBtn = document.querySelector(`[data-schedule-id="${scheduleId}"] .toggle-btn`);
+                const scheduleContainer = document.querySelector(`[data-schedule-id="${scheduleId}"]`);
+                if (scheduleBtn && scheduleContainer) {
+                  scheduleBtn.textContent = title;
+                  scheduleBtn.setAttribute('data-schedule-title', title);
+                  scheduleContainer.setAttribute('data-schedule-title', title);
+                }
+                
+                console.log('일정이 수정되었습니다.');
+              }
             }
-            return schedule;
-          });
-          window.customSchedules = updatedSchedules;
-          
-          // 파이어베이스에 저장
-          if (window.db && window.user) {
-            const userRef = window.db.collection('users').doc(window.user.uid);
-            userRef.update({
-              customSchedules: updatedSchedules
-            }).then(() => {
-              console.log('일정이 수정되었습니다.');
-              // UI 업데이트
-              displayCustomSchedulesFromFirebase(updatedSchedules);
-            }).catch(error => {
-              console.error('일정 수정 실패:', error);
-            });
           }
+        } catch (error) {
+          console.error('일정 수정 실패:', error);
+          alert('일정 수정에 실패했습니다.');
         }
         
         // 폼 닫기
