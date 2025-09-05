@@ -970,6 +970,8 @@
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
+            width: 100%;
+            min-height: 32px;
         }
         
         .checklist-item:hover {
@@ -1012,12 +1014,13 @@
         /* 체크리스트 스와이프 버튼 스타일 */
         .checklist-swipe-buttons {
             position: absolute;
-            right: -160px;
+            right: -120px;
             top: 0;
             height: 100%;
             display: flex;
             align-items: center;
             transition: right 0.3s ease;
+            z-index: 1000;
         }
         
         .checklist-item.swiped .checklist-swipe-buttons {
@@ -1025,16 +1028,16 @@
         }
         
         .checklist-item.swiped .item-content {
-            transform: translateX(-160px);
+            transform: translateX(-120px);
         }
         
         .checklist-swipe-edit-btn,
         .checklist-swipe-delete-btn {
-            width: 80px;
+            width: 60px;
             height: 100%;
             border: none;
             color: white;
-            font-size: 0.7rem;
+            font-size: 0.6rem;
             font-weight: 500;
             cursor: pointer;
             display: flex;
@@ -1274,11 +1277,11 @@
         
         .schedule-swipe-edit-btn,
         .schedule-swipe-delete-btn {
-            width: 80px;
+            width: 60px;
             height: 100%;
             border: none;
             color: white;
-            font-size: 0.7rem;
+            font-size: 0.6rem;
             font-weight: 500;
             cursor: pointer;
             display: flex;
@@ -1288,19 +1291,19 @@
         }
         
         .schedule-swipe-edit-btn {
-            background: #3b82f6;
+            background: rgba(59, 130, 246, 0.8);
         }
         
         .schedule-swipe-edit-btn:hover {
-            background: #2563eb;
+            background: rgba(37, 99, 235, 0.9);
         }
         
         .schedule-swipe-delete-btn {
-            background: #ef4444;
+            background: rgba(239, 68, 68, 0.8);
         }
         
         .schedule-swipe-delete-btn:hover {
-            background: #dc2626;
+            background: rgba(220, 38, 38, 0.9);
         }
         
         
@@ -3070,18 +3073,24 @@
       function addSwipeToChecklistItems() {
         console.log('체크리스트 스와이프 기능 추가 시작');
         
-        // 기존 체크리스트 항목들 (data-item-type="existing")
-        const existingItems = document.querySelectorAll('.checklist-item[data-item-type="existing"]');
-        console.log('기존 체크리스트 항목 개수:', existingItems.length);
+        // 모든 체크리스트 항목들 찾기 (기존 + 사용자 추가)
+        const allChecklistItems = document.querySelectorAll('.checklist-item, .user-added-item[data-item-type="user"]');
+        console.log('전체 체크리스트 항목 개수:', allChecklistItems.length);
         
-        existingItems.forEach(item => {
+        allChecklistItems.forEach((item, index) => {
           // 이미 스와이프 버튼이 있으면 건너뛰기
-          if (item.querySelector('.checklist-swipe-buttons')) return;
+          if (item.querySelector('.checklist-swipe-buttons')) {
+            console.log(`항목 ${index}은 이미 스와이프 버튼이 있음`);
+            return;
+          }
           
           const itemId = item.getAttribute('data-item-id');
-          if (!itemId) return;
+          if (!itemId) {
+            console.log(`항목 ${index}의 itemId가 없음:`, item);
+            return;
+          }
           
-          console.log('기존 체크리스트 항목에 스와이프 버튼 추가:', itemId);
+          console.log(`항목 ${index}에 스와이프 버튼 추가:`, itemId, item.className);
           
           // 스와이프 버튼 생성
           const swipeButtons = document.createElement('div');
@@ -3094,32 +3103,8 @@
           
           // 터치 이벤트 추가
           addSwipeTouchEvents(item, 'checklist');
-        });
-        
-        // 사용자 추가 체크리스트 항목들 (data-item-type="user")
-        const userItems = document.querySelectorAll('.user-added-item[data-item-type="user"]');
-        console.log('사용자 추가 체크리스트 항목 개수:', userItems.length);
-        
-        userItems.forEach(item => {
-          // 이미 스와이프 버튼이 있으면 건너뛰기
-          if (item.querySelector('.checklist-swipe-buttons')) return;
           
-          const itemId = item.getAttribute('data-item-id');
-          if (!itemId) return;
-          
-          console.log('사용자 추가 체크리스트 항목에 스와이프 버튼 추가:', itemId);
-          
-          // 스와이프 버튼 생성
-          const swipeButtons = document.createElement('div');
-          swipeButtons.className = 'checklist-swipe-buttons';
-          swipeButtons.innerHTML = `
-            <button class="checklist-swipe-edit-btn" onclick="editChecklistItem('${itemId}')">수정</button>
-            <button class="checklist-swipe-delete-btn" onclick="deleteChecklistItem('${itemId}')">삭제</button>
-          `;
-          item.appendChild(swipeButtons);
-          
-          // 터치 이벤트 추가
-          addSwipeTouchEvents(item, 'checklist');
+          console.log(`항목 ${index} 스와이프 기능 추가 완료`);
         });
         
         console.log('체크리스트 스와이프 기능 추가 완료');
@@ -3183,14 +3168,14 @@
           if (diffY > Math.abs(diffX)) return;
           
           // 왼쪽으로 스와이프 (버튼 표시)
-          if (diffX > 10) {
+          if (diffX > 5) {
             hasSwiped = true;
             e.preventDefault();
             item.classList.add('swiped');
             console.log('스와이프 버튼 표시:', type, diffX);
           }
           // 오른쪽으로 스와이프 (버튼 숨김)
-          else if (diffX < -10) {
+          else if (diffX < -5) {
             hasSwiped = true;
             e.preventDefault();
             item.classList.remove('swiped');
@@ -3207,7 +3192,7 @@
           const diffX = startX - currentX;
           
           // 스와이프가 너무 빠르거나 거리가 부족하면 원래 상태로
-          if (diffTime < 100 || Math.abs(diffX) < 50) {
+          if (diffTime < 100 || Math.abs(diffX) < 30) {
             item.classList.remove('swiped');
           }
         }, { passive: true });
