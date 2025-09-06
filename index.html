@@ -4168,6 +4168,18 @@
         cameraInput.click();
       }
       
+      // 사진을 앨범에 저장하는 함수 (다운로드)
+      function saveToAlbum(imageFile, filename) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(imageFile);
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      }
+      
       // 썸네일 생성 함수
       function createThumbnail(imageFile, size = 60) {
         return new Promise((resolve) => {
@@ -4280,26 +4292,47 @@
         }
         
         showFullImage() {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const imageData = e.target.result;
+          // 원본 이미지가 있으면 표시, 없으면 앨범에서 불러오기
+          if (this.imageFile) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const imageData = e.target.result;
+              this.displayImageInfo(imageData);
+            };
+            reader.readAsDataURL(this.imageFile);
+          } else {
+            // Firebase에서 저장된 사진인 경우 앨범에서 불러오기
+            const photoData = window.savedUserPhotos?.find(photo => 
+              photo.location.lat === this.location.lat && 
+              photo.location.lng === this.location.lng
+            );
             
-            const infoWindow = new google.maps.InfoWindow({
-              content: `
-                <div style="text-align: center; max-width: 350px;">
-                  <h3 style="margin: 0 0 15px 0; color: #333; font-size: 1.1rem;">촬영한 사진</h3>
-                  <img src="${imageData}" style="max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.2);" alt="촬영한 사진">
-                  <p style="margin: 15px 0 0 0; font-size: 0.9rem; color: #666; background: #f5f5f5; padding: 8px; border-radius: 6px;">
-                    📍 위치: ${this.location.lat.toFixed(6)}, ${this.location.lng.toFixed(6)}
-                  </p>
-                </div>
-              `
-            });
-            
-            // 오버레이 위치에서 정보창 표시
-            infoWindow.open(map, this);
-          };
-          reader.readAsDataURL(this.imageFile);
+            if (photoData && photoData.filename) {
+              loadPhotoFromAlbum(photoData.filename);
+            } else {
+              this.displayImageInfo(this.thumbnail);
+            }
+          }
+        }
+        
+        displayImageInfo(imageData) {
+          const infoWindow = new google.maps.InfoWindow({
+            content: `
+              <div style="text-align: center; max-width: 350px;">
+                <h3 style="margin: 0 0 15px 0; color: #333; font-size: 1.1rem;">촬영한 사진</h3>
+                <img src="${imageData}" style="max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.2);" alt="촬영한 사진">
+                <p style="margin: 15px 0 0 0; font-size: 0.9rem; color: #666; background: #f5f5f5; padding: 8px; border-radius: 6px;">
+                  📍 위치: ${this.location.lat.toFixed(6)}, ${this.location.lng.toFixed(6)}
+                </p>
+                <p style="margin: 5px 0 0 0; font-size: 0.8rem; color: #999;">
+                  💾 원본 사진은 앨범에 저장되어 있습니다
+                </p>
+              </div>
+            `
+          });
+          
+          // 오버레이 위치에서 정보창 표시
+          infoWindow.open(map, this);
         }
       }
       
@@ -4326,64 +4359,51 @@
       }
       
       
-      // 이미지를 로컬에 저장하는 함수
-      function saveImageLocally(imageFile, location) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const imageData = e.target.result;
-          const timestamp = Date.now();
-          const imageKey = `photo_${timestamp}`;
-          
-          // 로컬 저장소에 이미지 데이터 저장
-          localStorage.setItem(imageKey, imageData);
-          
-          // Firebase에는 위치 정보만 저장 (기존 저장 로직 활용)
-          const photoData = {
-            location: location,
-            timestamp: timestamp,
-            imageKey: imageKey,
-            type: 'photo'
-          };
-          
-          // 기존 마커 저장 로직을 활용하여 Firebase에 저장
-          savePhotoToFirebase(photoData);
-        };
-        reader.readAsDataURL(imageFile);
-      }
-      
-      // Firebase에 사진 데이터 저장
-      async function savePhotoToFirebase(photoData) {
+      // 사진 데이터를 Firebase에 저장하는 함수 (썸네일과 위치만)
+      async function savePhotoToFirebase(imageFile, location, thumbnail) {
         try {
-          // 기존 Firebase 저장 로직을 활용
+          const timestamp = Date.now();
+          const filename = `photo_${timestamp}.jpg`;
+          
+          // 1. 원본 사진을 앨범에 저장 (다운로드)
+          saveToAlbum(imageFile, filename);
+          
+          // 2. Firebase에 썸네일과 위치 정보만 저장
           const currentSection = getElement('sectionSelector')?.value || '홋카이도 여행';
           
-          if (!window.savedUserPhotos) {
-            window.savedUserPhotos = [];
-          }
+          const photoData = {
+            type: 'photo',
+            timestamp: timestamp,
+            filename: filename,
+            location: {
+              lat: location.lat,
+              lng: location.lng
+            },
+            thumbnail: thumbnail, // base64 썸네일 데이터
+            section: currentSection,
+            created: new Date().toISOString()
+          };
           
-          window.savedUserPhotos.push({
-            ...photoData,
-            section: currentSection
-          });
-          
-          // Firebase에 저장 (기존 로직 활용)
+          // Firebase에 저장
           if (window.firebaseUserItems) {
-            window.firebaseUserItems.push({
-              type: 'photo',
-              data: photoData,
-              section: currentSection
-            });
-            
-            // Firebase 업데이트
+            window.firebaseUserItems.push(photoData);
             await updateFirebaseData();
           }
           
-          console.log('사진이 저장되었습니다.');
+          // 로컬 배열에도 추가 (실시간 동기화용)
+          if (!window.savedUserPhotos) {
+            window.savedUserPhotos = [];
+          }
+          window.savedUserPhotos.push(photoData);
+          
+          console.log('사진이 앨범에 저장되고 Firebase에 동기화되었습니다.');
+          
         } catch (error) {
           console.error('Firebase 저장 중 오류:', error);
           alert('사진 저장 중 오류가 발생했습니다.');
         }
       }
+      
       
       // 사진 촬영 후 처리 함수
       async function handlePhotoCapture(imageFile) {
@@ -4399,15 +4419,19 @@
             return;
           }
           
+          // 썸네일 생성
+          const thumbnailSize = isMobile ? 100 : 90;
+          const thumbnail = await createThumbnail(imageFile, thumbnailSize);
+          
           // 사진 오버레이 생성 및 지도에 표시
           const photoOverlay = await createPhotoOverlay(imageFile, currentLocation, '촬영한 사진');
           
           if (photoOverlay) {
-            // 이미지를 로컬에 저장하고 Firebase에 위치 정보 저장
-            saveImageLocally(imageFile, currentLocation);
+            // 원본은 앨범에 저장, 썸네일과 위치는 Firebase에 저장
+            await savePhotoToFirebase(imageFile, currentLocation, thumbnail);
             
             // 성공 메시지
-            alert('사진이 촬영되어 지도에 표시되었습니다!');
+            alert('사진이 앨범에 저장되고 지도에 표시되었습니다!');
           }
           
         } catch (error) {
@@ -4459,6 +4483,37 @@
         cameraInput.value = '';
       }
       
+      // Firebase에서 저장된 사진들을 지도에 표시하는 함수
+      function loadPhotosFromFirebase() {
+        if (!window.savedUserPhotos || window.savedUserPhotos.length === 0) {
+          return;
+        }
+        
+        window.savedUserPhotos.forEach(async (photoData) => {
+          try {
+            // 썸네일이 base64 형태로 저장되어 있다면 직접 사용
+            if (photoData.thumbnail) {
+              const photoOverlay = new PhotoOverlay(
+                new google.maps.LatLng(photoData.location.lat, photoData.location.lng),
+                photoData.thumbnail,
+                null, // 원본 이미지는 앨범에 있으므로 null
+                photoData.location
+              );
+              photoOverlay.setMap(map);
+            }
+          } catch (error) {
+            console.error('사진 로드 중 오류:', error);
+          }
+        });
+      }
+      
+      // 앨범에서 사진을 불러오는 함수 (상세보기용)
+      function loadPhotoFromAlbum(filename) {
+        // 실제 구현에서는 사용자가 앨범에서 선택한 사진을 불러와야 함
+        // 현재는 임시로 알림 표시
+        alert(`앨범에서 "${filename}" 사진을 찾을 수 없습니다.\n실제 앱에서는 앨범에서 해당 사진을 불러옵니다.`);
+      }
+      
       // 줌 레벨에 따라 항로와 마커 표시/숨김 처리
       function toggleFlightElements(zoomLevel) {
         if (zoomLevel < 10) {
@@ -4503,6 +4558,11 @@
         
         // 새로운 스와이프 기능 초기화
         initializeSwipeFeatures();
+        
+        // Firebase에서 저장된 사진들 불러오기 (지도 초기화 후)
+        setTimeout(() => {
+          loadPhotosFromFirebase();
+        }, 2000);
         
         // 카메라 입력 이벤트 리스너 설정
         const cameraInput = document.getElementById('cameraInput');
