@@ -1835,6 +1835,39 @@
       
 
       
+      // 상수 정의
+      const CONSTANTS = {
+        // 타이밍 관련
+        DEBOUNCE_DELAY: 300,
+        BOUNDS_DEBOUNCE_DELAY: 500,
+        RESIZE_DEBOUNCE_DELAY: 300,
+        SYNC_INTERVAL: 10 * 60 * 1000, // 10분
+        
+        // 마커 관련
+        MARKER_SCALE: 15,
+        MARKER_FONT_SIZE: '14px',
+        MARKER_Z_INDEX: 1000,
+        
+        // 줌 레벨
+        MIN_ZOOM: 1,
+        MAX_ZOOM: 20,
+        DEFAULT_ZOOM: 4,
+        MOBILE_ZOOM: 4,
+        
+        // 터치 관련
+        TOUCH_DELAY: 500,
+        LONG_PRESS_DELAY: 800,
+        SWIPE_THRESHOLD: 10,
+        
+        // UI 관련
+        ANIMATION_DURATION: 300,
+        NOTIFICATION_DURATION: 3000
+      };
+      
+      // 마커 가시성 최적화를 위한 변수
+      let visibleMarkers = new Set();
+      let markerVisibilityObserver = null;
+      
       // 최적화된 DOM 캐시
       let cachedElements = {};
       function getElement(id) {
@@ -1853,37 +1886,161 @@
         }
       }
       
+      // 마커 가시성 최적화 함수
+      function optimizeMarkerVisibility() {
+        if (!map) return;
+        
+        const bounds = map.getBounds();
+        if (!bounds) return;
+        
+        // 현재 지도 범위에 있는 마커들만 표시
+        if (window.savedUserMarkers) {
+          window.savedUserMarkers.forEach(markerGroup => {
+            if (markerGroup.markerElements) {
+              markerGroup.markerElements.forEach(marker => {
+                if (marker && marker.getPosition) {
+                  const isVisible = bounds.contains(marker.getPosition());
+                  if (isVisible) {
+                    visibleMarkers.add(marker);
+                    marker.setVisible(true);
+                  } else {
+                    visibleMarkers.delete(marker);
+                    marker.setVisible(false);
+                  }
+                }
+              });
+            }
+          });
+        }
+      }
+      
+      // 마커 메모리 정리 함수
+      function cleanupMarkerMemory(marker) {
+        if (marker) {
+          // 이벤트 리스너 정리
+          if (marker.listenerHandles) {
+            marker.listenerHandles.forEach(handle => {
+              google.maps.event.removeListener(handle);
+            });
+            marker.listenerHandles = [];
+          }
+          
+          // 마커 제거
+          marker.setMap(null);
+          visibleMarkers.delete(marker);
+        }
+      }
+      
+      // 에러 처리 강화 함수
+      function handleError(error, context = 'Unknown') {
+        console.error(`[${context}] Error:`, error);
+        
+        // 사용자에게 친화적인 에러 메시지 표시
+        let userMessage = '오류가 발생했습니다.';
+        
+        if (error.name === 'NetworkError' || error.message.includes('network')) {
+          userMessage = '네트워크 연결을 확인해주세요.';
+        } else if (error.name === 'QuotaExceededError') {
+          userMessage = '저장 공간이 부족합니다.';
+        } else if (error.message.includes('Firebase')) {
+          userMessage = '데이터 저장에 실패했습니다.';
+        } else if (error.message.includes('Google Maps')) {
+          userMessage = '지도 서비스에 문제가 있습니다.';
+        }
+        
+        // 에러 상태 업데이트
+        if (typeof updateSyncStatus === 'function') {
+          updateSyncStatus(userMessage, 'error');
+        }
+        
+        return userMessage;
+      }
+      
+      // 안전한 함수 실행 래퍼
+      function safeExecute(fn, context = 'Unknown', fallback = null) {
+        try {
+          return fn();
+        } catch (error) {
+          handleError(error, context);
+          return fallback;
+        }
+      }
+      
+      // Promise 에러 처리 래퍼
+      function safePromise(promise, context = 'Unknown', fallback = null) {
+        return promise.catch(error => {
+          handleError(error, context);
+          return fallback;
+        });
+      }
+      
+      // 통합 이벤트 핸들러 (이벤트 위임 패턴)
+      function setupEventDelegation() {
+        // 문서 레벨에서 이벤트 위임
+        document.addEventListener('touchstart', handleTouchStart, { passive: false });
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd, { passive: false });
+        document.addEventListener('click', handleClick, { passive: false });
+      }
+      
+      // 터치 시작 이벤트 핸들러
+      function handleTouchStart(event) {
+        const target = event.target;
+        
+        // 버튼 터치 피드백
+        if (target.matches('button, .toggle-btn, .map-type-btn')) {
+          target.style.transform = 'scale(0.95)';
+          target.style.transition = 'transform 0.1s ease';
+        }
+        
+        // 지도 요소에서 다중 터치 방지
+        if (target.closest('#map') && event.touches.length > 1) {
+          event.preventDefault();
+        }
+      }
+      
+      // 터치 이동 이벤트 핸들러
+      function handleTouchMove(event) {
+        const target = event.target;
+        
+        // 지도 요소에서 다중 터치 방지
+        if (target.closest('#map') && event.touches.length > 1) {
+          event.preventDefault();
+        }
+      }
+      
+      // 터치 종료 이벤트 핸들러
+      function handleTouchEnd(event) {
+        const target = event.target;
+        
+        // 버튼 터치 피드백 복원
+        if (target.matches('button, .toggle-btn, .map-type-btn')) {
+          target.style.transform = 'scale(1)';
+        }
+      }
+      
+      // 클릭 이벤트 핸들러 (데스크톱용)
+      function handleClick(event) {
+        const target = event.target;
+        
+        // 버튼 클릭 피드백
+        if (target.matches('button, .toggle-btn, .map-type-btn')) {
+          target.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            target.style.transform = 'scale(1)';
+          }, 100);
+        }
+      }
+      
       // 모바일 최적화 함수
       function optimizeForMobile() {
         if (isMobile) {
-          // 모바일에서 더블탭 줌 방지
-          let lastTouchEnd = 0;
-          document.addEventListener('touchend', function (event) {
-            const now = (new Date()).getTime();
-            if (now - lastTouchEnd <= 300) {
-              event.preventDefault();
-            }
-            lastTouchEnd = now;
-          }, false);
+          // 이벤트 위임 설정
+          setupEventDelegation();
           
-          // 모바일에서 지도 영역의 터치 이벤트 최적화
+          // 지도 요소에 제스처 이벤트 방지
           const mapElement = document.getElementById('map');
           if (mapElement) {
-            mapElement.addEventListener('touchstart', function(event) {
-              // 한 손가락 터치만 허용
-              if (event.touches.length === 1) {
-                event.stopPropagation();
-              }
-            }, { passive: true });
-            
-            mapElement.addEventListener('touchmove', function(event) {
-              // 한 손가락 드래그 허용
-              if (event.touches.length === 1) {
-                event.stopPropagation();
-              }
-            }, { passive: true });
-            
-            // 모바일에서 핀치 줌 최적화
             mapElement.addEventListener('gesturestart', function(event) {
               event.preventDefault();
             }, { passive: false });
@@ -2077,7 +2234,7 @@
         map.addListener('dblclick', function(event) {
           const currentZoom = map.getZoom();
           // 현재 줌 레벨에서 1단계 축소
-          const newZoom = Math.max(currentZoom - 1, 1); // 최소 줌 레벨 1로 제한
+          const newZoom = Math.max(currentZoom - 1, CONSTANTS.MIN_ZOOM); // 최소 줌 레벨 제한
           map.setZoom(newZoom);
           
           // 축소된 위치로 중심점 이동 (클릭한 지점을 중심으로)
@@ -2115,7 +2272,7 @@
             // 두 손가락 더블클릭 감지
             if (twoFingerTouchCount === 2) {
               const currentZoom = map.getZoom();
-              const newZoom = Math.min(currentZoom + 1, 20); // 최대 줌 레벨 20으로 제한
+              const newZoom = Math.min(currentZoom + 1, CONSTANTS.MAX_ZOOM); // 최대 줌 레벨 제한
               map.setZoom(newZoom);
               
               // 터치 중심점을 지도 좌표로 변환하여 중심점 이동
@@ -2310,7 +2467,7 @@
                 const currentZoom = map.getZoom();
                 toggleFlightElements(currentZoom); // 줌 레벨에 따라 항로와 마커 표시/숨김
                 toggleMarkerTitleVisibility(currentZoom); // 줌 레벨에 따라 마커 타이틀 표시/숨김
-            }, 300); // 300ms 디바운싱 (배터리 절약)
+            }, CONSTANTS.DEBOUNCE_DELAY); // 디바운싱 (배터리 절약)
         });
         
         // 지도 이동 이벤트 리스너 추가 - 주소 마커와 현재 위치 마커 자동 제거 (모바일 최적화)
@@ -2321,7 +2478,8 @@
             boundsTimeout = setTimeout(function() {
                 checkAddressMarkerVisibility();
                 checkCurrentLocationMarkerVisibility();
-            }, 500); // 500ms 디바운싱 (배터리 절약)
+                optimizeMarkerVisibility(); // 마커 가시성 최적화
+            }, CONSTANTS.BOUNDS_DEBOUNCE_DELAY); // 디바운싱 (배터리 절약)
         });
         
         // 창 크기 조정 시 스와이프 상태 해제, 사이드패널 닫기, 검색 마커 제거
@@ -2333,7 +2491,7 @@
                 clearAllSwipeStates();
                 closeSidePanel();
                 clearAllAddressMarkers();
-            }, 300); // 300ms 디바운싱 (배터리 절약)
+            }, CONSTANTS.RESIZE_DEBOUNCE_DELAY); // 디바운싱 (배터리 절약)
         });
         
         // 초기 줌 레벨 표시
@@ -2348,7 +2506,7 @@
         if (navigator.onLine) {
           setTimeout(() => {
             processPendingOperations().catch(error => {
-              console.error('초기 대기 작업 처리 실패:', error);
+              handleError(error, '초기 대기 작업 처리');
             });
           }, 2000); // Firebase 초기화 대기
         }
@@ -2601,7 +2759,7 @@
           onFirebaseUploadSuccess('체크박스');
            
          } catch (error) {
-           console.error('Firebase 저장 실패:', error);
+           handleError(error, 'Firebase 저장');
            updateSyncStatus('저장 실패', 'error');
            
            // 사용자에게 알림
@@ -2644,7 +2802,7 @@
              
 
            } catch (error) {
-             console.error('사용자 항목 체크박스 상태 저장 실패:', error);
+             handleError(error, '사용자 항목 체크박스 상태 저장');
            }
          }
          
@@ -4095,7 +4253,7 @@
                 enableOfflineMode();
               });
           }
-        }, 10 * 60 * 1000); // 10분 (배터리 절약)
+        }, CONSTANTS.SYNC_INTERVAL); // 배터리 절약
       }
       
       // 마커생성 모드 토글 함수
@@ -4554,18 +4712,18 @@
             position: latLng,
             map: map,
             title: '출발지',
-            zIndex: 1000, // 경로와 라벨 위에 표시
+            zIndex: CONSTANTS.MARKER_Z_INDEX, // 경로와 라벨 위에 표시
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
               fillColor: '#22c55e',
               fillOpacity: 1,
               strokeColor: '#ffffff',
               strokeWeight: 1.5,
-              scale: 15
+              scale: CONSTANTS.MARKER_SCALE
             },
             label: {
               text: '출발지',
-              fontSize: '14px',
+              fontSize: CONSTANTS.MARKER_FONT_SIZE,
               fontWeight: 'bold',
               color: '#ffffff'
             }
@@ -4578,18 +4736,18 @@
             position: latLng,
             map: map,
             title: '도착지',
-            zIndex: 1000, // 경로와 라벨 위에 표시
+            zIndex: CONSTANTS.MARKER_Z_INDEX, // 경로와 라벨 위에 표시
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
               fillColor: '#ef4444',
               fillOpacity: 1,
               strokeColor: '#ffffff',
               strokeWeight: 1.5,
-              scale: 15
+              scale: CONSTANTS.MARKER_SCALE
             },
             label: {
               text: '목적지',
-              fontSize: '14px',
+              fontSize: CONSTANTS.MARKER_FONT_SIZE,
               fontWeight: 'bold',
               color: '#ffffff'
             }
@@ -4610,18 +4768,18 @@
             position: latLng,
             map: map,
             title: '출발지',
-            zIndex: 1000, // 경로와 라벨 위에 표시
+            zIndex: CONSTANTS.MARKER_Z_INDEX, // 경로와 라벨 위에 표시
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
               fillColor: '#22c55e',
               fillOpacity: 1,
               strokeColor: '#ffffff',
               strokeWeight: 1.5,
-              scale: 15
+              scale: CONSTANTS.MARKER_SCALE
             },
             label: {
               text: '출발지',
-              fontSize: '14px',
+              fontSize: CONSTANTS.MARKER_FONT_SIZE,
               fontWeight: 'bold',
               color: '#ffffff'
             }
@@ -7453,7 +7611,7 @@
              }
            }
          } catch (error) {
-           console.error('Firebase 로드 실패:', error);
+           handleError(error, 'Firebase 로드');
          }
        }
        
