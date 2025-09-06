@@ -4665,11 +4665,21 @@
             const isAndroid = /Android/.test(navigator.userAgent);
             // 전역 isMobile 변수 사용
             
+            // 위치 정보를 먼저 저장
+            const origin = searchStartMarker.getPosition();
+            const destination = searchEndMarker.getPosition();
+            
+            // 경로탐색 모드 즉시 해제 (마커는 유지)
+            isRouteSearchMode = false;
+            const searchBtn = document.getElementById('topRouteSearchBtn');
+            if (searchBtn) {
+              searchBtn.textContent = '경로탐색';
+              searchBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+              searchBtn.style.color = '#1a1a1a';
+            }
+            
             if (isMobile) {
               // 모바일: 직접 앱 스킴으로 바로 구글맵 앱 실행
-              const origin = searchStartMarker.getPosition();
-              const destination = searchEndMarker.getPosition();
-              
               const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
               const isAndroid = /Android/.test(navigator.userAgent);
               
@@ -4684,13 +4694,10 @@
 
             } else {
               // 데스크탑: 바로 구글맵 웹페이지로 이동
-              const webUrl = buildGoogleMapsUrlWithNames(searchStartMarker.getPosition(), searchEndMarker.getPosition(), 'driving');
+              const webUrl = buildGoogleMapsUrlWithNames(origin, destination, 'driving');
               window.open(webUrl, '_blank');
 
             }
-            
-            // 경로탐색 모드 자동 종료 (Google Maps 연결 후)
-            resetRouteSearchState();
             
           } else {
             console.error('경로 검색 실패:', status);
