@@ -1766,7 +1766,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행1220</h2>
+      <h2>홋카이도 여행_최적화</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -2083,7 +2083,6 @@
           // 축소된 위치로 중심점 이동 (클릭한 지점을 중심으로)
           map.setCenter(event.latLng);
           
-          console.log(`더블클릭 축소: ${currentZoom} → ${newZoom}`);
         });
         
         // 두 손가락 더블클릭 감지 변수
@@ -2123,7 +2122,6 @@
               const centerLatLng = map.getCenter();
               map.setCenter(centerLatLng);
               
-              console.log(`두 손가락 더블클릭 확대: ${currentZoom} → ${newZoom}`);
               twoFingerTouchCount = 0;
             }
           }
@@ -2312,7 +2310,7 @@
                 const currentZoom = map.getZoom();
                 toggleFlightElements(currentZoom); // 줌 레벨에 따라 항로와 마커 표시/숨김
                 toggleMarkerTitleVisibility(currentZoom); // 줌 레벨에 따라 마커 타이틀 표시/숨김
-            }, 100);
+            }, 300); // 300ms 디바운싱 (배터리 절약)
         });
         
         // 지도 이동 이벤트 리스너 추가 - 주소 마커와 현재 위치 마커 자동 제거 (모바일 최적화)
@@ -2323,7 +2321,7 @@
             boundsTimeout = setTimeout(function() {
                 checkAddressMarkerVisibility();
                 checkCurrentLocationMarkerVisibility();
-            }, 200);
+            }, 500); // 500ms 디바운싱 (배터리 절약)
         });
         
         // 창 크기 조정 시 스와이프 상태 해제, 사이드패널 닫기, 검색 마커 제거
@@ -2335,7 +2333,7 @@
                 clearAllSwipeStates();
                 closeSidePanel();
                 clearAllAddressMarkers();
-            }, 150);
+            }, 300); // 300ms 디바운싱 (배터리 절약)
         });
         
         // 초기 줌 레벨 표시
@@ -2995,7 +2993,6 @@
 
       // 모든 스와이프 상태를 해제하는 공통 함수
       function clearAllSwipeStates() {
-        console.log('모든 스와이프 상태 해제 시작');
         
         // 마커 정보창 스와이프 상태 해제
         const markerInfoContainer = document.querySelector('.marker-info-container');
@@ -3054,7 +3051,6 @@
           element.classList.remove('swiped', 'swiping');
         });
         
-        console.log('모든 스와이프 상태 해제 완료');
       }
 
       // 스와이프 기능 초기화
@@ -3068,26 +3064,21 @@
       
       // 체크리스트 항목에 스와이프 기능 추가
       function addSwipeToChecklistItems() {
-        console.log('체크리스트 스와이프 기능 추가 시작');
         
         // 체크리스트 항목들만 찾기 (data-item-type="user"인 user-added-item)
         const allChecklistItems = document.querySelectorAll('.user-added-item[data-item-type="user"]');
-        console.log('전체 체크리스트 항목 개수:', allChecklistItems.length);
         
         allChecklistItems.forEach((item, index) => {
           // 이미 스와이프 버튼이 있으면 건너뛰기
           if (item.querySelector('.checklist-swipe-buttons')) {
-            console.log(`항목 ${index}은 이미 스와이프 버튼이 있음`);
             return;
           }
           
           const itemId = item.getAttribute('data-item-id');
           if (!itemId) {
-            console.log(`항목 ${index}의 itemId가 없음:`, item);
             return;
           }
           
-          console.log(`항목 ${index}에 스와이프 버튼 추가:`, itemId, item.className);
           
           // 스와이프 버튼 생성
           const swipeButtons = document.createElement('div');
@@ -3106,10 +3097,8 @@
           // 터치 이벤트 추가
           addSwipeTouchEvents(item, 'checklist');
           
-          console.log(`항목 ${index} 스와이프 기능 추가 완료`);
         });
         
-        console.log('체크리스트 스와이프 기능 추가 완료');
       }
       
       // 일정 항목에 스와이프 기능 추가
@@ -3169,7 +3158,6 @@
             itemContent.style.width = '100%';
           }
           
-          console.log('터치 시작:', type, e.touches[0].clientX, e.touches[0].clientY);
           startX = e.touches[0].clientX;
           startY = e.touches[0].clientY;
           startTime = Date.now();
@@ -3188,12 +3176,6 @@
           
           // 롱프레스 타이머 시작 (800ms 후 드래그 모드 활성화)
           currentLongPressTimer = setTimeout(() => {
-            console.log('롱프레스 타이머 실행:', {
-              isSwiping,
-              hasSwiped,
-              currentDragItem: currentDragItem === this,
-              element: this.dataset.itemId || this.dataset.scheduleId
-            });
             
             if (isSwiping && !hasSwiped && currentDragItem === this) {
               // 가상 이벤트 객체 생성 (현재 터치 위치 기준)
@@ -3264,7 +3246,6 @@
             if (itemContent) {
               itemContent.style.width = 'calc(100% - 160px)'; // 버튼 공간 확보
             }
-            console.log('스와이프 버튼 표시:', type, diffX);
           }
           // 오른쪽으로 스와이프 (버튼 숨김)
           else if (diffX < -10 && !isScrolling) {
@@ -3276,7 +3257,6 @@
               itemContent.style.width = '100%';
               itemContent.style.transform = 'translateX(0)';
             }
-            console.log('스와이프 버튼 숨김:', type, diffX);
           }
         }, { passive: false });
         
@@ -4115,7 +4095,7 @@
                 enableOfflineMode();
               });
           }
-        }, 5 * 60 * 1000); // 5분
+        }, 10 * 60 * 1000); // 10분 (배터리 절약)
       }
       
       // 마커생성 모드 토글 함수
@@ -6898,7 +6878,6 @@
           }
           
           // 성공적인 저장처럼 보이도록 처리
-          console.log(`마커 정보 오프라인 저장 완료 (작업 ID: ${operationId})`);
           alert(errorMessage);
           
         } finally {
@@ -6937,7 +6916,6 @@
           return;
         }
         
-        console.log('마커 삭제 시작 - isSyncing 플래그 무시하고 즉시 처리');
         
         try {
           // 정보창과 편집 다이얼로그 닫기
@@ -6964,16 +6942,10 @@
           
           // 해당 인덱스의 마커만 삭제
           if (markerGroup.markerElements && markerGroup.markerElements[index]) {
-            console.log('마커 삭제 전 데이터 구조:', {
-              markerElements: markerGroup.markerElements.length,
-              locations: markerGroup.locations?.length || 0,
-              markers: markerGroup.markers?.length || 0
-            });
             
             // 지도에서 마커 제거 (즉시 피드백을 위해)
             markerGroup.markerElements[index].setMap(null);
             
-            console.log('지도에서만 마커 제거 - 로컬 데이터 보존하여 실시간 동기화 감지 유지');
             
             // Firebase 저장용 데이터 생성 (로컬 데이터는 실시간 동기화로만 업데이트)
             const updatedMarkers = [...savedMarkers];
@@ -7014,7 +6986,6 @@
             const isEmpty = (updatedMarkerGroup.markers?.length || 0) === 0 && 
                            (updatedMarkerGroup.locations?.length || 0) === 0;
             if (isEmpty) {
-              console.log('마커 그룹이 비어있어 전체 삭제:', markerGroupName);
               updatedMarkers.splice(markerGroupIndex, 1);
             } else {
               updatedMarkers[markerGroupIndex] = updatedMarkerGroup;
@@ -7022,14 +6993,6 @@
             
             // Firebase에 업데이트 (직렬화 가능한 데이터만 전송)
             if (window.db && window.firestore) {
-              console.log('Firebase에 마커 삭제 저장 시도 중...', {
-                markerGroupName,
-                index,
-                deletedMarkerId: markerId,
-                현재마커수: savedMarkers.length,
-                저장할마커수: updatedMarkers.length,
-                updatedMarkerInfoData
-              });
               
               const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
               const sanitizedSavedUserMarkers = sanitizeSavedUserMarkersForFirestore(updatedMarkers);
@@ -7039,7 +7002,6 @@
                 lastUpdated: window.firestore.serverTimestamp()
               });
               
-              console.log('Firebase 마커 삭제 저장 성공 - 실시간 동기화로 UI 업데이트 예정');
             
             // UI 업데이트는 실시간 동기화를 통해 처리되므로 여기서는 하지 않음
 
@@ -7480,7 +7442,6 @@
                updateRouteRemoveButtons();
                // 마커제거 버튼 상태 업데이트
                updateMarkerRemoveButtons();
-               console.log('Firebase에서 경로 복원 완료');
                return;
              }
            }
@@ -7499,12 +7460,10 @@
              // 마커 정보 데이터(이모지 포함)를 먼저 복원한 뒤 마커를 그린다
              if (data.markerInfoData) {
                markerInfoData = data.markerInfoData;
-               console.log('마커 정보 데이터가 복원되었습니다.');
              }
              if (data.savedUserMarkers && data.savedUserMarkers.length > 0) {
                window.savedUserMarkers = data.savedUserMarkers;
                drawAllSavedMarkers();
-               console.log('Firebase에서 마커 복원 완료');
              }
              
              if (data.savedUserMarkers && data.savedUserMarkers.length > 0) {
@@ -7572,7 +7531,6 @@
            updateRouteRemoveButtons();
            
            updateSyncStatus('경로 제거 완료', 'success');
-           console.log(`Firebase에서 ${location} 경로 제거 완료`);
            
            // 성공 메시지
            alert(`${location} 경로 ${locationRoutes.length}개가 제거되었습니다.`);
@@ -7670,7 +7628,6 @@
            updateRouteRemoveButtons();
            
            updateSyncStatus('마커 제거 완료', 'success');
-           console.log(`Firebase에서 ${location} 마커 제거 완료`);
            
            // 성공 메시지
            alert(`${location} 마커 ${locationMarkers.length}개가 제거되었습니다.`);
@@ -7818,7 +7775,6 @@
        
        // 포괄적 검색 실행 함수
        function performComprehensiveSearch(query, searchBtn, originalText) {
-         console.log('포괄적 검색 시작:', query);
          
          // 검색 결과를 수집할 배열
          let allResults = [];
@@ -7843,7 +7799,6 @@
              language: 'ko' // 한국어 결과 요청
          }, function(results, status) {
              if (status === 'OK' && results && results.length) {
-               console.log('Geocoding 결과:', results.length, '개');
                results.forEach(result => {
                  allResults.push({
                    ...result,
@@ -7873,7 +7828,6 @@
            
            service.textSearch(request, function(results, status) {
              if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length) {
-               console.log('Places Text Search 결과:', results.length, '개');
                results.forEach(result => {
                  allResults.push({
                    geometry: { location: result.geometry.location },
@@ -7906,7 +7860,6 @@
              searchBtn.disabled = false;
            }
            
-         console.log('전체 검색 결과:', allResults.length, '개');
          
          if (!allResults.length) {
            alert('검색 결과가 없습니다. 다른 검색어를 시도해보세요.');
@@ -7930,7 +7883,6 @@
            }
          });
          
-         console.log('중복 제거 후:', uniqueResults.length, '개');
          
          // 현재 지도 범위 내 결과만 필터링
          const bounds = map.getBounds();
@@ -7943,7 +7895,6 @@
              return;
            }
          
-         console.log('지도 범위 내 결과:', filteredResults.length, '개');
          
          // 관련성 점수 계산 및 정렬
          const scoredResults = filteredResults.map(result => {
@@ -8244,11 +8195,9 @@
          // 사이드패널 닫기
          closeSidePanel();
          
-         console.log('마커 생성 완료:', name, 'at', location.toString());
        }
        // 여러 주소 마커 생성 함수
        function createMultipleAddressMarkers(results, originalQuery) {
-         console.log('여러 마커 생성 시작:', results.length, '개');
          
          // 기존 검색 마커들 모두 제거
          clearAllAddressMarkers();
@@ -8494,7 +8443,6 @@
          // 주소 입력창 초기화
          document.getElementById('addressInput').value = '';
          
-         console.log('마커 생성 완료:', markersCreated, '개의 마커가 생성되었습니다');
          
          // 사이드패널 닫기
          closeSidePanel();
@@ -8597,14 +8545,11 @@
              
              // 앱으로 바로 이동
              window.location.href = appUrl;
-             console.log(`${isIOS ? 'iOS' : isAndroid ? 'Android' : '기타 모바일'}에서 구글맵 앱 직접 실행:`, appUrl);
-             console.log('장소:', placeName, 'at', lat, lng);
              
            } else {
              // 데스크톱: 웹 브라우저로 구글맵 열기
              const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}&zoom=16`;
              window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
-             console.log('데스크톱에서 구글맵 웹으로 열기:', placeName, 'at', lat, lng);
            }
            
            // 사용자에게 피드백 제공
@@ -8635,7 +8580,6 @@
            }
            
            if (removedCount > 0) {
-             console.log(`${removedCount}개의 검색 마커가 뷰에서 벗어나 제거되었습니다.`);
            }
            
            // 기존 단일 마커도 확인 (호환성)
@@ -8649,7 +8593,6 @@
              addressMarker.setMap(null);
              addressMarker = null;
              document.getElementById('addressInput').value = '';
-             console.log('주소 마커가 지도 뷰에서 벗어나 자동으로 제거되었습니다.');
            }
          }
        }
@@ -8670,7 +8613,6 @@
              // 마커가 뷰에서 벗어나면 자동으로 제거
              currentLocationMarker.setMap(null);
              currentLocationMarker = null;
-             console.log('현재 위치 마커가 지도 뷰에서 벗어나 자동으로 제거되었습니다.');
            }
          }
        }
@@ -8738,13 +8680,11 @@
       
       // 드래그 모드 시작
       function startDragMode(element, event) {
-        console.log('드래그 모드 시작');
         isDraggingGlobal = true;
         dragElement = element;
         
         // 드래그된 항목 타입 설정
         draggedItemType = element.getAttribute('data-item-type') || 'user';
-        console.log('드래그된 항목 타입:', draggedItemType);
         
         // 스와이프 상태 초기화
         element.classList.remove('swiped');
@@ -8895,7 +8835,6 @@
       function handleDragEnd(element, event) {
         if (!isDraggingGlobal || !dragElement) return;
         
-        console.log('드래그 종료');
         
         // 드롭 애니메이션 효과
         dragElement.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -8970,7 +8909,6 @@
               currentLongPressTimer = null;
             }
             
-            console.log('드래그앤드롭 완료 및 Firebase 동기화 시작');
           }, 300);
           
         } else {
@@ -9030,11 +8968,9 @@
       // Firebase 전용 간소화된 항목 순서 저장
       async function saveItemOrderToFirebaseOnly() {
         try {
-          console.log('드래그앤드롭 순서 변경 - Firebase 저장 시작');
           
           // 동기화 중이면 무시 (무한 루프 방지)
           if (isSyncing) {
-            console.log('동기화 중이므로 순서 저장 건너뜀');
             return;
           }
           
@@ -9071,8 +9007,6 @@
             };
           });
           
-          console.log('새로운 항목 순서:', newOrder);
-          console.log('드래그된 항목 타입:', draggedItemType);
           
           if (draggedItemType === 'schedule') {
             // 일정 항목 순서 저장
@@ -9099,7 +9033,6 @@
       // 사용자 항목 순서 직접 Firebase 저장
       async function saveUserItemOrderDirect(newOrder) {
         try {
-          console.log('사용자 항목 순서 Firebase 저장 시작');
           
           if (!window.db || !window.firestore) {
             console.error('Firebase가 초기화되지 않았습니다.');
