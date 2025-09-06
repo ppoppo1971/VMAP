@@ -1766,7 +1766,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행0906</h2>
+      <h2>홋카이도 여행1150</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -2073,33 +2073,10 @@
         
         geocoder = new google.maps.Geocoder(); // Geocoder 객체 생성
         
-        // 커스텀 더블클릭 이벤트 - 2단계 축소 기능
+        // 더블클릭 감지 변수 - 전역으로 선언
         let clickTimeout;
         let clickCount = 0;
         const DOUBLE_CLICK_DELAY = 300; // 더블클릭 감지 시간 간격 (ms)
-        
-        map.addListener('click', function(event) {
-          clickCount++;
-          
-          if (clickCount === 1) {
-            // 첫 번째 클릭 - 타이머 시작
-            clickTimeout = setTimeout(function() {
-              clickCount = 0; // 단일 클릭으로 처리
-            }, DOUBLE_CLICK_DELAY);
-          } else if (clickCount === 2) {
-            // 두 번째 클릭 - 더블클릭으로 처리
-            clearTimeout(clickTimeout);
-            clickCount = 0;
-            
-            // 현재 줌 레벨에서 2단계 축소
-            const currentZoom = map.getZoom();
-            const newZoom = Math.max(currentZoom - 2, 1); // 최소 줌 레벨 1로 제한
-            
-            map.setZoom(newZoom);
-            
-            console.log('더블클릭으로 지도 축소:', currentZoom, '->', newZoom);
-          }
-        });
         
         // 공항 아이콘 마커 추가 - 이모지 사용
         incheonMarker = new google.maps.Marker({
@@ -2226,6 +2203,29 @@
         
         // 지도 클릭 시 모든 창들 닫기 기능 - 모바일 최적화
         map.addListener('click', function(event) {
+          // 더블클릭 감지 로직
+          clickCount++;
+          
+          if (clickCount === 1) {
+            // 첫 번째 클릭 - 타이머 시작
+            clickTimeout = setTimeout(function() {
+              clickCount = 0; // 단일 클릭으로 처리
+            }, DOUBLE_CLICK_DELAY);
+          } else if (clickCount === 2) {
+            // 두 번째 클릭 - 더블클릭으로 처리
+            clearTimeout(clickTimeout);
+            clickCount = 0;
+            
+            // 현재 줌 레벨에서 2단계 축소
+            const currentZoom = map.getZoom();
+            const newZoom = Math.max(currentZoom - 2, 1); // 최소 줌 레벨 1로 제한
+            
+            map.setZoom(newZoom);
+            
+            console.log('더블클릭으로 지도 축소:', currentZoom, '->', newZoom);
+            return; // 더블클릭 처리 후 함수 종료
+          }
+          
           // 모바일에서 터치 이벤트 최적화
           if (isMobile && event.placeId) {
             return; // 장소 클릭 시 무시
