@@ -1766,7 +1766,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>홋카이도 여행1136</h2>
+      <h2>홋카이도 여행0906</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="주소를 입력하세요" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -2049,6 +2049,8 @@
           tilt: 0,
           // 모바일에서 한 손가락 드래그 허용
           gestureHandling: 'greedy',
+          // 기본 더블클릭 줌 비활성화 (커스텀 더블클릭으로 축소 구현)
+          disableDoubleClickZoom: true,
           // 기본: 라벨 숨김
           styles: window.hideLabelsStyle,
           // 모바일 성능 최적화
@@ -2070,6 +2072,37 @@
         });
         
         geocoder = new google.maps.Geocoder(); // Geocoder 객체 생성
+        
+        // 커스텀 더블클릭 이벤트 - 더블클릭 시 축소
+        let lastClickTime = 0;
+        let clickTimeout;
+        
+        map.addListener('click', function(event) {
+          const now = Date.now();
+          const timeDiff = now - lastClickTime;
+          
+          // 더블클릭 감지 (500ms 이내의 연속 클릭)
+          if (timeDiff < 500) {
+            clearTimeout(clickTimeout);
+            
+            // 현재 줌 레벨에서 1단계 축소
+            const currentZoom = map.getZoom();
+            const newZoom = Math.max(currentZoom - 1, 1); // 최소 줌 레벨 1로 제한
+            
+            // 부드러운 애니메이션으로 축소
+            map.setZoom(newZoom);
+            
+            console.log(`더블클릭으로 줌 축소: ${currentZoom} → ${newZoom}`);
+          } else {
+            // 단일 클릭 처리 (기존 동작 유지)
+            clearTimeout(clickTimeout);
+            clickTimeout = setTimeout(function() {
+              // 단일 클릭 시의 기본 동작 (필요시 여기에 추가)
+            }, 500);
+          }
+          
+          lastClickTime = now;
+        });
         
         // 공항 아이콘 마커 추가 - 이모지 사용
         incheonMarker = new google.maps.Marker({
