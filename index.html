@@ -2049,7 +2049,7 @@
           tilt: 0,
           // 모바일에서 한 손가락 드래그 허용
           gestureHandling: 'greedy',
-          // 기본 더블클릭 줌 비활성화 (커스텀 더블클릭으로 축소 구현)
+          // 더블클릭 확대 비활성화 (커스텀 더블클릭 이벤트 사용)
           disableDoubleClickZoom: true,
           // 기본: 라벨 숨김
           styles: window.hideLabelsStyle,
@@ -2073,35 +2073,32 @@
         
         geocoder = new google.maps.Geocoder(); // Geocoder 객체 생성
         
-        // 커스텀 더블클릭 이벤트 - 더블클릭 시 축소
-        let lastClickTime = 0;
+        // 커스텀 더블클릭 이벤트 - 2단계 축소 기능
         let clickTimeout;
+        let clickCount = 0;
+        const DOUBLE_CLICK_DELAY = 300; // 더블클릭 감지 시간 간격 (ms)
         
         map.addListener('click', function(event) {
-          const now = Date.now();
-          const timeDiff = now - lastClickTime;
+          clickCount++;
           
-          // 더블클릭 감지 (500ms 이내의 연속 클릭)
-          if (timeDiff < 500) {
+          if (clickCount === 1) {
+            // 첫 번째 클릭 - 타이머 시작
+            clickTimeout = setTimeout(function() {
+              clickCount = 0; // 단일 클릭으로 처리
+            }, DOUBLE_CLICK_DELAY);
+          } else if (clickCount === 2) {
+            // 두 번째 클릭 - 더블클릭으로 처리
             clearTimeout(clickTimeout);
+            clickCount = 0;
             
-            // 현재 줌 레벨에서 1단계 축소
+            // 현재 줌 레벨에서 2단계 축소
             const currentZoom = map.getZoom();
-            const newZoom = Math.max(currentZoom - 1, 1); // 최소 줌 레벨 1로 제한
+            const newZoom = Math.max(currentZoom - 2, 1); // 최소 줌 레벨 1로 제한
             
-            // 부드러운 애니메이션으로 축소
             map.setZoom(newZoom);
             
-            console.log(`더블클릭으로 줌 축소: ${currentZoom} → ${newZoom}`);
-          } else {
-            // 단일 클릭 처리 (기존 동작 유지)
-            clearTimeout(clickTimeout);
-            clickTimeout = setTimeout(function() {
-              // 단일 클릭 시의 기본 동작 (필요시 여기에 추가)
-            }, 500);
+            console.log('더블클릭으로 지도 축소:', currentZoom, '->', newZoom);
           }
-          
-          lastClickTime = now;
         });
         
         // 공항 아이콘 마커 추가 - 이모지 사용
