@@ -1247,20 +1247,22 @@
         const totalKRW = filteredData.filter(i => i.currency === '원화').reduce((s, i) => s + (Number(i.amount) || 0), 0);
         const totalJPY = filteredData.filter(i => i.currency === '엔화').reduce((s, i) => s + (Number(i.amount) || 0), 0);
         
-        // 환율 가져오기 (localStorage에서)
-        const exchangeRate = parseFloat(localStorage.getItem('jpyExchangeRate')) || 0;
-        const totalKRWFromJPY = totalJPY * exchangeRate;
+        // 환율 가져오기 (localStorage에서, 없으면 기본값 950 사용) - 100엔 단위
+        const exchangeRate = parseFloat(localStorage.getItem('jpyExchangeRate')) || 950;
+        const totalKRWFromJPY = (totalJPY / 100) * exchangeRate;
         const totalKRWCombined = totalKRW + totalKRWFromJPY;
         
         const footer = document.getElementById('budgetTableFooter');
         if (footer) {
             footer.innerHTML = `
                 <tr>
-                    <td colspan="4" style="text-align:right; font-weight:700; color:#374151; background:#f9fafb;">합계</td>
+                    <td colspan="4" style="text-align:right; font-weight:700; color:#374151; background:#f9fafb;">
+                        합계
+                        ${totalJPY ? `<br><small style="color: #6b7280;">(환산: ${totalKRWFromJPY.toLocaleString()}원${localStorage.getItem('jpyExchangeRate') ? '' : ' - 기본환율 950'})</small>` : ''}
+                        ${totalJPY ? `<br><strong style="color: #1f2937; font-size: 16px;">총합: ${totalKRWCombined.toLocaleString()}원</strong>` : ''}
+                    </td>
                     <td style="text-align:right; font-weight:700; background:#f9fafb; white-space:nowrap; overflow:visible; min-width:max-content;">
                         <span style="color: #2563eb;">${totalKRW.toLocaleString()}원</span>${totalJPY ? ` / <span style="color: #dc2626; cursor: pointer; text-decoration: underline;" onclick="showExchangeRateDialog()" title="환율 입력 (클릭)">¥${totalJPY.toLocaleString()}</span>` : ''}
-                        ${totalJPY && exchangeRate > 0 ? `<br><small style="color: #6b7280;">(환산: ${totalKRWFromJPY.toLocaleString()}원)</small>` : totalJPY ? `<br><small style="color: #9ca3af;">(환율을 입력하면 환산 금액이 표시됩니다)</small>` : ''}
-                        ${totalJPY && exchangeRate > 0 ? `<br><strong style="color: #1f2937; font-size: 16px;">총합: ${totalKRWCombined.toLocaleString()}원</strong>` : ''}
                     </td>
                     <td style="background:#f9fafb;"></td>
                 </tr>
@@ -1554,11 +1556,11 @@
                 <div id="exchangeRateDialog" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
                     <div style="background: white; padding: 30px; border-radius: 15px; max-width: 400px; width: 90%;">
                         <h3 style="margin-bottom: 20px; text-align: center;">엔화 환율 입력</h3>
-                        <p style="margin-bottom: 15px; color: #6b7280; text-align: center;">1엔 = ?원</p>
+                        <p style="margin-bottom: 15px; color: #6b7280; text-align: center;">100엔 = ?원</p>
                         
                         <div style="margin-bottom: 20px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">환율 (1엔당 원화)</label>
-                            <input type="number" id="exchangeRateInput" value="${currentRate}" placeholder="예: 8.5" step="0.01" min="0" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; text-align: center;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 600;">환율 (100엔당 원화)</label>
+                            <input type="number" id="exchangeRateInput" value="${currentRate}" placeholder="예: 950" step="0.01" min="0" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; text-align: center;">
                         </div>
                         
                         <div style="display: flex; gap: 10px;">
