@@ -632,7 +632,7 @@
     <!-- Firebase SDK (v9 modular) -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
-        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, arrayUnion, arrayRemove, getDoc, serverTimestamp, orderBy, query } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, arrayUnion, arrayRemove, getDoc, serverTimestamp, orderBy, query, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
         
         // Firebase 설정 (index47m.html과 동일)
         const firebaseConfig = {
@@ -660,155 +660,19 @@
             serverTimestamp: serverTimestamp,
             query: query,
             orderBy: orderBy,
-            getDocs: getDocs
+            getDocs: getDocs,
+            onSnapshot: onSnapshot
         };
         
+        // Firebase 초기화 완료 이벤트 발생
+        window.dispatchEvent(new CustomEvent('firebaseReady'));
+        console.log('Firebase 초기화 완료 - 가계부');
 
     </script>
     
     <script>
-        // 오프라인 지원 시스템 (index.html과 동일)
-        const PENDING_OPERATIONS_KEY = 'pendingFirebaseOperations';
-        const MAX_PENDING_OPERATIONS = 50;
-        
-        const OPERATION_TYPES = {
-          BUDGET_ADD: 'budgetAdd',
-          BUDGET_UPDATE: 'budgetUpdate',
-          BUDGET_DELETE: 'budgetDelete'
-        };
-        
-        // 대기 작업 관리 함수들
-        function getPendingOperations() {
-          try {
-            const pending = localStorage.getItem(PENDING_OPERATIONS_KEY);
-            return pending ? JSON.parse(pending) : [];
-          } catch (error) {
-            console.error('대기 작업 로드 실패:', error);
-            return [];
-          }
-        }
-        
-        function savePendingOperations(operations) {
-          try {
-            const limitedOps = operations.slice(-MAX_PENDING_OPERATIONS);
-            localStorage.setItem(PENDING_OPERATIONS_KEY, JSON.stringify(limitedOps));
-          } catch (error) {
-            console.error('대기 작업 저장 실패:', error);
-          }
-        }
-        
-        function addPendingOperation(operation) {
-          const pending = getPendingOperations();
-          const newOperation = {
-            id: `${operation.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            timestamp: Date.now(),
-            retryCount: 0,
-            ...operation
-          };
-          
-          pending.push(newOperation);
-          savePendingOperations(pending);
-          
-
-          return newOperation.id;
-        }
-        
-        function removePendingOperation(operationId) {
-          const pending = getPendingOperations();
-          const filtered = pending.filter(op => op.id !== operationId);
-          savePendingOperations(filtered);
-
-        }
-        
-        // 자동 재시도 시스템
-        async function processPendingOperations() {
-          if (!navigator.onLine || !window.db || !window.firestore) {
-
-            return;
-          }
-          
-          const pending = getPendingOperations();
-          if (pending.length === 0) return;
-          
-
-          
-          for (const operation of pending) {
-            try {
-              await retryPendingOperation(operation);
-              removePendingOperation(operation.id);
-            } catch (error) {
-              console.error('대기 작업 재시도 실패:', operation.id, error);
-              operation.retryCount = (operation.retryCount || 0) + 1;
-              
-              if (operation.retryCount >= 3) {
-                console.warn('최대 재시도 횟수 초과로 작업 제거:', operation.id);
-                removePendingOperation(operation.id);
-              } else {
-                const pending = getPendingOperations();
-                const index = pending.findIndex(op => op.id === operation.id);
-                if (index !== -1) {
-                  pending[index] = operation;
-                  savePendingOperations(pending);
-                }
-              }
-            }
-          }
-        }
-        
-        async function retryPendingOperation(operation) {
-          const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
-          
-          switch (operation.type) {
-            case OPERATION_TYPES.BUDGET_ADD:
-              await window.firestore.updateDoc(userDocRef, {
-                budgetItems: window.firestore.arrayUnion(operation.data),
-                lastUpdated: window.firestore.serverTimestamp()
-              });
-
-              break;
-              
-            case OPERATION_TYPES.BUDGET_UPDATE:
-              await window.firestore.updateDoc(userDocRef, {
-                budgetItems: window.firestore.arrayRemove(operation.oldData)
-              });
-              await window.firestore.updateDoc(userDocRef, {
-                budgetItems: window.firestore.arrayUnion(operation.newData),
-                lastUpdated: window.firestore.serverTimestamp()
-              });
-
-              break;
-              
-            case OPERATION_TYPES.BUDGET_DELETE:
-              await window.firestore.updateDoc(userDocRef, {
-                budgetItems: window.firestore.arrayRemove(operation.data),
-                lastUpdated: window.firestore.serverTimestamp()
-              });
-
-              break;
-              
-            default:
-              throw new Error(`알 수 없는 작업 타입: ${operation.type}`);
-          }
-        }
-        
-        // 네트워크 상태 감지
-        window.addEventListener('online', function() {
-
-          setTimeout(() => {
-            processPendingOperations().catch(error => {
-              console.error('온라인 전환 시 대기 작업 처리 실패:', error);
-            });
-          }, 1000);
-        });
-        
-        // 페이지 로드 시 대기 작업 처리
-        if (navigator.onLine) {
-          setTimeout(() => {
-            processPendingOperations().catch(error => {
-              console.error('초기 대기 작업 처리 실패:', error);
-            });
-          }, 2000);
-        }
+        // Firebase 실시간 연동을 위한 간단한 스크립트
+        console.log('가계부 Firebase 실시간 연동 모드');
     </script>
     
     <script>
@@ -829,87 +693,144 @@
             '기타': '💡'
         };
         
-        // Firebase에서 가계부 데이터 로드 (개선된 방식)
-        async function loadBudgetDataFromFirebase() {
+        // Firebase 실시간 동기화 설정 (중복 제거)
+        function setupFirebaseSync() {
             try {
                 if (!window.db || !window.firestore) {
-                    console.warn('Firebase가 초기화되지 않았습니다.');
-                    loadBudgetDataFromURL();
+                    console.error('Firebase가 초기화되지 않음');
                     return;
                 }
                 
                 const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
-                const docSnap = await window.firestore.getDoc(userDocRef);
                 
-                if (docSnap.exists() && docSnap.data().budgetItems) {
-                    budgetData = docSnap.data().budgetItems || [];
-                    
-                    // 데이터 일관성 검사 및 수정
-                    budgetData = budgetData.map(item => {
-                        // ID가 없는 항목에 ID 추가
-                        if (!item.id && item.timestamp) {
-                            item.id = item.timestamp.toString();
-                        } else if (!item.id) {
-                            item.id = Date.now().toString();
+                const unsubscribe = window.firestore.onSnapshot(
+                    userDocRef,
+                    (doc) => {
+                        if (doc.exists()) {
+                            const data = doc.data();
+                            const newBudgetData = data.budgetItems || [];
+                            
+                            // 중복 제거 (ID 기준)
+                            const uniqueItems = [];
+                            const seenIds = new Set();
+                            
+                            for (const item of newBudgetData) {
+                                // ID 생성 또는 확인
+                                let itemId = item.id;
+                                if (!itemId && item.timestamp) {
+                                    itemId = item.timestamp.toString();
+                                } else if (!itemId) {
+                                    itemId = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9);
+                                }
+                                
+                                // 중복 확인
+                                if (!seenIds.has(itemId)) {
+                                    seenIds.add(itemId);
+                                    uniqueItems.push({
+                                        ...item,
+                                        id: itemId
+                                    });
+                                } else {
+                                    console.log('중복 항목 제거:', itemId);
+                                }
+                            }
+                            
+                            // 날짜 기준 최신순 정렬
+                            uniqueItems.sort((a, b) => {
+                                const dateA = new Date(a.date);
+                                const dateB = new Date(b.date);
+                                if (dateA.getTime() !== dateB.getTime()) {
+                                    return dateB.getTime() - dateA.getTime();
+                                }
+                                return (b.timestamp || 0) - (a.timestamp || 0);
+                            });
+                            
+                            // 데이터 업데이트
+                            budgetData = uniqueItems;
+                            filteredData = [...budgetData];
+                            
+                            // 편집 상태 확인
+                            if (window.isEditingAmount && window.editingItemId && window.editingCell) {
+                                // 편집 중인 항목이 여전히 존재하는지 확인
+                                const editingItem = budgetData.find(item => (item.id || item.timestamp) === window.editingItemId);
+                                if (editingItem) {
+                                    // 편집 상태 유지 - 통화 선택 드롭다운 다시 표시
+                                    console.log('편집 상태 유지 - 통화 선택 드롭다운 복원');
+                                    // 테이블 렌더링 후에 드롭다운 표시
+                                    renderStats();
+                                    renderTable();
+                                    // 약간의 지연 후 드롭다운 표시 (DOM 업데이트 완료 후)
+                                    setTimeout(() => {
+                                        showCurrencySelectDropdown(window.editingAmount, window.editingItemId, window.editingCell);
+                                    }, 10);
+                                    return;
+                                } else {
+                                    // 편집 중인 항목이 삭제된 경우 편집 상태 초기화
+                                    window.isEditingAmount = false;
+                                    window.editingItemId = null;
+                                    window.editingAmount = null;
+                                    window.editingCell = null;
+                                }
+                            }
+                            
+                            renderStats();
+                            renderTable();
+                            
+                            console.log('가계부 데이터 실시간 동기화 완료:', budgetData.length, '개 항목 (중복 제거됨)');
+                        } else {
+                            budgetData = [];
+                            filteredData = [];
+                            renderStats();
+                            renderTable();
                         }
-                        return item;
-                    });
-                    
-                    // 날짜 기준 최신순 정렬 (날짜가 같으면 timestamp 기준)
-                    budgetData.sort((a, b) => {
-                        const dateA = new Date(a.date);
-                        const dateB = new Date(b.date);
-                        if (dateA.getTime() !== dateB.getTime()) {
-                            return dateB.getTime() - dateA.getTime(); // 날짜 내림차순
-                        }
-                        return (b.timestamp || 0) - (a.timestamp || 0); // 같은 날짜면 입력시간 내림차순
-                    });
-                    
-                    // 수정된 데이터를 Firebase에 다시 저장 (일관성 유지)
-                    if (budgetData.length > 0) {
-                        await window.firestore.updateDoc(userDocRef, {
-                            budgetItems: budgetData,
-                            lastUpdated: window.firestore.serverTimestamp()
-                        });
+                    },
+                    (error) => {
+                        console.error('Firebase 실시간 동기화 오류:', error);
                     }
-                } else {
-                    budgetData = [];
-                }
+                );
                 
-                filteredData = [...budgetData];
+                // 구독 해제 함수를 전역으로 저장
+                window.unsubscribeBudgetFirebase = unsubscribe;
                 
-                renderStats();
-                renderTable();
-
             } catch (error) {
-                console.error('Firebase 데이터 로드 실패:', error);
-                // Firebase 로드 실패시 URL 파라미터에서 로드 시도
-                loadBudgetDataFromURL();
+                console.error('Firebase 동기화 설정 실패:', error);
             }
         }
         
         // localStorage 마이그레이션 함수 제거됨 (Firebase 직접 저장으로 변경)
         
-        // Firebase에 가계부 데이터 저장 (개선된 방식)
+        // Firebase에 가계부 데이터 저장 (실시간 연동, 중복 방지)
         async function saveBudgetDataToFirebase(budgetItem) {
             try {
                 if (!window.db || !window.firestore) {
                     throw new Error('Firebase가 초기화되지 않았습니다.');
                 }
                 
-                // 로컬 데이터에 추가
-                budgetData.push(budgetItem);
-                filteredData = [...budgetData];
-                
                 const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
                 
-                // 전체 배열을 한 번에 업데이트 (더 안정적)
+                // 먼저 현재 데이터를 가져와서 중복 확인
+                const docSnap = await window.firestore.getDoc(userDocRef);
+                const currentData = docSnap.exists() ? docSnap.data() : {};
+                const currentItems = currentData.budgetItems || [];
+                
+                // 중복 확인 (ID 또는 timestamp로)
+                const isDuplicate = currentItems.some(item => 
+                    item.id === budgetItem.id || 
+                    (item.timestamp && budgetItem.timestamp && item.timestamp === budgetItem.timestamp)
+                );
+                
+                if (isDuplicate) {
+                    console.log('중복 항목 감지 - 저장 건너뜀:', budgetItem.id);
+                    return budgetItem.id;
+                }
+                
+                // 중복이 아닌 경우에만 추가
                 await window.firestore.updateDoc(userDocRef, {
-                    budgetItems: budgetData,
+                    budgetItems: window.firestore.arrayUnion(budgetItem),
                     lastUpdated: window.firestore.serverTimestamp()
                 });
                 
-
+                console.log('새 항목 저장 완료:', budgetItem.id);
                 return budgetItem.id;
             } catch (error) {
                 console.error('Firebase 저장 실패:', error);
@@ -917,31 +838,26 @@
             }
         }
         
-        // Firebase에서 가계부 데이터 삭제 (개선된 방식)
+        // Firebase에서 가계부 데이터 삭제 (실시간 연동)
         async function deleteBudgetDataFromFirebase(itemId) {
             try {
                 if (!window.db || !window.firestore) {
                     throw new Error('Firebase가 초기화되지 않았습니다.');
                 }
                 
-                // 삭제할 항목 찾기 (id 또는 timestamp로)
-                const itemIndex = budgetData.findIndex(item => (item.id || item.timestamp) === itemId);
-                if (itemIndex === -1) {
+                // 삭제할 항목 찾기
+                const itemToDelete = budgetData.find(item => (item.id || item.timestamp) === itemId);
+                if (!itemToDelete) {
                     throw new Error('삭제할 항목을 찾을 수 없습니다.');
                 }
                 
-                // 로컬 데이터에서 제거
-                budgetData.splice(itemIndex, 1);
-                filteredData = [...budgetData];
-                
                 const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
                 
-                // 전체 배열을 한 번에 업데이트 (더 안정적)
+                // Firebase에서 직접 삭제 (실시간 동기화가 자동으로 UI 업데이트)
                 await window.firestore.updateDoc(userDocRef, {
-                    budgetItems: budgetData,
+                    budgetItems: window.firestore.arrayRemove(itemToDelete),
                     lastUpdated: window.firestore.serverTimestamp()
                 });
-                
 
             } catch (error) {
                 console.error('Firebase 삭제 실패:', error);
@@ -949,38 +865,37 @@
             }
         }
         
-        // Firebase에서 가계부 데이터 수정 (개선된 방식)
+        // Firebase에서 가계부 데이터 수정 (실시간 연동)
         async function updateBudgetDataInFirebase(itemId, updatedData) {
             try {
                 if (!window.db || !window.firestore) {
                     throw new Error('Firebase가 초기화되지 않았습니다.');
                 }
                 
-                // 기존 항목 찾기 (id 또는 timestamp로)
-                const oldItemIndex = budgetData.findIndex(item => (item.id || item.timestamp) === itemId);
-                if (oldItemIndex === -1) {
+                // 기존 항목 찾기
+                const oldItem = budgetData.find(item => (item.id || item.timestamp) === itemId);
+                if (!oldItem) {
                     throw new Error('수정할 항목을 찾을 수 없습니다.');
                 }
                 
                 // 새 항목 생성 (기존 ID 유지)
                 const updatedItem = { 
-                    ...budgetData[oldItemIndex], 
+                    ...oldItem, 
                     ...updatedData,
-                    id: budgetData[oldItemIndex].id || budgetData[oldItemIndex].timestamp // ID 유지
+                    id: oldItem.id || oldItem.timestamp
                 };
-                
-                // 로컬 데이터 업데이트
-                budgetData[oldItemIndex] = updatedItem;
-                filteredData = [...budgetData];
                 
                 const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
                 
-                // 전체 배열을 한 번에 업데이트 (더 안정적)
+                // Firebase에서 직접 수정 (실시간 동기화가 자동으로 UI 업데이트)
                 await window.firestore.updateDoc(userDocRef, {
-                    budgetItems: budgetData,
-                    lastUpdated: window.firestore.serverTimestamp()
+                    budgetItems: window.firestore.arrayRemove(oldItem)
                 });
                 
+                await window.firestore.updateDoc(userDocRef, {
+                    budgetItems: window.firestore.arrayUnion(updatedItem),
+                    lastUpdated: window.firestore.serverTimestamp()
+                });
 
             } catch (error) {
                 console.error('Firebase 수정 실패:', error);
@@ -988,39 +903,7 @@
             }
         }
         
-        // URL에서 데이터 가져오기 (Firebase 실패시 백업용)
-        function loadBudgetDataFromURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const dataParam = urlParams.get('data');
-            
-            if (dataParam) {
-                try {
-                    budgetData = JSON.parse(decodeURIComponent(dataParam));
-                    filteredData = [...budgetData];
-                    
-                    // 날짜 기준 최신순 정렬
-                    const sortByDate = (a, b) => {
-                        const dateA = new Date(a.date);
-                        const dateB = new Date(b.date);
-                        if (dateA.getTime() !== dateB.getTime()) {
-                            return dateB.getTime() - dateA.getTime();
-                        }
-                        return (b.timestamp || 0) - (a.timestamp || 0);
-                    };
-                    budgetData.sort(sortByDate);
-                    filteredData.sort(sortByDate);
-                    
-                    renderStats();
-                    renderTable();
-
-                } catch (error) {
-                    console.error('URL 데이터 파싱 오류:', error);
-                    showNoData();
-                }
-            } else {
-                showNoData();
-            }
-        }
+        // URL 데이터 로드 함수 제거됨 (Firebase 실시간 연동 사용)
         
         // 통계 카드 렌더링 (미사용: 미니멀 UI)
         function renderStats() {
@@ -1257,12 +1140,11 @@
             footer.innerHTML = `
                 <tr>
                     <td colspan="4" style="text-align:right; font-weight:700; color:#374151; background:#f9fafb;">
-                        합계
-                        ${totalJPY ? `<br><small style="color: #6b7280;">(환산: ${totalKRWFromJPY.toLocaleString()}원${localStorage.getItem('jpyExchangeRate') ? '' : ' - 기본환율 950'})</small>` : ''}
-                        ${totalJPY ? `<br><strong style="color: #1f2937; font-size: 16px;">총합: ${totalKRWCombined.toLocaleString()}원</strong>` : ''}
                     </td>
                     <td style="text-align:right; font-weight:700; background:#f9fafb; white-space:nowrap; overflow:visible; min-width:max-content;">
-                        <span style="color: #2563eb;">${totalKRW.toLocaleString()}원</span>${totalJPY ? ` / <span style="color: #dc2626; cursor: pointer; text-decoration: underline;" onclick="showExchangeRateDialog()" title="환율 입력 (클릭)">¥${totalJPY.toLocaleString()}</span>` : ''}
+                        <span style="color: #2563eb; font-size: 16px;">${totalKRW.toLocaleString()}원</span>${totalJPY ? ` / <span style="color: #dc2626; cursor: pointer; text-decoration: underline; font-size: 16px;" onclick="showExchangeRateDialog()" title="환율 입력 (클릭)">¥${totalJPY.toLocaleString()}</span>` : ''}
+                        ${totalJPY ? `<br><small style="color: #6b7280;">(환율:${exchangeRate}, 환산:${totalKRWFromJPY.toLocaleString()}원)</small>` : ''}
+                        ${totalJPY ? `<br><strong style="color: #1f2937; font-size: 16px;">총합: ${totalKRWCombined.toLocaleString()}원</strong>` : ''}
                     </td>
                     <td style="background:#f9fafb;"></td>
                 </tr>
@@ -1431,8 +1313,16 @@
             }
         }
         
-        // 모든 필드가 입력되었는지 확인하고 자동 저장
+        // 모든 필드가 입력되었는지 확인하고 자동 저장 (중복 방지)
+        let isAutoSaving = false;
+        
         function checkAndSaveIfComplete() {
+            // 이미 자동 저장 중이면 건너뜀
+            if (isAutoSaving) {
+                console.log('자동 저장 중 - 건너뜀');
+                return;
+            }
+            
             const date = document.getElementById('dialogDate')?.value;
             const category = document.getElementById('dialogCategory')?.value;
             const content = document.getElementById('dialogContent')?.value?.trim();
@@ -1442,7 +1332,10 @@
             
             // 모든 필드가 입력되었는지 확인
             if (date && category && content && payment && currency && amount && Number(amount) > 0) {
-                saveBudgetFromDialog();
+                isAutoSaving = true;
+                saveBudgetFromDialog().finally(() => {
+                    isAutoSaving = false;
+                });
             }
         }
         
@@ -1477,7 +1370,7 @@
             document.getElementById('dialogCurrency').value = currency;
         }
         
-        // 다이얼로그에서 Firebase에 저장
+        // 다이얼로그에서 Firebase에 저장 (실시간 연동, 중복 방지)
         async function saveBudgetFromDialog() {
             const date = document.getElementById('dialogDate').value;
             const category = document.getElementById('dialogCategory').value;
@@ -1496,9 +1389,21 @@
                 return;
             }
             
+            // 저장 중 중복 클릭 방지
+            const saveButton = document.querySelector('button[onclick="saveBudgetFromDialog()"]');
+            if (saveButton && saveButton.disabled) {
+                console.log('이미 저장 중입니다.');
+                return;
+            }
+            
+            if (saveButton) {
+                saveButton.disabled = true;
+                saveButton.textContent = '저장 중...';
+            }
+            
             try {
                 const budgetItem = {
-                    id: 'budget_' + Date.now(),
+                    id: 'budget_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
                     date: date,
                     category: category,
                     content: content,
@@ -1512,34 +1417,15 @@
                 alert('가계부에 추가되었습니다!');
                 closeBudgetDialog();
                 
-                // 데이터 다시 로드
-                await loadBudgetDataFromFirebase();
+                // 실시간 동기화가 자동으로 UI 업데이트하므로 별도 로드 불필요
             } catch (error) {
                 console.error('가계부 저장 실패:', error);
-                
-                // 오프라인 지원 - 실패한 작업을 대기 큐에 추가
-                const operationId = addPendingOperation({
-                  type: OPERATION_TYPES.BUDGET_ADD,
-                  data: budgetItem
-                });
-                
-                // 구체적인 오류 메시지
-                let errorMessage = '가계부가 임시 저장되었습니다.';
-                if (error.message.includes('Firebase') || error.code === 'unavailable') {
-                  errorMessage = '네트워크 연결 문제로 임시 저장되었습니다. 연결 시 자동으로 동기화됩니다.';
-                } else if (error.code === 'permission-denied') {
-                  errorMessage = '권한 문제로 임시 저장되었습니다. 로그인을 확인해주세요.';
+                alert('가계부 저장에 실패했습니다. 다시 시도해주세요.');
+            } finally {
+                if (saveButton) {
+                    saveButton.disabled = false;
+                    saveButton.textContent = '저장';
                 }
-                
-
-                alert(errorMessage);
-                closeBudgetDialog();
-                
-                // 임시로 로컬 데이터에 추가 (UI 반영)
-                budgetData.unshift(budgetItem);
-                filteredData = [...budgetData];
-                renderStats();
-                renderTable();
             }
         }
         
@@ -1609,36 +1495,18 @@
             if (dialog) dialog.remove();
         }
         
-        // 가계부 항목 삭제
+        // 가계부 항목 삭제 (실시간 연동)
         async function deleteBudgetItem(itemId) {
             if (!confirm('이 항목을 삭제하시겠습니까?')) return;
             
             try {
                 await deleteBudgetDataFromFirebase(itemId);
                 alert('항목이 삭제되었습니다.');
-                await loadBudgetDataFromFirebase();
+                
+                // 실시간 동기화가 자동으로 UI 업데이트하므로 별도 로드 불필요
             } catch (error) {
                 console.error('가계부 삭제 실패:', error);
-                
-                // 오프라인 지원 - 실패한 작업을 대기 큐에 추가
-                const itemToDelete = budgetData.find(item => (item.id || item.timestamp) === itemId);
-                if (itemToDelete) {
-                  const operationId = addPendingOperation({
-                    type: OPERATION_TYPES.BUDGET_DELETE,
-                    data: itemToDelete
-                  });
-                  
-                  // 임시로 로컬에서 제거 (UI 반영)
-                  budgetData = budgetData.filter(item => (item.id || item.timestamp) !== itemId);
-                  filteredData = [...budgetData];
-                  renderStats();
-                  renderTable();
-                  
-
-                  alert('항목이 임시 삭제되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
-                } else {
-                  alert('삭제에 실패했습니다. 다시 시도해주세요.');
-                }
+                alert('항목 삭제에 실패했습니다. 다시 시도해주세요.');
             }
         }
         
@@ -1790,40 +1658,55 @@
             return input;
         }
         
-        // 금액 저장 후 통화 선택 드롭다운 표시 (결제방법 드롭다운 방식으로 변경)
+        // 금액 저장 후 통화 선택 드롭다운 표시 (실시간 연동, 편집 상태 유지)
         function saveAmountAndShowCurrencySelect(amount, itemId, cell) {
+            console.log('금액 저장 시작:', amount, itemId);
+            
             // 먼저 금액을 임시로 저장
             const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
-            if (!item) return;
+            if (!item) {
+                console.log('항목을 찾을 수 없음:', itemId);
+                return;
+            }
+            
+            // 편집 상태 유지를 위한 플래그 설정
+            window.isEditingAmount = true;
+            window.editingItemId = itemId;
+            window.editingAmount = amount;
+            window.editingCell = cell;
+            
+            console.log('편집 상태 설정:', window.isEditingAmount, window.editingItemId);
             
             // 금액만 먼저 업데이트
             const tempUpdateData = { amount: amount };
             
             // Firebase에 금액만 먼저 저장
             updateBudgetDataInFirebase(itemId, tempUpdateData).then(() => {
+                console.log('금액 저장 성공, 통화 선택 드롭다운 표시');
                 // 금액 저장 성공 후 통화 선택 드롭다운 표시
                 showCurrencySelectDropdown(amount, itemId, cell);
             }).catch(error => {
                 console.error('금액 저장 실패:', error);
-                
-                // 오프라인 지원 - 금액만 임시 저장
-                const operationId = addPendingOperation({
-                    type: OPERATION_TYPES.BUDGET_UPDATE,
-                    oldData: item,
-                    newData: { ...item, ...tempUpdateData }
-                });
-                
-                Object.assign(item, tempUpdateData);
-                showCurrencySelectDropdown(amount, itemId, cell);
-                
-
+                alert('금액 저장에 실패했습니다. 다시 시도해주세요.');
+                // 편집 상태 초기화
+                window.isEditingAmount = false;
+                window.editingItemId = null;
+                window.editingAmount = null;
+                window.editingCell = null;
             });
         }
         
         // 통화 선택 드롭다운 표시 (결제방법 드롭다운 방식)
         function showCurrencySelectDropdown(amount, itemId, cell) {
+            console.log('통화 선택 드롭다운 표시 시작:', amount, itemId, cell);
+            
             const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
-            if (!item) return;
+            if (!item) {
+                console.log('통화 선택 드롭다운: 항목을 찾을 수 없음');
+                return;
+            }
+            
+            console.log('통화 선택 드롭다운: 항목 찾음, 버튼 생성 중');
             
             // 통화 선택 버튼들 생성 (결제방법 드롭다운 방식)
             const currencyContainer = document.createElement('div');
@@ -1935,11 +1818,13 @@
             currencyContainer.appendChild(jpyBtn);
             
             // 셀 내용을 통화 선택 버튼들로 교체
+            console.log('통화 선택 드롭다운: 셀에 버튼 추가 중', cell);
             cell.innerHTML = '';
             cell.appendChild(currencyContainer);
+            console.log('통화 선택 드롭다운: 버튼 추가 완료');
         }
         
-        // 통화 선택 및 저장
+        // 통화 선택 및 저장 (실시간 연동, 편집 상태 초기화)
         function selectCurrencyAndSave(amount, currency, itemId, cell) {
             const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
             if (!item) return;
@@ -1949,30 +1834,21 @@
                 currency: currency
             };
             
+            // 편집 상태 초기화
+            window.isEditingAmount = false;
+            window.editingItemId = null;
+            window.editingAmount = null;
+            window.editingCell = null;
+            
             // Firebase 업데이트
             updateBudgetDataInFirebase(itemId, updateData).then(() => {
                 currentEditingCell.classList.remove('editing');
                 currentEditingCell = null;
-                renderStats();
-                renderTable();
+                
+                // 실시간 동기화가 자동으로 UI 업데이트하므로 별도 렌더링 불필요
             }).catch(error => {
                 console.error('통화 저장 실패:', error);
-                
-                // 오프라인 지원
-                const operationId = addPendingOperation({
-                    type: OPERATION_TYPES.BUDGET_UPDATE,
-                    oldData: item,
-                    newData: { ...item, ...updateData }
-                });
-                
-                Object.assign(item, updateData);
-                currentEditingCell.classList.remove('editing');
-                currentEditingCell = null;
-                renderStats();
-                renderTable();
-                
-
-                alert('통화가 임시 저장되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
+                alert('통화 저장에 실패했습니다. 다시 시도해주세요.');
             });
         }
         
@@ -2033,7 +1909,7 @@
              let newValue = '';
              let updateData = {};
              
-                                                       // 금액 필드의 경우 특별 처리
+             // 금액 필드의 경우 특별 처리
               if (field === 'amount') {
                   // 금액 필드의 경우 별도 처리 함수에서 처리되므로 여기서는 건너뜀
                   return;
@@ -2054,35 +1930,15 @@
                  // Firebase 업데이트
                  await updateBudgetDataInFirebase(itemId, updateData);
                  
-                 // 성공시 UI 업데이트
+                 // 성공시 편집 모드 종료
                  currentEditingCell.classList.remove('editing');
                  currentEditingCell = null;
                  
-                 // 테이블 다시 렌더링 (전체 데이터 다시 로드하지 않고 로컬 업데이트)
-                 renderStats();
-                 renderTable();
+                 // 실시간 동기화가 자동으로 UI 업데이트하므로 별도 렌더링 불필요
                  
              } catch (error) {
                  console.error('가계부 수정 실패:', error);
-                 
-                 // 오프라인 지원 - 실패한 작업을 대기 큐에 추가
-                 const operationId = addPendingOperation({
-                   type: OPERATION_TYPES.BUDGET_UPDATE,
-                   oldData: item,
-                   newData: { ...item, ...updateData }
-                 });
-                 
-                 // 임시로 로컬 데이터 수정 (UI 반영)
-                 Object.assign(item, updateData);
-                 
-                 // UI 업데이트
-                 currentEditingCell.classList.remove('editing');
-                 currentEditingCell = null;
-                 renderStats();
-                 renderTable();
-                 
-
-                 alert('항목이 임시 수정되었습니다. 네트워크 연결 시 자동으로 동기화됩니다.');
+                 alert('항목 수정에 실패했습니다. 다시 시도해주세요.');
              }
          }
         
@@ -2099,6 +1955,12 @@
         // 경고창 없이 편집 취소 (다른 곳 클릭시 사용)
         function cancelEditWithoutWarning() {
             if (!currentEditingCell) return;
+            
+            // 편집 상태 초기화
+            window.isEditingAmount = false;
+            window.editingItemId = null;
+            window.editingAmount = null;
+            window.editingCell = null;
             
             // 원래 데이터로 복원
             const itemId = currentEditingCell.closest('tr').dataset.itemId;
@@ -2163,11 +2025,31 @@
             }
         });
         
+        // Firebase 초기화 완료 대기 및 동기화 시작
+        function waitForFirebaseAndStartSync() {
+            // Firebase가 이미 초기화된 경우
+            if (window.db && window.firestore) {
+                console.log('Firebase 이미 초기화됨 - 동기화 시작');
+                setupFirebaseSync();
+                setupFilters();
+                return;
+            }
+            
+            // Firebase 초기화 완료 이벤트 대기
+            const firebaseReadyHandler = () => {
+                console.log('Firebase 초기화 완료 이벤트 수신 - 동기화 시작');
+                window.removeEventListener('firebaseReady', firebaseReadyHandler);
+                setupFirebaseSync();
+                setupFilters();
+            };
+            
+            // Firebase 초기화 완료 이벤트 리스너 등록
+            window.addEventListener('firebaseReady', firebaseReadyHandler);
+        }
+        
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', () => {
-            // Firebase에서 데이터 로드 (우선순위)
-            loadBudgetDataFromFirebase();
-            setupFilters();
+            waitForFirebaseAndStartSync();
         });
     </script>
 </body>
