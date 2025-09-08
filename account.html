@@ -189,15 +189,64 @@
             width: 16%;
             text-align: right;
         }
-        .budget-table th:nth-child(6),
-        .budget-table td:nth-child(6) { /* 삭제 */
-            width: 10%;
-            text-align: center;
-            white-space: nowrap;
-        }
         
         .budget-table tr:hover {
             background: rgba(79, 70, 229, 0.02);
+        }
+        
+        /* 스와이프 삭제 스타일 */
+        .budget-table tbody tr {
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+        
+        .swipe-delete-container {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .swipe-delete-actions {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            background: #dc2626;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 10;
+        }
+        
+        .swipe-delete-actions.show {
+            transform: translateX(0);
+        }
+        
+        .delete-button {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s ease;
+        }
+        
+        .delete-button:hover {
+            background: #b91c1c;
+        }
+        
+        .swipe-delete-content {
+            background: white;
+            transition: transform 0.3s ease;
+        }
+        
+        .swipe-delete-content.swiped {
+            transform: translateX(-80px);
         }
         
         
@@ -445,12 +494,6 @@
                 text-align: right;
             }
 
-            .budget-table th:nth-child(6),
-            .budget-table td:nth-child(6) { /* 삭제 */
-                width: 10%;
-                text-align: center;
-                white-space: nowrap;
-            }
 
             .content-cell {
                 max-width: none;
@@ -550,12 +593,6 @@
                 text-align: right;
             }
 
-            .budget-table th:nth-child(6),
-            .budget-table td:nth-child(6) { /* 삭제 */
-                width: 10%;
-                text-align: center;
-                white-space: nowrap;
-            }
             
             .content-cell {
                 max-width: none;
@@ -612,7 +649,6 @@
                         <th>내용</th>
                         <th onclick="togglePaymentFilter()" style="cursor: pointer; user-select: none;" id="paymentHeader">결제방법</th>
                         <th>금액</th>
-                        <th>삭제</th>
                     </tr>
                 </thead>
                 <tbody id="budgetTableBody">
@@ -666,17 +702,10 @@
         
         // Firebase 초기화 완료 이벤트 발생
         window.dispatchEvent(new CustomEvent('firebaseReady'));
-        console.log('Firebase 초기화 완료 - 가계부');
 
     </script>
     
     <script>
-        // Firebase 실시간 연동을 위한 간단한 스크립트
-        console.log('가계부 Firebase 실시간 연동 모드');
-    </script>
-    
-    <script>
-        
         let budgetData = [];
         let filteredData = [];
         let dateSortOrder = 'desc'; // 'desc' = 내림차순(최신순), 'asc' = 오름차순(오래된순)
@@ -697,7 +726,6 @@
         function setupFirebaseSync() {
             try {
                 if (!window.db || !window.firestore) {
-                    console.error('Firebase가 초기화되지 않음');
                     return;
                 }
                 
@@ -706,6 +734,11 @@
                 const unsubscribe = window.firestore.onSnapshot(
                     userDocRef,
                     (doc) => {
+                        // 실시간 동기화 일시 중단 확인
+                        if (window.pauseRealtimeSync) {
+                            return;
+                        }
+                        
                         if (doc.exists()) {
                             const data = doc.data();
                             const newBudgetData = data.budgetItems || [];
@@ -731,7 +764,6 @@
                                         id: itemId
                                     });
                                 } else {
-                                    console.log('중복 항목 제거:', itemId);
                                 }
                             }
                             
@@ -750,18 +782,31 @@
                             filteredData = [...budgetData];
                             
                             // 편집 상태 확인
-                            if (window.isEditingAmount && window.editingItemId && window.editingCell) {
+                            if (window.isEditingAmount && window.editingItemId && window.editingAmount) {
                                 // 편집 중인 항목이 여전히 존재하는지 확인
                                 const editingItem = budgetData.find(item => (item.id || item.timestamp) === window.editingItemId);
                                 if (editingItem) {
                                     // 편집 상태 유지 - 통화 선택 드롭다운 다시 표시
-                                    console.log('편집 상태 유지 - 통화 선택 드롭다운 복원');
                                     // 테이블 렌더링 후에 드롭다운 표시
                                     renderStats();
                                     renderTable();
                                     // 약간의 지연 후 드롭다운 표시 (DOM 업데이트 완료 후)
                                     setTimeout(() => {
-                                        showCurrencySelectDropdown(window.editingAmount, window.editingItemId, window.editingCell);
+                                        // 셀을 다시 찾기
+                                        const table = document.getElementById('budgetTable');
+                                        if (table) {
+                                            const rows = table.querySelectorAll('tbody tr');
+                                            for (let row of rows) {
+                                                if (row.dataset.itemId === window.editingItemId) {
+                                                    const amountCell = row.querySelector('td[data-field="amount"]');
+                                                    if (amountCell) {
+                                                        showCurrencySelectDropdown(window.editingAmount, window.editingItemId, amountCell);
+                                                        window.editingCell = amountCell; // 셀 참조 업데이트
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }, 10);
                                     return;
                                 } else {
@@ -776,7 +821,6 @@
                             renderStats();
                             renderTable();
                             
-                            console.log('가계부 데이터 실시간 동기화 완료:', budgetData.length, '개 항목 (중복 제거됨)');
                         } else {
                             budgetData = [];
                             filteredData = [];
@@ -785,7 +829,6 @@
                         }
                     },
                     (error) => {
-                        console.error('Firebase 실시간 동기화 오류:', error);
                     }
                 );
                 
@@ -793,11 +836,8 @@
                 window.unsubscribeBudgetFirebase = unsubscribe;
                 
             } catch (error) {
-                console.error('Firebase 동기화 설정 실패:', error);
             }
         }
-        
-        // localStorage 마이그레이션 함수 제거됨 (Firebase 직접 저장으로 변경)
         
         // Firebase에 가계부 데이터 저장 (실시간 연동, 중복 방지)
         async function saveBudgetDataToFirebase(budgetItem) {
@@ -820,7 +860,6 @@
                 );
                 
                 if (isDuplicate) {
-                    console.log('중복 항목 감지 - 저장 건너뜀:', budgetItem.id);
                     return budgetItem.id;
                 }
                 
@@ -830,10 +869,8 @@
                     lastUpdated: window.firestore.serverTimestamp()
                 });
                 
-                console.log('새 항목 저장 완료:', budgetItem.id);
                 return budgetItem.id;
             } catch (error) {
-                console.error('Firebase 저장 실패:', error);
                 throw error;
             }
         }
@@ -860,7 +897,6 @@
                 });
 
             } catch (error) {
-                console.error('Firebase 삭제 실패:', error);
                 throw error;
             }
         }
@@ -878,6 +914,7 @@
                     throw new Error('수정할 항목을 찾을 수 없습니다.');
                 }
                 
+                
                 // 새 항목 생성 (기존 ID 유지)
                 const updatedItem = { 
                     ...oldItem, 
@@ -885,27 +922,45 @@
                     id: oldItem.id || oldItem.timestamp
                 };
                 
+                
                 const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
                 
-                // Firebase에서 직접 수정 (실시간 동기화가 자동으로 UI 업데이트)
-                await window.firestore.updateDoc(userDocRef, {
-                    budgetItems: window.firestore.arrayRemove(oldItem)
+                // 현재 Firebase 데이터 가져오기
+                const docSnapshot = await window.firestore.getDoc(userDocRef);
+                if (!docSnapshot.exists()) {
+                    throw new Error('사용자 문서를 찾을 수 없습니다.');
+                }
+                
+                const currentData = docSnapshot.data();
+                const currentItems = currentData.budgetItems || [];
+                
+                // 해당 항목을 찾아서 업데이트
+                let found = false;
+                const updatedItems = currentItems.map(item => {
+                    const itemIdToCheck = item.id || item.timestamp;
+                    if (itemIdToCheck === itemId) {
+                        found = true;
+                        return updatedItem;
+                    }
+                    return item;
                 });
                 
+                if (!found) {
+                    throw new Error('업데이트할 항목을 Firebase에서 찾을 수 없습니다.');
+                }
+                
+                // Firebase에 업데이트된 배열 저장
                 await window.firestore.updateDoc(userDocRef, {
-                    budgetItems: window.firestore.arrayUnion(updatedItem),
+                    budgetItems: updatedItems,
                     lastUpdated: window.firestore.serverTimestamp()
                 });
+                
 
             } catch (error) {
-                console.error('Firebase 수정 실패:', error);
                 throw error;
             }
         }
         
-        // URL 데이터 로드 함수 제거됨 (Firebase 실시간 연동 사용)
-        
-        // 통계 카드 렌더링 (미사용: 미니멀 UI)
         function renderStats() {
             const statsContainer = document.getElementById('statsContainer');
             if (statsContainer) statsContainer.innerHTML = '';
@@ -1105,26 +1160,31 @@
                 const paymentClass = item.payment === '카드' ? 'payment-card' : 'payment-cash';
                 
                 return `
-                    <tr data-item-id="${item.id || item.timestamp}">
-                        <td class="date-cell editable-cell" data-field="date" data-type="date" onclick="editCell(this, '${item.id || item.timestamp}')">${formattedDate}</td>
-                        <td class="category-cell editable-cell" data-field="category" data-type="select" onclick="event.stopPropagation(); editCell(this, '${item.id || item.timestamp}')">
-                            <span>${item.category}</span>
+                    <tr data-item-id="${item.id || item.timestamp}" class="swipe-delete-container">
+                        <td class="swipe-delete-content" style="display: contents;">
+                            <td class="date-cell editable-cell" data-field="date" data-type="date" onclick="editCell(this, '${item.id || item.timestamp}')">${formattedDate}</td>
+                            <td class="category-cell editable-cell" data-field="category" data-type="select" onclick="event.stopPropagation(); editCell(this, '${item.id || item.timestamp}')">
+                                <span>${item.category}</span>
+                            </td>
+                            <td class="content-cell editable-cell" data-field="content" data-type="text" onclick="editCell(this, '${item.id || item.timestamp}')">${item.content || '-'}</td>
+                            <td class="editable-cell" data-field="payment" data-type="select" onclick="event.stopPropagation(); editCell(this, '${item.id || item.timestamp}')">
+                                <span class="payment-badge ${paymentClass}">${item.payment}</span>
+                            </td>
+                            <td class="amount-cell ${amountClass} editable-cell" data-field="amount" data-type="number" onclick="editCell(this, '${item.id || item.timestamp}')">
+                                ${item.amount.toLocaleString()}${currencySymbol}
+                            </td>
                         </td>
-                        <td class="content-cell editable-cell" data-field="content" data-type="text" onclick="editCell(this, '${item.id || item.timestamp}')">${item.content || '-'}</td>
-                        <td class="editable-cell" data-field="payment" data-type="select" onclick="event.stopPropagation(); editCell(this, '${item.id || item.timestamp}')">
-                            <span class="payment-badge ${paymentClass}">${item.payment}</span>
-                        </td>
-                        <td class="amount-cell ${amountClass} editable-cell" data-field="amount" data-type="number" onclick="editCell(this, '${item.id || item.timestamp}')">
-                            ${item.amount.toLocaleString()}${currencySymbol}
-                        </td>
-                        <td style="text-align: center;">
-                            <button onclick="deleteBudgetItem('${item.id || item.timestamp}')" style="background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">삭제</button>
+                        <td class="swipe-delete-actions">
+                            <button class="delete-button" onclick="confirmDeleteItem('${item.id || item.timestamp}')">삭제</button>
                         </td>
                     </tr>
                 `;
             }).join('');
             
             tableBody.innerHTML = tableHTML;
+            
+            // 스와이프 이벤트 리스너 추가
+            addSwipeListeners();
 
         // 합계 표시 (현재 필터링된 데이터 기준)
         const totalKRW = filteredData.filter(i => i.currency === '원화').reduce((s, i) => s + (Number(i.amount) || 0), 0);
@@ -1319,7 +1379,6 @@
         function checkAndSaveIfComplete() {
             // 이미 자동 저장 중이면 건너뜀
             if (isAutoSaving) {
-                console.log('자동 저장 중 - 건너뜀');
                 return;
             }
             
@@ -1392,7 +1451,6 @@
             // 저장 중 중복 클릭 방지
             const saveButton = document.querySelector('button[onclick="saveBudgetFromDialog()"]');
             if (saveButton && saveButton.disabled) {
-                console.log('이미 저장 중입니다.');
                 return;
             }
             
@@ -1417,9 +1475,7 @@
                 alert('가계부에 추가되었습니다!');
                 closeBudgetDialog();
                 
-                // 실시간 동기화가 자동으로 UI 업데이트하므로 별도 로드 불필요
             } catch (error) {
-                console.error('가계부 저장 실패:', error);
                 alert('가계부 저장에 실패했습니다. 다시 시도해주세요.');
             } finally {
                 if (saveButton) {
@@ -1503,9 +1559,7 @@
                 await deleteBudgetDataFromFirebase(itemId);
                 alert('항목이 삭제되었습니다.');
                 
-                // 실시간 동기화가 자동으로 UI 업데이트하므로 별도 로드 불필요
             } catch (error) {
-                console.error('가계부 삭제 실패:', error);
                 alert('항목 삭제에 실패했습니다. 다시 시도해주세요.');
             }
         }
@@ -1660,12 +1714,10 @@
         
         // 금액 저장 후 통화 선택 드롭다운 표시 (실시간 연동, 편집 상태 유지)
         function saveAmountAndShowCurrencySelect(amount, itemId, cell) {
-            console.log('금액 저장 시작:', amount, itemId);
             
             // 먼저 금액을 임시로 저장
             const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
             if (!item) {
-                console.log('항목을 찾을 수 없음:', itemId);
                 return;
             }
             
@@ -1675,38 +1727,36 @@
             window.editingAmount = amount;
             window.editingCell = cell;
             
-            console.log('편집 상태 설정:', window.isEditingAmount, window.editingItemId);
+            
+            // 실시간 동기화 일시 중단
+            window.pauseRealtimeSync = true;
             
             // 금액만 먼저 업데이트
             const tempUpdateData = { amount: amount };
             
             // Firebase에 금액만 먼저 저장
             updateBudgetDataInFirebase(itemId, tempUpdateData).then(() => {
-                console.log('금액 저장 성공, 통화 선택 드롭다운 표시');
                 // 금액 저장 성공 후 통화 선택 드롭다운 표시
                 showCurrencySelectDropdown(amount, itemId, cell);
             }).catch(error => {
-                console.error('금액 저장 실패:', error);
                 alert('금액 저장에 실패했습니다. 다시 시도해주세요.');
                 // 편집 상태 초기화
                 window.isEditingAmount = false;
                 window.editingItemId = null;
                 window.editingAmount = null;
                 window.editingCell = null;
+                window.pauseRealtimeSync = false;
             });
         }
         
         // 통화 선택 드롭다운 표시 (결제방법 드롭다운 방식)
         function showCurrencySelectDropdown(amount, itemId, cell) {
-            console.log('통화 선택 드롭다운 표시 시작:', amount, itemId, cell);
             
             const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
             if (!item) {
-                console.log('통화 선택 드롭다운: 항목을 찾을 수 없음');
                 return;
             }
             
-            console.log('통화 선택 드롭다운: 항목 찾음, 버튼 생성 중');
             
             // 통화 선택 버튼들 생성 (결제방법 드롭다운 방식)
             const currencyContainer = document.createElement('div');
@@ -1818,21 +1868,23 @@
             currencyContainer.appendChild(jpyBtn);
             
             // 셀 내용을 통화 선택 버튼들로 교체
-            console.log('통화 선택 드롭다운: 셀에 버튼 추가 중', cell);
             cell.innerHTML = '';
             cell.appendChild(currencyContainer);
-            console.log('통화 선택 드롭다운: 버튼 추가 완료');
         }
         
         // 통화 선택 및 저장 (실시간 연동, 편집 상태 초기화)
         function selectCurrencyAndSave(amount, currency, itemId, cell) {
+            
             const item = budgetData.find(item => (item.id || item.timestamp) === itemId);
-            if (!item) return;
+            if (!item) {
+                return;
+            }
             
             const updateData = {
                 amount: amount,
                 currency: currency
             };
+            
             
             // 편집 상태 초기화
             window.isEditingAmount = false;
@@ -1840,14 +1892,19 @@
             window.editingAmount = null;
             window.editingCell = null;
             
+            // 실시간 동기화 재활성화 (업데이트 전에)
+            window.pauseRealtimeSync = false;
+            
             // Firebase 업데이트
             updateBudgetDataInFirebase(itemId, updateData).then(() => {
-                currentEditingCell.classList.remove('editing');
-                currentEditingCell = null;
                 
-                // 실시간 동기화가 자동으로 UI 업데이트하므로 별도 렌더링 불필요
+                // 편집 셀 정리
+                if (currentEditingCell) {
+                    currentEditingCell.classList.remove('editing');
+                    currentEditingCell = null;
+                }
+                
             }).catch(error => {
-                console.error('통화 저장 실패:', error);
                 alert('통화 저장에 실패했습니다. 다시 시도해주세요.');
             });
         }
@@ -1934,10 +1991,8 @@
                  currentEditingCell.classList.remove('editing');
                  currentEditingCell = null;
                  
-                 // 실시간 동기화가 자동으로 UI 업데이트하므로 별도 렌더링 불필요
                  
              } catch (error) {
-                 console.error('가계부 수정 실패:', error);
                  alert('항목 수정에 실패했습니다. 다시 시도해주세요.');
              }
          }
@@ -1961,6 +2016,9 @@
             window.editingItemId = null;
             window.editingAmount = null;
             window.editingCell = null;
+            
+            // 실시간 동기화 재활성화
+            window.pauseRealtimeSync = false;
             
             // 원래 데이터로 복원
             const itemId = currentEditingCell.closest('tr').dataset.itemId;
@@ -1997,6 +2055,90 @@
             currentEditingCell = null;
         }
         
+        // 스와이프 이벤트 리스너 추가
+        function addSwipeListeners() {
+            const rows = document.querySelectorAll('.swipe-delete-container');
+            rows.forEach(row => {
+                let startX = 0;
+                let currentX = 0;
+                let isDragging = false;
+                let hasSwiped = false;
+                
+                // 터치 시작
+                row.addEventListener('touchstart', function(e) {
+                    startX = e.touches[0].clientX;
+                    isDragging = true;
+                    hasSwiped = false;
+                }, { passive: true });
+                
+                // 터치 이동
+                row.addEventListener('touchmove', function(e) {
+                    if (!isDragging) return;
+                    
+                    currentX = e.touches[0].clientX;
+                    const diffX = startX - currentX;
+                    
+                    // 오른쪽으로 스와이프 (삭제 버튼 표시)
+                    if (diffX > 30) {
+                        e.preventDefault();
+                        row.querySelector('.swipe-delete-actions').classList.add('show');
+                        row.querySelector('.swipe-delete-content').classList.add('swiped');
+                        hasSwiped = true;
+                    }
+                    // 왼쪽으로 스와이프 (삭제 버튼 숨김)
+                    else if (diffX < -30) {
+                        row.querySelector('.swipe-delete-actions').classList.remove('show');
+                        row.querySelector('.swipe-delete-content').classList.remove('swiped');
+                        hasSwiped = false;
+                    }
+                }, { passive: false });
+                
+                // 터치 종료
+                row.addEventListener('touchend', function(e) {
+                    isDragging = false;
+                    
+                    // 스와이프가 충분하지 않으면 원래 상태로 복원
+                    if (!hasSwiped) {
+                        row.querySelector('.swipe-delete-actions').classList.remove('show');
+                        row.querySelector('.swipe-delete-content').classList.remove('swiped');
+                    }
+                }, { passive: true });
+                
+                // 클릭으로 삭제 버튼 토글 (데스크톱용)
+                row.addEventListener('click', function(e) {
+                    // 삭제 버튼이 아닌 경우에만 토글
+                    if (!e.target.classList.contains('delete-button')) {
+                        const actions = row.querySelector('.swipe-delete-actions');
+                        const content = row.querySelector('.swipe-delete-content');
+                        
+                        if (actions.classList.contains('show')) {
+                            actions.classList.remove('show');
+                            content.classList.remove('swiped');
+                        } else {
+                            // 다른 행의 삭제 버튼 숨기기
+                            document.querySelectorAll('.swipe-delete-actions').forEach(action => {
+                                action.classList.remove('show');
+                            });
+                            document.querySelectorAll('.swipe-delete-content').forEach(content => {
+                                content.classList.remove('swiped');
+                            });
+                            
+                            // 현재 행의 삭제 버튼 표시
+                            actions.classList.add('show');
+                            content.classList.add('swiped');
+                        }
+                    }
+                });
+            });
+        }
+        
+        // 삭제 확인 함수
+        function confirmDeleteItem(itemId) {
+            if (confirm('정말로 이 항목을 삭제하시겠습니까?')) {
+                deleteBudgetItem(itemId);
+            }
+        }
+        
         // 테이블 외부 클릭시 편집 취소 및 새 편집 시작
         document.addEventListener('click', function(e) {
             if (currentEditingCell) {
@@ -2029,7 +2171,6 @@
         function waitForFirebaseAndStartSync() {
             // Firebase가 이미 초기화된 경우
             if (window.db && window.firestore) {
-                console.log('Firebase 이미 초기화됨 - 동기화 시작');
                 setupFirebaseSync();
                 setupFilters();
                 return;
@@ -2037,7 +2178,6 @@
             
             // Firebase 초기화 완료 이벤트 대기
             const firebaseReadyHandler = () => {
-                console.log('Firebase 초기화 완료 이벤트 수신 - 동기화 시작');
                 window.removeEventListener('firebaseReady', firebaseReadyHandler);
                 setupFirebaseSync();
                 setupFilters();
