@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10170429</title>
+    <title>WMAP10170442</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -4057,7 +4057,21 @@
               longPressMarker = null;
             }
             
-            alert('사진이 지도에 저장되었습니다!\n원본 사진이 다운로드 폴더에 저장되었습니다.');
+            // 기기별 안내 메시지
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            let message = '사진이 지도에 저장되었습니다!';
+            
+            if (isIOS) {
+              if (navigator.share) {
+                message += '\n공유 메뉴에서 "사진에 저장"을 선택하세요.';
+              } else {
+                message += '\n새 탭에서 사진을 길게 눌러 "사진에 추가"를 선택하세요.';
+              }
+            } else {
+              message += '\n원본 사진이 다운로드 폴더에 저장되었습니다.';
+            }
+            
+            alert(message);
             
           } catch (error) {
             console.error('사진 저장 실패:', error);
@@ -4205,44 +4219,85 @@
           }
         };
         
-        // 사진 자동 다운로드 (촬영 시 자동 실행)
+        // 사진 자동 저장 (촬영 시 자동 실행) - iOS/Android 호환
         async function autoDownloadPhoto(imageData, photoId, isOriginal) {
           try {
-            // Base64를 Blob으로 변환
-            const base64Data = imageData.split(',')[1];
-            const mimeType = imageData.split(',')[0].split(':')[1].split(';')[0];
-            const byteCharacters = atob(base64Data);
-            const byteNumbers = new Array(byteCharacters.length);
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const isAndroid = /Android/i.test(navigator.userAgent);
             
-            for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            if (isIOS) {
+              // iOS: Web Share API 또는 새 탭 열기
+              if (navigator.share) {
+                // Web Share API 사용 가능 시
+                try {
+                  // Base64를 Blob으로 변환
+                  const base64Data = imageData.split(',')[1];
+                  const byteCharacters = atob(base64Data);
+                  const byteNumbers = new Array(byteCharacters.length);
+                  
+                  for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                  }
+                  
+                  const byteArray = new Uint8Array(byteNumbers);
+                  const blob = new Blob([byteArray], { type: 'image/jpeg' });
+                  const file = new File([blob], `WMAP_Photo_${photoId}.jpg`, { type: 'image/jpeg' });
+                  
+                  // 공유 다이얼로그 열기
+                  await navigator.share({
+                    files: [file],
+                    title: 'WMAP 사진',
+                    text: '촬영한 사진을 저장하세요'
+                  });
+                  
+                  console.log('iOS: Web Share API로 공유 완료');
+                } catch (shareError) {
+                  console.log('iOS: 공유 취소 또는 실패 (정상 - 사용자가 취소했을 수 있음)');
+                }
+              } else {
+                // Web Share API 미지원 시: 새 탭으로 열기
+                const newWindow = window.open(imageData, '_blank');
+                if (newWindow) {
+                  console.log('iOS: 새 탭으로 이미지 열기 - 사용자가 길게 눌러 저장할 수 있습니다.');
+                }
+              }
+            } else {
+              // Android 및 기타: 일반 다운로드
+              const base64Data = imageData.split(',')[1];
+              const mimeType = imageData.split(',')[0].split(':')[1].split(';')[0];
+              const byteCharacters = atob(base64Data);
+              const byteNumbers = new Array(byteCharacters.length);
+              
+              for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              
+              const byteArray = new Uint8Array(byteNumbers);
+              const blob = new Blob([byteArray], { type: mimeType });
+              
+              // 다운로드 링크 생성
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = isOriginal ? `WMAP_Photo_Original_${photoId}.jpg` : `WMAP_Photo_${photoId}.jpg`;
+              
+              // 다운로드 실행
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              
+              // URL 해제
+              setTimeout(() => {
+                URL.revokeObjectURL(url);
+              }, 100);
+              
+              console.log(`Android: 사진 자동 다운로드 완료: ${link.download}`);
             }
             
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: mimeType });
-            
-            // 다운로드 링크 생성
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = isOriginal ? `WMAP_Photo_Original_${photoId}.jpg` : `WMAP_Photo_${photoId}.jpg`;
-            
-            // 다운로드 실행
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // URL 해제
-            setTimeout(() => {
-              URL.revokeObjectURL(url);
-            }, 100);
-            
-            console.log(`사진 자동 다운로드 완료: ${link.download}`);
-            
           } catch (error) {
-            console.error('사진 자동 다운로드 실패:', error);
-            // 자동 다운로드 실패는 경고만 (작업은 계속 진행)
-            console.warn('자동 다운로드에 실패했지만 Firebase 저장은 계속됩니다.');
+            console.error('사진 자동 저장 실패:', error);
+            // 자동 저장 실패는 경고만 (작업은 계속 진행)
+            console.warn('자동 저장에 실패했지만 Firebase 저장은 계속됩니다.');
           }
         }
         
