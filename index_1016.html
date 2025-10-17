@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10170241</title>
+    <title>WMAP10170251</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -11154,7 +11154,7 @@
             addSwipeToScheduleItems();
           }, 100);
           
-          // Firebase에 저장
+          // Firebase에 저장 (배열 맨 앞에 추가)
           if (window.db && window.firestore) {
             const scheduleData = {
               id: scheduleId,
@@ -11163,10 +11163,17 @@
               type: 'custom_schedule'
             };
             
+            // 기존 일정들을 가져와서 맨 앞에 새 항목 추가
+            const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
+            const existingSchedules = docSnap.exists() && docSnap.data().customSchedules ? docSnap.data().customSchedules : [];
+            
+            // 맨 앞에 새 일정 추가
+            const updatedSchedules = [scheduleData, ...existingSchedules];
+            
             await window.firestore.updateDoc(
               window.firestore.doc(window.db, 'users', 'currentUser'),
               {
-                customSchedules: window.firestore.arrayUnion(scheduleData),
+                customSchedules: updatedSchedules,
                 lastUpdated: window.firestore.serverTimestamp()
               }
             );
@@ -11440,14 +11447,8 @@
             if (additionalDaysContainer) {
               let html = '';
               
-              // 최신 항목이 맨 위에 오도록 역순으로 정렬
-              const sortedSchedules = [...customSchedules].sort((a, b) => {
-                const timeA = new Date(a.timestamp || 0).getTime();
-                const timeB = new Date(b.timestamp || 0).getTime();
-                return timeB - timeA; // 내림차순 (최신 항목이 먼저)
-              });
-              
-              sortedSchedules.forEach(schedule => {
+              // Firebase 배열 순서 그대로 사용 (드래그로 정렬된 순서 유지)
+              customSchedules.forEach(schedule => {
                 html += `
                   <div class="user-added-item" data-item-id="${schedule.id}" data-item-type="schedule" data-schedule-id="${schedule.id}" data-schedule-title="${schedule.title}">
                     <div class="item-content">
