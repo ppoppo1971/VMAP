@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10170442</title>
+    <title>WMAP10170457</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -1872,8 +1872,8 @@
     <!-- GPS 위치 버튼 -->
     <button id="locationBtn" onclick="getCurrentLocation()" title="현재 위치로 이동">📍</button>
     
-    <!-- 카메라 입력 (숨김) -->
-    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+    <!-- 카메라 입력 (숨김) - iOS에서 네이티브 카메라 앱 사용을 위해 capture 속성 제거 -->
+    <input type="file" id="cameraInput" accept="image/*" style="display: none;">
 
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
@@ -3644,19 +3644,7 @@
             loadingMessage.textContent = '사진 처리 중...';
             document.body.appendChild(loadingMessage);
             
-            // 원본 사진을 먼저 갤러리에 자동 저장 (압축 전)
-            const originalImageData = await new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = (e) => resolve(e.target.result);
-              reader.onerror = reject;
-              reader.readAsDataURL(file);
-            });
-            
-            // 원본 사진 자동 다운로드 (갤러리 저장)
-            const photoId = 'photo_' + Date.now();
-            await autoDownloadPhoto(originalImageData, photoId, true);  // true = 원본
-            
-            // 이미지 압축 (100kb 목표) - Firebase 저장용
+            // 이미지 압축 (100kb 목표)
             const compressedImageData = await compressImageTo100KB(file);
             
             // 롱프레스 마커 위치 가져오기
@@ -3668,7 +3656,7 @@
             loadingMessage.remove();
             
             // 현장 선택 다이얼로그 표시
-            showPhotoLocationSelectDialog(lat, lng, compressedImageData, photoId);
+            showPhotoLocationSelectDialog(lat, lng, compressedImageData);
             
           } catch (error) {
             console.error('사진 처리 실패:', error);
@@ -3755,7 +3743,7 @@
         }
         
         // 사진 마커 생성 함수
-        async function createPhotoMarker(lat, lng, imageData, location, photoId) {
+        async function createPhotoMarker(lat, lng, imageData, location) {
           // 사진 마커 생성 (📷 이모지)
           const photoMarker = new google.maps.Marker({
             position: { lat: lat, lng: lng },
@@ -3774,7 +3762,7 @@
           });
           
           // Firebase에 저장 (마커 클릭 이벤트 등록 전에)
-          await savePhotoToFirebase(lat, lng, imageData, photoMarker, location, photoId);
+          await savePhotoToFirebase(lat, lng, imageData, photoMarker, location);
           
           // 마커 클릭 시 사진 표시
           photoMarker.addListener('click', function() {
@@ -3950,12 +3938,15 @@
         };
         
         // 사진 저장 위치 선택 다이얼로그
-        function showPhotoLocationSelectDialog(lat, lng, imageData, photoId) {
+        function showPhotoLocationSelectDialog(lat, lng, imageData) {
           // 기존 다이얼로그 제거
           const existingDialog = document.getElementById('photoLocationDialog');
           if (existingDialog) {
             existingDialog.remove();
           }
+          
+          // Firebase에서 현장 목록 가져오기
+          const customSchedules = window.db ? [] : [];
           
           // 다이얼로그 생성
           const dialog = document.createElement('div');
@@ -3995,7 +3986,7 @@
               addedTitles.add(scheduleTitle);
               
               locationButtonsHtml += `
-                <button onclick="savePhotoWithLocation('${lat}', '${lng}', '${imageData.replace(/'/g, "\\'")}', '${scheduleTitle}', '${photoId}')" 
+                <button onclick="savePhotoWithLocation('${lat}', '${lng}', '${imageData.replace(/'/g, "\\'")}', '${scheduleTitle}')" 
                         style="width: 100%; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);"
                         onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'"
                         onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
@@ -4043,13 +4034,13 @@
         };
         
         // 선택한 현장에 사진 저장
-        window.savePhotoWithLocation = async function(lat, lng, imageData, location, photoId) {
+        window.savePhotoWithLocation = async function(lat, lng, imageData, location) {
           try {
             // 다이얼로그 닫기
             closePhotoLocationDialog();
             
             // 사진 마커 생성 (롱프레스 마커를 사진 마커로 대체)
-            await createPhotoMarker(parseFloat(lat), parseFloat(lng), imageData, location, photoId);
+            await createPhotoMarker(parseFloat(lat), parseFloat(lng), imageData, location);
             
             // 롱프레스 마커 제거
             if (longPressMarker) {
@@ -4057,21 +4048,7 @@
               longPressMarker = null;
             }
             
-            // 기기별 안내 메시지
-            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-            let message = '사진이 지도에 저장되었습니다!';
-            
-            if (isIOS) {
-              if (navigator.share) {
-                message += '\n공유 메뉴에서 "사진에 저장"을 선택하세요.';
-              } else {
-                message += '\n새 탭에서 사진을 길게 눌러 "사진에 추가"를 선택하세요.';
-              }
-            } else {
-              message += '\n원본 사진이 다운로드 폴더에 저장되었습니다.';
-            }
-            
-            alert(message);
+            alert('사진이 지도에 저장되었습니다!');
             
           } catch (error) {
             console.error('사진 저장 실패:', error);
@@ -4219,89 +4196,7 @@
           }
         };
         
-        // 사진 자동 저장 (촬영 시 자동 실행) - iOS/Android 호환
-        async function autoDownloadPhoto(imageData, photoId, isOriginal) {
-          try {
-            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-            const isAndroid = /Android/i.test(navigator.userAgent);
-            
-            if (isIOS) {
-              // iOS: Web Share API 또는 새 탭 열기
-              if (navigator.share) {
-                // Web Share API 사용 가능 시
-                try {
-                  // Base64를 Blob으로 변환
-                  const base64Data = imageData.split(',')[1];
-                  const byteCharacters = atob(base64Data);
-                  const byteNumbers = new Array(byteCharacters.length);
-                  
-                  for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                  }
-                  
-                  const byteArray = new Uint8Array(byteNumbers);
-                  const blob = new Blob([byteArray], { type: 'image/jpeg' });
-                  const file = new File([blob], `WMAP_Photo_${photoId}.jpg`, { type: 'image/jpeg' });
-                  
-                  // 공유 다이얼로그 열기
-                  await navigator.share({
-                    files: [file],
-                    title: 'WMAP 사진',
-                    text: '촬영한 사진을 저장하세요'
-                  });
-                  
-                  console.log('iOS: Web Share API로 공유 완료');
-                } catch (shareError) {
-                  console.log('iOS: 공유 취소 또는 실패 (정상 - 사용자가 취소했을 수 있음)');
-                }
-              } else {
-                // Web Share API 미지원 시: 새 탭으로 열기
-                const newWindow = window.open(imageData, '_blank');
-                if (newWindow) {
-                  console.log('iOS: 새 탭으로 이미지 열기 - 사용자가 길게 눌러 저장할 수 있습니다.');
-                }
-              }
-            } else {
-              // Android 및 기타: 일반 다운로드
-              const base64Data = imageData.split(',')[1];
-              const mimeType = imageData.split(',')[0].split(':')[1].split(';')[0];
-              const byteCharacters = atob(base64Data);
-              const byteNumbers = new Array(byteCharacters.length);
-              
-              for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-              }
-              
-              const byteArray = new Uint8Array(byteNumbers);
-              const blob = new Blob([byteArray], { type: mimeType });
-              
-              // 다운로드 링크 생성
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = url;
-              link.download = isOriginal ? `WMAP_Photo_Original_${photoId}.jpg` : `WMAP_Photo_${photoId}.jpg`;
-              
-              // 다운로드 실행
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              
-              // URL 해제
-              setTimeout(() => {
-                URL.revokeObjectURL(url);
-              }, 100);
-              
-              console.log(`Android: 사진 자동 다운로드 완료: ${link.download}`);
-            }
-            
-          } catch (error) {
-            console.error('사진 자동 저장 실패:', error);
-            // 자동 저장 실패는 경고만 (작업은 계속 진행)
-            console.warn('자동 저장에 실패했지만 Firebase 저장은 계속됩니다.');
-          }
-        }
-        
-        // 사진 다운로드 (수동 - 정보창의 다운로드 버튼)
+        // 사진 다운로드
         window.downloadPhoto = function(imageData, photoId) {
           try {
             // Base64를 Blob으로 변환
@@ -4333,7 +4228,15 @@
               URL.revokeObjectURL(url);
             }, 100);
             
-            alert('사진이 다운로드되었습니다.');
+            // 모바일에서는 새 탭으로도 열기 (자동 저장 보조)
+            if (isMobile) {
+              setTimeout(() => {
+                const newWindow = window.open(imageData, '_blank');
+                if (!newWindow) {
+                  alert('사진이 다운로드되었습니다.\n브라우저 설정에서 다운로드 폴더를 확인하세요.');
+                }
+              }, 200);
+            }
             
           } catch (error) {
             console.error('사진 다운로드 실패:', error);
@@ -4391,14 +4294,14 @@
         };
         
         // Firebase에 사진 저장
-        async function savePhotoToFirebase(lat, lng, imageData, marker, location, photoId) {
+        async function savePhotoToFirebase(lat, lng, imageData, marker, location) {
           try {
             if (!window.db || !window.firestore) {
               throw new Error('Firebase가 초기화되지 않았습니다.');
             }
             
             const photoData = {
-              id: photoId || ('photo_' + Date.now()),  // 미리 생성된 ID 사용
+              id: 'photo_' + Date.now(),
               lat: lat,
               lng: lng,
               imageData: imageData,
