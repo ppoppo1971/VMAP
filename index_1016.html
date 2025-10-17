@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10170527</title>
+    <title>WMAP10170545</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3806,26 +3806,9 @@
                 </div>
               </div>
               <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                <button onclick="downloadPhoto('${imageData.replace(/'/g, "\\'")}', '${photoId}')" 
-                        style="
-                          flex: 1;
-                          background: rgba(16, 185, 129, 0.12);
-                          color: #059669;
-                          border: 1px solid rgba(16, 185, 129, 0.3);
-                          border-radius: 8px;
-                          padding: 8px 16px;
-                          font-size: 13px;
-                          font-weight: 500;
-                          cursor: pointer;
-                          transition: all 0.2s ease;
-                        "
-                        onmouseover="this.style.background='rgba(16, 185, 129, 0.18)';"
-                        onmouseout="this.style.background='rgba(16, 185, 129, 0.12)';">
-                  💾 다운로드
-                </button>
                 <button onclick="deletePhoto('${photoId}')" 
                         style="
-                          flex: 1;
+                          width: 100%;
                           background: rgba(239, 68, 68, 0.12);
                           color: #dc2626;
                           border: 1px solid rgba(239, 68, 68, 0.3);
@@ -3838,7 +3821,7 @@
                         "
                         onmouseover="this.style.background='rgba(239, 68, 68, 0.2)';"
                         onmouseout="this.style.background='rgba(239, 68, 68, 0.12)';">
-                  🗑️ 삭제
+                  🗑️ 사진 삭제
                 </button>
               </div>
             </div>
@@ -4197,25 +4180,14 @@
                   localPhoto.memo = newMemo;
                 }
                 
-                // 다이얼로그 먼저 닫기 (페이드아웃 애니메이션: 200ms)
+                // 다이얼로그와 사진 뷰어 모두 닫기
                 closePhotoMemoDialog();
+                closePhotoViewer();
                 
-                // 다이얼로그 닫기 애니메이션 완료 후 정보창 업데이트
+                // 저장 완료 메시지
                 setTimeout(() => {
-                  if (currentInfoWindow && localPhoto) {
-                    const photo = savedPhotos[photoIndex];
-                    showPhotoInfoWindow(
-                      localPhoto.markerElement, 
-                      photo.imageData, 
-                      photo.lat, 
-                      photo.lng, 
-                      photo.id,
-                      newMemo
-                    );
-                  }
-                  
                   onFirebaseUploadSuccess('사진 메모');
-                }, 250);  // 다이얼로그 페이드아웃(200ms) + 여유(50ms)
+                }, 250);
               }
             }
           } catch (error) {
@@ -4223,55 +4195,6 @@
             alert('메모 저장에 실패했습니다.');
           }
         };
-        
-        // 사진 다운로드
-        window.downloadPhoto = function(imageData, photoId) {
-          try {
-            // Base64를 Blob으로 변환
-            const base64Data = imageData.split(',')[1];
-            const mimeType = imageData.split(',')[0].split(':')[1].split(';')[0];
-            const byteCharacters = atob(base64Data);
-            const byteNumbers = new Array(byteCharacters.length);
-            
-            for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: mimeType });
-            
-            // 다운로드 링크 생성
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `WMAP_Photo_${photoId}.jpg`;
-            
-            // 다운로드 실행
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // URL 해제
-            setTimeout(() => {
-              URL.revokeObjectURL(url);
-            }, 100);
-            
-            // 모바일에서는 새 탭으로도 열기 (자동 저장 보조)
-            if (isMobile) {
-              setTimeout(() => {
-                const newWindow = window.open(imageData, '_blank');
-                if (!newWindow) {
-                  alert('사진이 다운로드되었습니다.\n브라우저 설정에서 다운로드 폴더를 확인하세요.');
-                }
-              }, 200);
-            }
-            
-          } catch (error) {
-            console.error('사진 다운로드 실패:', error);
-            alert('사진 다운로드에 실패했습니다.');
-          }
-        };
-        
         // 사진 삭제
         window.deletePhoto = async function(photoId) {
           if (!confirm('이 사진을 삭제하시겠습니까?')) {
