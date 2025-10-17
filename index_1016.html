@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10171247</title>
+    <title>WMAP10170105</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3059,44 +3059,31 @@
         let twoFingerTimer = null;
         let lastTwoFingerPosition = null;
         
-        // 🔥 지도 롱프레스 기능을 위한 변수들
+        // 🔥 지도 롱프레스 기능을 위한 변수들 (단순화)
         let longPressTimer = null;
-        let delayTimer = null; // 지연 타이머 추적
         let longPressStartLatLng = null;
         let longPressTriggered = false;
-        const LONG_PRESS_DURATION = 600; // 600ms 롱프레스
-        const LONG_PRESS_MOVE_THRESHOLD = 10; // 10픽셀 이내 이동 허용
-        let longPressStartPixel = null;
+        const LONG_PRESS_DURATION = 800; // 800ms 롱프레스 (단순화)
         let touchCount = 0; // 터치 개수 추적
-        let initialTouchPos = null; // 초기 터치 위치
-        let isLongPressInProgress = false; // 롱프레스 진행 중 플래그
-        let touchStartTime = 0; // 터치 시작 시간
+        let longPressStartPos = null; // 시작 위치 (픽셀)
         
         // 터치 이벤트 리스너 - 두 손가락 더블클릭 감지 및 롱프레스 방지
         const mapElement = document.getElementById('map');
         
         mapElement.addEventListener('touchstart', function(event) {
-          // 터치 개수 전역 업데이트 (롱프레스 감지용)
+          // 터치 개수 전역 업데이트
           touchCount = event.touches.length;
+          console.log('[TouchStart] 터치 개수:', touchCount);
           
           // 두 손가락 터치 감지
-          if (event.touches.length === 2) {
-            console.log('[TouchStart] 두 손가락 감지 - 롱프레스 방지');
+          if (touchCount === 2) {
+            console.log('[TouchStart] 두 손가락 감지 - 롱프레스 취소');
             
-            // 롱프레스 관련 상태 완전 초기화
-            isLongPressInProgress = false;
-            longPressTriggered = false;
-            touchStartTime = 0;
-            initialTouchPos = null;
-            
-            // 두 타이머 모두 취소 (중요!)
-            if (delayTimer) {
-              clearTimeout(delayTimer);
-              delayTimer = null;
-            }
+            // 롱프레스 타이머 취소
             if (longPressTimer) {
               clearTimeout(longPressTimer);
               longPressTimer = null;
+              console.log('[TouchStart] longPressTimer 취소됨');
             }
             
             twoFingerTouchCount++;
@@ -3117,77 +3104,57 @@
             
             // 두 손가락 더블클릭 감지
             if (twoFingerTouchCount === 2) {
-              console.log('[TwoFingerDouble] 두 손가락 더블터치 - 확대 기능 실행');
+              console.log('[TwoFingerDouble] 두 손가락 더블터치 - 확대만 실행');
               
               const currentZoom = map.getZoom();
-              const newZoom = Math.min(currentZoom + 1, CONSTANTS.MAX_ZOOM); // 최대 줌 레벨 제한
+              const newZoom = Math.min(currentZoom + 1, CONSTANTS.MAX_ZOOM);
               map.setZoom(newZoom);
               
-              // 터치 중심점을 지도 좌표로 변환하여 중심점 이동
               const centerLatLng = map.getCenter();
               map.setCenter(centerLatLng);
               
               twoFingerTouchCount = 0;
-              
-              // 롱프레스 관련 상태 완전 초기화 (마커 생성 방지)
-              isLongPressInProgress = false;
-              longPressTriggered = false;
-              touchStartTime = 0;
-              console.log('[TwoFingerDouble] 롱프레스 상태 완전 초기화 - 마커 생성 방지');
+              longPressTriggered = false; // 마커 생성 방지
+              console.log('[TwoFingerDouble] longPressTriggered = false 설정');
             }
-          } else if (event.touches.length === 1) {
-            // 한 손가락 터치 - 롱프레스 준비
+          } 
+          // 한 손가락 터치
+          else if (touchCount === 1) {
             const touch = event.touches[0];
-            initialTouchPos = { x: touch.clientX, y: touch.clientY };
-            touchStartTime = Date.now(); // 터치 시작 시간 기록
+            longPressStartPos = { x: touch.clientX, y: touch.clientY };
             longPressTriggered = false;
-            isLongPressInProgress = true; // 롱프레스 진행 시작
-            console.log('[TouchStart] 한 손가락 터치 - 롱프레스 진행 시작 (시간:', touchStartTime, ')');
+            console.log('[TouchStart] 한 손가락 터치 - 롱프레스 대기');
           }
         }, { passive: true });
         
-        // touchmove 이벤트 리스너 추가 (롱프레스 감지용)
+        // touchmove 이벤트 리스너 추가 (이동 시 롱프레스 취소)
         mapElement.addEventListener('touchmove', function(e) {
           // 터치 개수 업데이트
           touchCount = e.touches.length;
           
-          // 두 손가락 이상이면 롱프레스 즉시 취소
+          // 두 손가락 이상이면 롱프레스 취소
           if (touchCount > 1) {
-            console.log('[TouchMove] 두 손가락 감지 - 모든 타이머 취소');
-            isLongPressInProgress = false; // 롱프레스 중단
-            touchStartTime = 0;
-            if (delayTimer) {
-              clearTimeout(delayTimer);
-              delayTimer = null;
-            }
             if (longPressTimer) {
+              console.log('[TouchMove] 두 손가락 - 롱프레스 취소');
               clearTimeout(longPressTimer);
               longPressTimer = null;
             }
-            initialTouchPos = null;
             return;
           }
           
-          // 한 손가락이라도 움직이면 롱프레스 취소
-          if (initialTouchPos && touchCount === 1) {
+          // 한 손가락 이동 - 10픽셀 이상 이동하면 취소
+          if (longPressStartPos && touchCount === 1) {
             const touch = e.touches[0];
-            const deltaX = Math.abs(touch.clientX - initialTouchPos.x);
-            const deltaY = Math.abs(touch.clientY - initialTouchPos.y);
+            const deltaX = Math.abs(touch.clientX - longPressStartPos.x);
+            const deltaY = Math.abs(touch.clientY - longPressStartPos.y);
             
-            // 10픽셀 이상 이동하면 취소
-            if (deltaX > LONG_PRESS_MOVE_THRESHOLD || deltaY > LONG_PRESS_MOVE_THRESHOLD) {
-              console.log('[TouchMove] 이동 감지 (', deltaX, 'x', deltaY, 'px) - 모든 타이머 취소');
-              isLongPressInProgress = false; // 롱프레스 중단
-              touchStartTime = 0;
-              if (delayTimer) {
-                clearTimeout(delayTimer);
-                delayTimer = null;
-              }
+            if (deltaX > 10 || deltaY > 10) {
+              console.log('[TouchMove] 이동 감지 - 롱프레스 취소');
               if (longPressTimer) {
                 clearTimeout(longPressTimer);
                 longPressTimer = null;
               }
-              initialTouchPos = null;
+              longPressStartPos = null;
             }
           }
         }, { passive: true });
@@ -3195,212 +3162,92 @@
         mapElement.addEventListener('touchend', function(e) {
           // 남아있는 터치 개수 업데이트
           touchCount = e.touches.length;
+          console.log('[TouchEnd] 남은 터치:', touchCount);
           
-          const touchDuration = touchStartTime > 0 ? Date.now() - touchStartTime : 0;
-          console.log('[TouchEnd] 남은 터치:', touchCount, 'duration:', touchDuration, 'ms', 'isLongPressInProgress:', isLongPressInProgress, 'longPressTriggered:', longPressTriggered);
-          
-          // 모든 손가락이 떨어지면
+          // 모든 손가락이 떨어지면 touchCount 초기화
           if (touchCount === 0) {
             touchCount = 0;
-            console.log('[TouchEnd] 모든 손가락 뗌');
-            
-            // 터치 시간이 800ms 미만이면 타이머 취소 (짧은 터치)
-            if (touchDuration > 0 && touchDuration < 800 && isLongPressInProgress && !longPressTriggered) {
-              console.log('[TouchEnd] 짧은 터치 감지 (', touchDuration, 'ms) - 타이머 취소');
-              isLongPressInProgress = false;
-              if (delayTimer) {
-                clearTimeout(delayTimer);
-                delayTimer = null;
-              }
-              if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
-              }
-              initialTouchPos = null;
-              touchStartTime = 0;
-            } 
-            // 롱프레스가 완료되었으면 정상 종료
-            else if (longPressTriggered) {
-              console.log('[TouchEnd] 롱프레스 완료됨 - 정상 종료');
-              isLongPressInProgress = false;
-              touchStartTime = 0;
-            }
-            // 800ms 이상 누른 경우 타이머 유지 (롱프레스 완료 대기)
-            else if (touchDuration >= 800) {
-              console.log('[TouchEnd] 800ms 이상 누름 - 타이머 유지하여 롱프레스 완료 대기');
-            }
+            console.log('[TouchEnd] 모든 손가락 뗌 - touchCount 초기화');
           }
+          
+          // ✅ touchend에서는 타이머를 취소하지 않음
+          // 손가락을 떼어도 타이머가 계속 실행되어 롱프레스 완료 가능
+          // 취소는 touchmove(이동), touchstart(두 손가락)에서만 처리
         }, { passive: true });
         
         mapElement.addEventListener('touchcancel', function(e) {
           // 터치가 취소되면 롱프레스 취소
           touchCount = 0;
-          isLongPressInProgress = false; // 롱프레스 중단
-          touchStartTime = 0;
-          console.log('[TouchCancel] 터치 취소 - 모든 타이머 취소');
+          console.log('[TouchCancel] 터치 취소 - 롱프레스 타이머 취소');
           
-          // 두 타이머 모두 취소
-          if (delayTimer) {
-            clearTimeout(delayTimer);
-            delayTimer = null;
-          }
           if (longPressTimer) {
             clearTimeout(longPressTimer);
             longPressTimer = null;
           }
-          initialTouchPos = null;
+          longPressStartPos = null;
         }, { passive: true });
         
         // 지도 mousedown 이벤트 - 롱프레스 시작 (데스크톱 + 모바일)
         map.addListener('mousedown', function(event) {
           // 모드 활성화 시에는 롱프레스 비활성화
           if (isMarkerMode || isRouteMode) {
-            console.log('[MouseDown] 모드 활성화 중 - 롱프레스 시작 안 함');
+            console.log('[MouseDown] 모드 활성화 중 - 롱프레스 안 함');
             return;
           }
           
           // 두 손가락 이상 터치 중이면 롱프레스 시작 안 함
           if (touchCount > 1) {
-            console.log('[MouseDown] 두 손가락 터치 중 (touchCount:', touchCount, ') - 롱프레스 시작 안 함');
+            console.log('[MouseDown] 두 손가락 중 (touchCount:', touchCount, ') - 롱프레스 안 함');
             return;
           }
           
-          console.log('[MouseDown] 롱프레스 타이머 준비 (touchCount:', touchCount, 'isLongPressInProgress:', isLongPressInProgress, ')');
-          
-          // touchCount를 캡처 (클로저 문제 방지)
-          const capturedTouchCount = touchCount;
-          
-          // 데스크톱(터치 없음) 또는 한 손가락 터치일 때만 진행
-          if (touchCount === 0 || isLongPressInProgress) {
-            // 데스크톱이거나 모바일 한 손가락 터치
-            console.log('[MouseDown] 롱프레스 진행 허용 (데스크톱 또는 한 손가락)');
-            
-            // 데스크톱용: 플래그 설정
-            if (touchCount === 0) {
-              isLongPressInProgress = true;
-              touchStartTime = Date.now();
-            }
-          } else {
-            // 롱프레스 진행 플래그가 false면 시작 안 함 (두 손가락 터치 후)
-            console.log('[MouseDown] isLongPressInProgress = false - 롱프레스 시작 안 함');
-            return;
-          }
+          console.log('[MouseDown] 롱프레스 타이머 시작 (touchCount:', touchCount, ')');
           
           longPressTriggered = false;
           longPressStartLatLng = event.latLng;
           
-          // 픽셀 좌표 저장 (이동 감지용)
-          const projection = map.getProjection();
-          if (projection && longPressStartLatLng) {
-            longPressStartPixel = projection.fromLatLngToPoint(longPressStartLatLng);
-          }
-          
-          // 롱프레스 타이머 시작 (200ms 지연으로 두 번째 손가락 감지 시간 확보)
-          delayTimer = setTimeout(function() {
-            delayTimer = null; // 실행되면 null로 설정
+          // 롱프레스 타이머 시작 (단순화: 즉시 시작)
+          longPressTimer = setTimeout(function() {
+            console.log('[LongPress] 타이머 실행 - touchCount:', touchCount);
             
-            // 지연 후에도 여전히 한 손가락인지 확인
-            console.log('[Delay 200ms] touchCount 확인:', touchCount, 'captured:', capturedTouchCount);
-            
-            // touchCount가 증가했는지 확인 (두 번째 손가락 추가됨)
-            if (touchCount > capturedTouchCount) {
-              console.log('[Delay 200ms] 터치 개수 증가 감지 - 타이머 시작 취소');
-              return;
-            }
-            
-            if (touchCount <= 1 && !isMarkerMode && !isRouteMode) {
-              console.log('[Delay 200ms] 한 손가락 확인 - 롱프레스 타이머 시작');
-              longPressTimer = setTimeout(function() {
-                longPressTimer = null; // 실행되면 null로 설정
-                
-                // 타이머 실행 시점에도 한 손가락인지 재확인
-                console.log('[LongPress 600ms] 타이머 실행 - touchCount:', touchCount);
-                if (touchCount <= 1 && longPressStartLatLng) {
-                  longPressTriggered = true;
-                  console.log('[LongPress 600ms] 롱프레스 트리거 - 마커 표시');
-                  
-                  // 롱프레스 발생 - 해당 위치의 주소 정보 표시
-                  showLongPressInfoWindow(longPressStartLatLng);
-                } else {
-                  console.log('[LongPress 600ms] 두 손가락 감지 또는 위치 없음 - 취소됨');
-                }
-              }, LONG_PRESS_DURATION);
-            } else {
-              console.log('[Delay 200ms] 두 손가락 감지 또는 모드 활성화 - 타이머 시작 취소');
-            }
-          }, 200);
-        });
-        
-        // 지도 mousemove/touchmove 이벤트 - 이동 시 롱프레스 취소
-        map.addListener('mousemove', function(event) {
-          if ((delayTimer || longPressTimer) && longPressStartPixel && event.latLng) {
-            const projection = map.getProjection();
-            if (projection) {
-              const currentPixel = projection.fromLatLngToPoint(event.latLng);
-              const deltaX = Math.abs(currentPixel.x - longPressStartPixel.x);
-              const deltaY = Math.abs(currentPixel.y - longPressStartPixel.y);
+            // 타이머 실행 시점에 한 손가락인지 확인
+            if (touchCount <= 1 && longPressStartLatLng) {
+              longPressTriggered = true;
+              console.log('[LongPress] ✅ 롱프레스 완료 - 마커 표시');
               
-              // 일정 거리 이상 이동하면 롱프레스 취소
-              if (deltaX > LONG_PRESS_MOVE_THRESHOLD || deltaY > LONG_PRESS_MOVE_THRESHOLD) {
-                console.log('[MouseMove] 이동 감지 (', deltaX, 'x', deltaY, ') - 모든 타이머 취소');
-                isLongPressInProgress = false; // 롱프레스 중단
-                touchStartTime = 0;
-                if (delayTimer) {
-                  clearTimeout(delayTimer);
-                  delayTimer = null;
-                }
-                if (longPressTimer) {
-                  clearTimeout(longPressTimer);
-                  longPressTimer = null;
-                }
-              }
+              // 롱프레스 발생 - 마커 생성
+              showLongPressInfoWindow(longPressStartLatLng);
+            } else {
+              console.log('[LongPress] ❌ 두 손가락 감지 - 마커 표시 안 함');
             }
+            
+            longPressTimer = null;
+          }, LONG_PRESS_DURATION);
+        });
+        
+        // 지도 mousemove 이벤트 - 이동 시 롱프레스 취소 (데스크톱용)
+        map.addListener('mousemove', function(event) {
+          if (longPressTimer) {
+            // 마우스 이동 감지 시 타이머 취소 (데스크톱)
+            console.log('[MouseMove] 이동 감지 - 롱프레스 취소');
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
           }
         });
         
-        // 지도 mouseup/touchend 이벤트 - 롱프레스 타이머 취소
+        // 지도 mouseup 이벤트 - 롱프레스 타이머 취소 (데스크톱용)
         map.addListener('mouseup', function() {
-          const duration = touchStartTime > 0 ? Date.now() - touchStartTime : 0;
-          console.log('[MouseUp] duration:', duration, 'ms, isLongPressInProgress:', isLongPressInProgress, 'longPressTriggered:', longPressTriggered);
+          console.log('[MouseUp] longPressTriggered:', longPressTriggered);
           
-          // 800ms 미만이면 타이머 취소 (짧은 터치)
-          if (duration > 0 && duration < 800 && isLongPressInProgress && !longPressTriggered) {
-            console.log('[MouseUp] 짧은 터치 (', duration, 'ms) - 타이머 취소');
-            isLongPressInProgress = false;
-            if (delayTimer) {
-              clearTimeout(delayTimer);
-              delayTimer = null;
-            }
-            if (longPressTimer) {
-              clearTimeout(longPressTimer);
-              longPressTimer = null;
-            }
-            touchStartTime = 0;
-          } 
-          // 롱프레스가 완료되었으면 정상 종료
-          else if (longPressTriggered) {
-            console.log('[MouseUp] 롱프레스 완료됨 - 정상 종료');
-            isLongPressInProgress = false;
-            touchStartTime = 0;
-          }
-          // 800ms 이상 누른 경우 타이머 유지
-          else if (duration >= 800) {
-            console.log('[MouseUp] 800ms 이상 누름 - 타이머 유지');
-          }
+          // ✅ mouseup에서는 타이머를 취소하지 않음
+          // 손을 떼어도 타이머가 계속 실행되어 롱프레스 완료 가능
+          // (취소는 mousemove에서만 처리)
         });
         
         // 지도 drag 시작 시 롱프레스 취소
         map.addListener('dragstart', function() {
-          console.log('[DragStart] 타이머 취소');
+          console.log('[DragStart] 드래그 시작 - 롱프레스 취소');
           
-          isLongPressInProgress = false; // 롱프레스 중단
-          touchStartTime = 0;
-          
-          // 두 타이머 모두 취소
-          if (delayTimer) {
-            clearTimeout(delayTimer);
-            delayTimer = null;
-          }
           if (longPressTimer) {
             clearTimeout(longPressTimer);
             longPressTimer = null;
