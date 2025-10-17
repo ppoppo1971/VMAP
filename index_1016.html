@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10170126</title>
+    <title>WMAP10170154</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3063,6 +3063,19 @@
         const mapElement = document.getElementById('map');
         
         mapElement.addEventListener('touchstart', function(event) {
+          // 두 손가락 이상 터치 시 롱프레스 타이머 취소
+          if (event.touches.length >= 2) {
+            // 롱프레스 타이머 취소 (두 손가락 이상일 때)
+            if (longPressTimer) {
+              clearTimeout(longPressTimer);
+              longPressTimer = null;
+            }
+            
+            // 롱프레스 시작 좌표 초기화
+            longPressStartLatLng = null;
+            longPressStartPixel = null;
+          }
+          
           // 두 손가락 터치 감지
           if (event.touches.length === 2) {
             twoFingerTouchCount++;
@@ -3093,6 +3106,21 @@
               
               twoFingerTouchCount = 0;
             }
+          }
+        }, { passive: true });
+        
+        // 터치 이동 중에도 두 손가락 이상이면 롱프레스 취소
+        mapElement.addEventListener('touchmove', function(event) {
+          // 두 손가락 이상 터치 중이면 롱프레스 타이머 취소
+          if (event.touches.length >= 2) {
+            if (longPressTimer) {
+              clearTimeout(longPressTimer);
+              longPressTimer = null;
+            }
+            
+            // 롱프레스 시작 좌표 초기화
+            longPressStartLatLng = null;
+            longPressStartPixel = null;
           }
         }, { passive: true });
         
@@ -3164,6 +3192,22 @@
             clearTimeout(longPressTimer);
             longPressTimer = null;
           }
+        });
+        
+        // 지도 줌 시작 시 롱프레스 취소 (두 손가락 핀치 줌 감지)
+        let longPressPreviousZoom = map.getZoom();
+        map.addListener('zoom_changed', function() {
+          const currentZoom = map.getZoom();
+          
+          // 줌이 변경되고 있으면 (핀치 줌 중) 롱프레스 취소
+          if (currentZoom !== longPressPreviousZoom && longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+            longPressStartLatLng = null;
+            longPressStartPixel = null;
+          }
+          
+          longPressPreviousZoom = currentZoom;
         });
         
         // 지도 클릭 시 모든 창들 닫기 기능 - 모바일 최적화
