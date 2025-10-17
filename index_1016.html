@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10171123</title>
+    <title>WMAP10171135</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3204,22 +3204,29 @@
             longPressStartPixel = projection.fromLatLngToPoint(longPressStartLatLng);
           }
           
-          // 롱프레스 타이머 시작
-          longPressTimer = setTimeout(function() {
-            // 타이머 실행 시점에도 한 손가락인지 재확인
-            console.log('[LongPress] 타이머 실행 - touchCount:', touchCount);
-            if (touchCount <= 1) {
-              longPressTriggered = true;
-              console.log('[LongPress] 롱프레스 트리거 - 정보창 표시');
-              
-              // 롱프레스 발생 - 해당 위치의 주소 정보 표시
-              if (longPressStartLatLng) {
-                showLongPressInfoWindow(longPressStartLatLng);
-              }
+          // 롱프레스 타이머 시작 (100ms 지연으로 두 번째 손가락 감지 시간 확보)
+          setTimeout(function() {
+            // 지연 후에도 여전히 한 손가락인지 확인
+            if (touchCount <= 1 && !isMarkerMode && !isRouteMode) {
+              longPressTimer = setTimeout(function() {
+                // 타이머 실행 시점에도 한 손가락인지 재확인
+                console.log('[LongPress] 타이머 실행 - touchCount:', touchCount);
+                if (touchCount <= 1) {
+                  longPressTriggered = true;
+                  console.log('[LongPress] 롱프레스 트리거 - 정보창 표시');
+                  
+                  // 롱프레스 발생 - 해당 위치의 주소 정보 표시
+                  if (longPressStartLatLng) {
+                    showLongPressInfoWindow(longPressStartLatLng);
+                  }
+                } else {
+                  console.log('[LongPress] 두 손가락 감지로 취소됨');
+                }
+              }, LONG_PRESS_DURATION);
             } else {
-              console.log('[LongPress] 두 손가락 감지로 취소됨');
+              console.log('[MouseDown] 지연 후 두 손가락 감지 - 타이머 시작 취소');
             }
-          }, LONG_PRESS_DURATION);
+          }, 100);
         });
         
         // 지도 mousemove/touchmove 이벤트 - 이동 시 롱프레스 취소
@@ -6563,7 +6570,20 @@
         
         // 터치 종료 이벤트
         routeInfoContainer.addEventListener('touchend', function(e) {
-          if (!hasSwiped) return;
+          // 편집 버튼을 클릭한 경우 스와이프 처리 건너뛰기
+          if (e.target.classList.contains('route-swipe-edit-btn')) {
+            startX = 0;
+            startY = 0;
+            startTime = 0;
+            hasSwiped = false;
+            return;
+          }
+          
+          if (!hasSwiped) {
+            startX = 0;
+            startY = 0;
+            return;
+          }
           
           const endTime = Date.now();
           const diffTime = endTime - startTime;
@@ -6602,6 +6622,31 @@
             e.stopPropagation();
           }
         });
+        
+        // 편집 버튼 터치 이벤트 처리 (모바일에서 즉시 반응)
+        const editBtn = routeInfoContainer.querySelector('.route-swipe-edit-btn');
+        if (editBtn) {
+          let editBtnTouchHandled = false;
+          
+          editBtn.addEventListener('touchstart', function(e) {
+            editBtnTouchHandled = false;
+          }, { passive: true });
+          
+          editBtn.addEventListener('touchend', function(e) {
+            if (!editBtnTouchHandled) {
+              e.preventDefault();
+              e.stopPropagation();
+              editBtnTouchHandled = true;
+              
+              // onclick 속성에서 함수 추출하여 실행
+              const onclickAttr = editBtn.getAttribute('onclick');
+              if (onclickAttr) {
+                console.log('[EditBtn] 터치로 편집 함수 실행');
+                eval(onclickAttr);
+              }
+            }
+          }, { passive: false });
+        }
         
         // 모바일에서만 마우스 드래그 이벤트 활성화
         if (window.innerWidth <= 768) {
@@ -7726,7 +7771,20 @@
         
         // 터치 종료 이벤트
         markerInfoContainer.addEventListener('touchend', function(e) {
-          if (!hasSwiped) return;
+          // 편집 버튼을 클릭한 경우 스와이프 처리 건너뛰기
+          if (e.target.classList.contains('marker-swipe-edit-btn')) {
+            startX = 0;
+            startY = 0;
+            startTime = 0;
+            hasSwiped = false;
+            return;
+          }
+          
+          if (!hasSwiped) {
+            startX = 0;
+            startY = 0;
+            return;
+          }
           
           const endTime = Date.now();
           const diffTime = endTime - startTime;
@@ -7766,6 +7824,31 @@
             e.stopPropagation();
           }
         });
+        
+        // 편집 버튼 터치 이벤트 처리 (모바일에서 즉시 반응)
+        const editBtn = markerInfoContainer.querySelector('.marker-swipe-edit-btn');
+        if (editBtn) {
+          let editBtnTouchHandled = false;
+          
+          editBtn.addEventListener('touchstart', function(e) {
+            editBtnTouchHandled = false;
+          }, { passive: true });
+          
+          editBtn.addEventListener('touchend', function(e) {
+            if (!editBtnTouchHandled) {
+              e.preventDefault();
+              e.stopPropagation();
+              editBtnTouchHandled = true;
+              
+              // onclick 속성에서 함수 추출하여 실행
+              const onclickAttr = editBtn.getAttribute('onclick');
+              if (onclickAttr) {
+                console.log('[EditBtn Marker] 터치로 편집 함수 실행');
+                eval(onclickAttr);
+              }
+            }
+          }, { passive: false });
+        }
         
         // 모바일에서만 마우스 드래그 이벤트 활성화
         if (window.innerWidth <= 768) {
