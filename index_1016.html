@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10170457</title>
+    <title>WMAP10170514</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -4171,21 +4171,23 @@
                   localPhoto.memo = newMemo;
                 }
                 
-                // 다이얼로그 먼저 닫기 (정보창 업데이트 전에)
+                // 다이얼로그 먼저 닫기
                 closePhotoMemoDialog();
                 
-                // 정보창 업데이트
-                if (currentInfoWindow && localPhoto) {
-                  const photo = savedPhotos[photoIndex];
-                  showPhotoInfoWindow(
-                    localPhoto.markerElement, 
-                    photo.imageData, 
-                    photo.lat, 
-                    photo.lng, 
-                    photo.id,
-                    newMemo
-                  );
-                }
+                // 약간의 지연 후 정보창 업데이트 (모달 닫힘 보장)
+                setTimeout(() => {
+                  if (currentInfoWindow && localPhoto) {
+                    const photo = savedPhotos[photoIndex];
+                    showPhotoInfoWindow(
+                      localPhoto.markerElement, 
+                      photo.imageData, 
+                      photo.lat, 
+                      photo.lng, 
+                      photo.id,
+                      newMemo
+                    );
+                  }
+                }, 100);
                 
                 onFirebaseUploadSuccess('사진 메모');
               }
