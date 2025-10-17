@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10171146</title>
+    <title>WMAP10171202</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3061,6 +3061,7 @@
         
         // 🔥 지도 롱프레스 기능을 위한 변수들
         let longPressTimer = null;
+        let delayTimer = null; // 지연 타이머 추적
         let longPressStartLatLng = null;
         let longPressTriggered = false;
         const LONG_PRESS_DURATION = 600; // 600ms 롱프레스
@@ -3080,7 +3081,11 @@
           if (event.touches.length === 2) {
             console.log('[TouchStart] 두 손가락 감지 - 롱프레스 방지');
             
-            // 롱프레스 타이머 취소
+            // 두 타이머 모두 취소 (중요!)
+            if (delayTimer) {
+              clearTimeout(delayTimer);
+              delayTimer = null;
+            }
             if (longPressTimer) {
               clearTimeout(longPressTimer);
               longPressTimer = null;
@@ -3130,6 +3135,11 @@
           
           // 두 손가락 이상이면 롱프레스 즉시 취소
           if (touchCount > 1) {
+            console.log('[TouchMove] 두 손가락 감지 - 모든 타이머 취소');
+            if (delayTimer) {
+              clearTimeout(delayTimer);
+              delayTimer = null;
+            }
             if (longPressTimer) {
               clearTimeout(longPressTimer);
               longPressTimer = null;
@@ -3139,15 +3149,22 @@
           }
           
           // 한 손가락이라도 움직이면 롱프레스 취소
-          if (longPressTimer && initialTouchPos && touchCount === 1) {
+          if (initialTouchPos && touchCount === 1) {
             const touch = e.touches[0];
             const deltaX = Math.abs(touch.clientX - initialTouchPos.x);
             const deltaY = Math.abs(touch.clientY - initialTouchPos.y);
             
             // 10픽셀 이상 이동하면 취소
             if (deltaX > LONG_PRESS_MOVE_THRESHOLD || deltaY > LONG_PRESS_MOVE_THRESHOLD) {
-              clearTimeout(longPressTimer);
-              longPressTimer = null;
+              console.log('[TouchMove] 이동 감지 - 모든 타이머 취소');
+              if (delayTimer) {
+                clearTimeout(delayTimer);
+                delayTimer = null;
+              }
+              if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+              }
               initialTouchPos = null;
             }
           }
@@ -3156,10 +3173,18 @@
         mapElement.addEventListener('touchend', function(e) {
           // 남아있는 터치 개수 업데이트
           touchCount = e.touches.length;
+          console.log('[TouchEnd] 남은 터치:', touchCount);
           
+          // 두 타이머 모두 취소 (중요!)
+          if (delayTimer) {
+            clearTimeout(delayTimer);
+            delayTimer = null;
+            console.log('[TouchEnd] delayTimer 취소됨');
+          }
           if (longPressTimer) {
             clearTimeout(longPressTimer);
             longPressTimer = null;
+            console.log('[TouchEnd] longPressTimer 취소됨');
           }
           initialTouchPos = null;
           
@@ -3172,7 +3197,13 @@
         mapElement.addEventListener('touchcancel', function(e) {
           // 터치가 취소되면 롱프레스 취소
           touchCount = 0;
+          console.log('[TouchCancel] 터치 취소 - 모든 타이머 취소');
           
+          // 두 타이머 모두 취소
+          if (delayTimer) {
+            clearTimeout(delayTimer);
+            delayTimer = null;
+          }
           if (longPressTimer) {
             clearTimeout(longPressTimer);
             longPressTimer = null;
@@ -3195,6 +3226,9 @@
           
           console.log('[MouseDown] 롱프레스 타이머 준비 (touchCount:', touchCount, ')');
           
+          // touchCount를 캡처 (클로저 문제 방지)
+          const capturedTouchCount = touchCount;
+          
           longPressTriggered = false;
           longPressStartLatLng = event.latLng;
           
@@ -3204,36 +3238,45 @@
             longPressStartPixel = projection.fromLatLngToPoint(longPressStartLatLng);
           }
           
-          // 롱프레스 타이머 시작 (150ms 지연으로 두 번째 손가락 감지 시간 확보)
-          setTimeout(function() {
+          // 롱프레스 타이머 시작 (200ms 지연으로 두 번째 손가락 감지 시간 확보)
+          delayTimer = setTimeout(function() {
+            delayTimer = null; // 실행되면 null로 설정
+            
             // 지연 후에도 여전히 한 손가락인지 확인
-            console.log('[Delay 150ms] touchCount 확인:', touchCount);
+            console.log('[Delay 200ms] touchCount 확인:', touchCount, 'captured:', capturedTouchCount);
+            
+            // touchCount가 증가했는지 확인 (두 번째 손가락 추가됨)
+            if (touchCount > capturedTouchCount) {
+              console.log('[Delay 200ms] 터치 개수 증가 감지 - 타이머 시작 취소');
+              return;
+            }
+            
             if (touchCount <= 1 && !isMarkerMode && !isRouteMode) {
-              console.log('[Delay 150ms] 한 손가락 확인 - 롱프레스 타이머 시작');
+              console.log('[Delay 200ms] 한 손가락 확인 - 롱프레스 타이머 시작');
               longPressTimer = setTimeout(function() {
+                longPressTimer = null; // 실행되면 null로 설정
+                
                 // 타이머 실행 시점에도 한 손가락인지 재확인
                 console.log('[LongPress 600ms] 타이머 실행 - touchCount:', touchCount);
-                if (touchCount <= 1) {
+                if (touchCount <= 1 && longPressStartLatLng) {
                   longPressTriggered = true;
                   console.log('[LongPress 600ms] 롱프레스 트리거 - 마커 표시');
                   
                   // 롱프레스 발생 - 해당 위치의 주소 정보 표시
-                  if (longPressStartLatLng) {
-                    showLongPressInfoWindow(longPressStartLatLng);
-                  }
+                  showLongPressInfoWindow(longPressStartLatLng);
                 } else {
-                  console.log('[LongPress 600ms] 두 손가락 감지로 취소됨');
+                  console.log('[LongPress 600ms] 두 손가락 감지 또는 위치 없음 - 취소됨');
                 }
               }, LONG_PRESS_DURATION);
             } else {
-              console.log('[Delay 150ms] 두 손가락 감지 또는 모드 활성화 - 타이머 시작 취소');
+              console.log('[Delay 200ms] 두 손가락 감지 또는 모드 활성화 - 타이머 시작 취소');
             }
-          }, 150);
+          }, 200);
         });
         
         // 지도 mousemove/touchmove 이벤트 - 이동 시 롱프레스 취소
         map.addListener('mousemove', function(event) {
-          if (longPressTimer && longPressStartPixel && event.latLng) {
+          if ((delayTimer || longPressTimer) && longPressStartPixel && event.latLng) {
             const projection = map.getProjection();
             if (projection) {
               const currentPixel = projection.fromLatLngToPoint(event.latLng);
@@ -3242,8 +3285,15 @@
               
               // 일정 거리 이상 이동하면 롱프레스 취소
               if (deltaX > LONG_PRESS_MOVE_THRESHOLD || deltaY > LONG_PRESS_MOVE_THRESHOLD) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
+                console.log('[MouseMove] 이동 감지 - 모든 타이머 취소');
+                if (delayTimer) {
+                  clearTimeout(delayTimer);
+                  delayTimer = null;
+                }
+                if (longPressTimer) {
+                  clearTimeout(longPressTimer);
+                  longPressTimer = null;
+                }
               }
             }
           }
@@ -3251,14 +3301,30 @@
         
         // 지도 mouseup/touchend 이벤트 - 롱프레스 타이머 취소
         map.addListener('mouseup', function() {
+          console.log('[MouseUp] 타이머 취소');
+          
+          // 두 타이머 모두 취소 (중요!)
+          if (delayTimer) {
+            clearTimeout(delayTimer);
+            delayTimer = null;
+            console.log('[MouseUp] delayTimer 취소됨');
+          }
           if (longPressTimer) {
             clearTimeout(longPressTimer);
             longPressTimer = null;
+            console.log('[MouseUp] longPressTimer 취소됨');
           }
         });
         
         // 지도 drag 시작 시 롱프레스 취소
         map.addListener('dragstart', function() {
+          console.log('[DragStart] 타이머 취소');
+          
+          // 두 타이머 모두 취소
+          if (delayTimer) {
+            clearTimeout(delayTimer);
+            delayTimer = null;
+          }
           if (longPressTimer) {
             clearTimeout(longPressTimer);
             longPressTimer = null;
@@ -4985,14 +5051,26 @@
          try {
            console.log('[Link] 링크 열기:', link);
            
+           // URL이 http로 시작하지 않으면 추가
+           let validLink = link;
+           if (!link.startsWith('http://') && !link.startsWith('https://')) {
+             validLink = 'https://' + link;
+           }
+           
            // 구글드라이브 링크 처리
-           if (link.includes('drive.google.com')) {
-             // 구글드라이브 링크는 직접 URL로 이동 (같은 창)
-             window.location.href = link;
+           if (validLink.includes('drive.google.com')) {
+             console.log('[Link] 구글드라이브 링크 감지');
+             console.log('[Link] 현재 동작: 같은 창에서 링크 열기 (브라우저 또는 뷰어)');
+             console.log('[Link] 파일 다운로드 아님 - 뷰어로 파일 표시');
+             
+             // 같은 창에서 열기 (브라우저 뷰어로 표시)
+             // 참고: 모바일에서는 구글드라이브 앱이 자동으로 열릴 수 있음 (OS 정책)
+             window.location.href = validLink;
            } 
            // 외부 링크는 같은 창에서 열기
            else {
-             window.location.href = link;
+             console.log('[Link] 일반 링크 - 같은 창에서 열기');
+             window.location.href = validLink;
            }
          } catch (error) {
            console.error('링크 열기 실패:', error);
