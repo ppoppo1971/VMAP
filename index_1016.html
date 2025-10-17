@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10170356</title>
+    <title>WMAP10170414</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3805,23 +3805,42 @@
                   ${displayMemo || '클릭하여 메모 추가'}
                 </div>
               </div>
-              <button onclick="deletePhoto('${photoId}')" 
-                      style="
-                        width: 100%;
-                        background: rgba(239, 68, 68, 0.12);
-                        color: #dc2626;
-                        border: 1px solid rgba(239, 68, 68, 0.3);
-                        border-radius: 8px;
-                        padding: 8px 16px;
-                        font-size: 13px;
-                        font-weight: 500;
-                        cursor: pointer;
-                        transition: all 0.2s ease;
-                      "
-                      onmouseover="this.style.background='rgba(239, 68, 68, 0.2)';"
-                      onmouseout="this.style.background='rgba(239, 68, 68, 0.12)';">
-                🗑️ 사진 삭제
-              </button>
+              <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <button onclick="downloadPhoto('${imageData.replace(/'/g, "\\'")}', '${photoId}')" 
+                        style="
+                          flex: 1;
+                          background: rgba(16, 185, 129, 0.12);
+                          color: #059669;
+                          border: 1px solid rgba(16, 185, 129, 0.3);
+                          border-radius: 8px;
+                          padding: 8px 16px;
+                          font-size: 13px;
+                          font-weight: 500;
+                          cursor: pointer;
+                          transition: all 0.2s ease;
+                        "
+                        onmouseover="this.style.background='rgba(16, 185, 129, 0.18)';"
+                        onmouseout="this.style.background='rgba(16, 185, 129, 0.12)';">
+                  💾 다운로드
+                </button>
+                <button onclick="deletePhoto('${photoId}')" 
+                        style="
+                          flex: 1;
+                          background: rgba(239, 68, 68, 0.12);
+                          color: #dc2626;
+                          border: 1px solid rgba(239, 68, 68, 0.3);
+                          border-radius: 8px;
+                          padding: 8px 16px;
+                          font-size: 13px;
+                          font-weight: 500;
+                          cursor: pointer;
+                          transition: all 0.2s ease;
+                        "
+                        onmouseover="this.style.background='rgba(239, 68, 68, 0.2)';"
+                        onmouseout="this.style.background='rgba(239, 68, 68, 0.12)';">
+                  🗑️ 삭제
+                </button>
+              </div>
             </div>
           `;
           
@@ -3952,11 +3971,20 @@
           
           // 현장 버튼들 HTML 생성
           let locationButtonsHtml = '';
-          const scheduleButtons = document.querySelectorAll('#additionalDays [data-schedule-title]');
+          const scheduleContainers = document.querySelectorAll('#additionalDays .user-added-item[data-schedule-id]');
           
-          if (scheduleButtons.length > 0) {
-            scheduleButtons.forEach(btn => {
-              const scheduleTitle = btn.getAttribute('data-schedule-title');
+          if (scheduleContainers.length > 0) {
+            const addedTitles = new Set(); // 중복 방지
+            
+            scheduleContainers.forEach(container => {
+              const scheduleTitle = container.getAttribute('data-schedule-title');
+              
+              // 중복 체크
+              if (!scheduleTitle || addedTitles.has(scheduleTitle)) {
+                return;
+              }
+              addedTitles.add(scheduleTitle);
+              
               locationButtonsHtml += `
                 <button onclick="savePhotoWithLocation('${lat}', '${lng}', '${imageData.replace(/'/g, "\\'")}', '${scheduleTitle}')" 
                         style="width: 100%; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);"
@@ -3966,7 +3994,9 @@
                 </button>
               `;
             });
-          } else {
+          } 
+          
+          if (!locationButtonsHtml) {
             locationButtonsHtml = '<p style="text-align: center; color: #6b7280; font-size: 14px;">현장이 없습니다.<br>먼저 현장을 추가해주세요.</p>';
           }
           
@@ -4027,10 +4057,91 @@
         };
         
         // 사진 메모 편집
-        window.editPhotoMemo = async function(photoId, currentMemo) {
-          const newMemo = prompt('메모를 입력하세요:', currentMemo || '');
+        window.editPhotoMemo = function(photoId, currentMemo) {
+          // 기존 다이얼로그 제거
+          const existingDialog = document.getElementById('photoMemoDialog');
+          if (existingDialog) {
+            existingDialog.remove();
+          }
           
-          if (newMemo === null) return; // 취소
+          // 메모 편집 다이얼로그 생성
+          const dialog = document.createElement('div');
+          dialog.id = 'photoMemoDialog';
+          dialog.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            width: 400px;
+            max-width: 90vw;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+          `;
+          
+          dialog.innerHTML = `
+            <div class="edit-form-header">
+              <h4>메모 편집</h4>
+              <button type="button" onclick="closePhotoMemoDialog()" class="close-btn">×</button>
+            </div>
+            <div style="padding: 20px 24px 24px 24px;">
+              <div style="margin-bottom: 20px;">
+                <textarea id="photoMemoInput" 
+                          placeholder="메모를 입력하세요" 
+                          maxlength="500"
+                          style="width: 100%; min-height: 100px; padding: 12px 16px; border: none; border-radius: 12px; font-size: 14px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; resize: vertical; font-family: inherit; transition: all 0.2s ease; backdrop-filter: blur(10px);" 
+                          onfocus="this.style.background='rgba(255, 255, 255, 0.18)'"
+                          onblur="this.style.background='rgba(255, 255, 255, 0.12)'">${currentMemo || ''}</textarea>
+              </div>
+              <div style="display: flex; gap: 12px;">
+                <button onclick="savePhotoMemo('${photoId}')" 
+                        style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" 
+                        onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" 
+                        onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
+                  저장
+                </button>
+                <button onclick="closePhotoMemoDialog()" 
+                        style="flex: 1; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);" 
+                        onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'" 
+                        onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
+                  취소
+                </button>
+              </div>
+            </div>
+          `;
+          
+          document.body.appendChild(dialog);
+          
+          // textarea에 포커스
+          setTimeout(() => {
+            const textarea = document.getElementById('photoMemoInput');
+            if (textarea) {
+              textarea.focus();
+              textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            }
+          }, 100);
+        };
+        
+        // 메모 다이얼로그 닫기
+        window.closePhotoMemoDialog = function() {
+          const dialog = document.getElementById('photoMemoDialog');
+          if (dialog) {
+            dialog.remove();
+          }
+        };
+        
+        // 사진 메모 저장
+        window.savePhotoMemo = async function(photoId) {
+          const textarea = document.getElementById('photoMemoInput');
+          if (!textarea) return;
+          
+          const newMemo = textarea.value.trim();
           
           try {
             // Firebase에서 사진 데이터 업데이트
@@ -4073,12 +4184,63 @@
                   );
                 }
                 
+                // 다이얼로그 닫기
+                closePhotoMemoDialog();
+                
                 onFirebaseUploadSuccess('사진 메모');
               }
             }
           } catch (error) {
             console.error('메모 저장 실패:', error);
             alert('메모 저장에 실패했습니다.');
+          }
+        };
+        
+        // 사진 다운로드
+        window.downloadPhoto = function(imageData, photoId) {
+          try {
+            // Base64를 Blob으로 변환
+            const base64Data = imageData.split(',')[1];
+            const mimeType = imageData.split(',')[0].split(':')[1].split(';')[0];
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: mimeType });
+            
+            // 다운로드 링크 생성
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `WMAP_Photo_${photoId}.jpg`;
+            
+            // 다운로드 실행
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // URL 해제
+            setTimeout(() => {
+              URL.revokeObjectURL(url);
+            }, 100);
+            
+            // 모바일에서는 새 탭으로도 열기 (자동 저장 보조)
+            if (isMobile) {
+              setTimeout(() => {
+                const newWindow = window.open(imageData, '_blank');
+                if (!newWindow) {
+                  alert('사진이 다운로드되었습니다.\n브라우저 설정에서 다운로드 폴더를 확인하세요.');
+                }
+              }, 200);
+            }
+            
+          } catch (error) {
+            console.error('사진 다운로드 실패:', error);
+            alert('사진 다운로드에 실패했습니다.');
           }
         };
         
