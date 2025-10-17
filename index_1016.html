@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10170251</title>
+    <title>WMAP10170330</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -1872,6 +1872,8 @@
     <!-- GPS 위치 버튼 -->
     <button id="locationBtn" onclick="getCurrentLocation()" title="현재 위치로 이동">📍</button>
     
+    <!-- 카메라 입력 (숨김) -->
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
 
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
@@ -1927,6 +1929,9 @@
       let isMarkerMode = false; // 마커생성 모드
       let customMarkers = []; // 사용자가 생성한 마커들
       let markerInfoData = {}; // 마커 정보 저장소 { "groupName-index": { title: "", content: "", link: "" } }
+      
+      // 📷 사진 관련 전역 변수
+      let savedPhotoMarkers = []; // 저장된 사진 마커들
       
       // ============================================================================
       // ⚙️ CONFIGURATION - 설정 및 상수
@@ -3383,13 +3388,49 @@
                   <div style="font-size: 12px; color: #9ca3af; margin-bottom: 12px;">
                     위도: ${lat.toFixed(6)}, 경도: ${lng.toFixed(6)}
                   </div>
-                  <div style="border-top: 1px solid #e5e7eb; padding-top: 12px; display: flex; gap: 8px;">
-                    <button onclick="saveLongPressMarker()" 
+                  <div style="border-top: 1px solid #e5e7eb; padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; gap: 8px;">
+                      <button onclick="saveLongPressMarker()" 
+                              style="
+                                flex: 1;
+                                background: rgba(16, 185, 129, 0.12);
+                                color: #059669;
+                                border: 1px solid rgba(16, 185, 129, 0.3);
+                                border-radius: 8px;
+                                padding: 10px 16px;
+                                font-size: 13px;
+                                font-weight: 500;
+                                cursor: pointer;
+                                transition: all 0.2s ease;
+                              "
+                              onmouseover="this.style.background='rgba(16, 185, 129, 0.18)';"
+                              onmouseout="this.style.background='rgba(16, 185, 129, 0.12)';">
+                        마커 저장
+                      </button>
+                      <button onclick="openInGoogleMaps('${lat}', '${lng}', '선택한 위치', '${encodeURIComponent(address)}')" 
+                              style="
+                                flex: 1;
+                                background: rgba(255, 255, 255, 0.12);
+                                color: #000;
+                                border: 1px solid rgba(0, 0, 0, 0.1);
+                                border-radius: 8px;
+                                padding: 10px 16px;
+                                font-size: 13px;
+                                font-weight: 500;
+                                cursor: pointer;
+                                transition: all 0.2s ease;
+                              "
+                              onmouseover="this.style.background='rgba(255, 255, 255, 0.18)';"
+                              onmouseout="this.style.background='rgba(255, 255, 255, 0.12)';">
+                        상세보기
+                      </button>
+                    </div>
+                    <button onclick="takePhotoAtLongPressLocation()" 
                             style="
-                              flex: 1;
-                              background: rgba(16, 185, 129, 0.12);
-                              color: #059669;
-                              border: 1px solid rgba(16, 185, 129, 0.3);
+                              width: 100%;
+                              background: rgba(59, 130, 246, 0.12);
+                              color: #2563eb;
+                              border: 1px solid rgba(59, 130, 246, 0.3);
                               border-radius: 8px;
                               padding: 10px 16px;
                               font-size: 13px;
@@ -3397,26 +3438,9 @@
                               cursor: pointer;
                               transition: all 0.2s ease;
                             "
-                            onmouseover="this.style.background='rgba(16, 185, 129, 0.18)';"
-                            onmouseout="this.style.background='rgba(16, 185, 129, 0.12)';">
-                      마커 저장
-                    </button>
-                    <button onclick="openInGoogleMaps('${lat}', '${lng}', '선택한 위치', '${encodeURIComponent(address)}')" 
-                            style="
-                              flex: 1;
-                              background: rgba(255, 255, 255, 0.12);
-                              color: #000;
-                              border: 1px solid rgba(0, 0, 0, 0.1);
-                              border-radius: 8px;
-                              padding: 10px 16px;
-                              font-size: 13px;
-                              font-weight: 500;
-                              cursor: pointer;
-                              transition: all 0.2s ease;
-                            "
-                            onmouseover="this.style.background='rgba(255, 255, 255, 0.18)';"
-                            onmouseout="this.style.background='rgba(255, 255, 255, 0.12)';">
-                      상세보기
+                            onmouseover="this.style.background='rgba(59, 130, 246, 0.18)';"
+                            onmouseout="this.style.background='rgba(59, 130, 246, 0.12)';">
+                      📷 사진 촬영
                     </button>
                   </div>
                 </div>
@@ -3486,9 +3510,28 @@
                   <div style="font-weight: 700; font-size: 16px; color: #1f2937; margin-bottom: 8px; padding-right: 32px;">
                     📍 선택한 위치
                   </div>
-                  <div style="font-size: 12px; color: #9ca3af;">
+                  <div style="font-size: 12px; color: #9ca3af; margin-bottom: 12px;">
                     위도: ${lat.toFixed(6)}<br>
                     경도: ${lng.toFixed(6)}
+                  </div>
+                  <div style="border-top: 1px solid #e5e7eb; padding-top: 12px;">
+                    <button onclick="takePhotoAtLongPressLocation()" 
+                            style="
+                              width: 100%;
+                              background: rgba(59, 130, 246, 0.12);
+                              color: #2563eb;
+                              border: 1px solid rgba(59, 130, 246, 0.3);
+                              border-radius: 8px;
+                              padding: 10px 16px;
+                              font-size: 13px;
+                              font-weight: 500;
+                              cursor: pointer;
+                              transition: all 0.2s ease;
+                            "
+                            onmouseover="this.style.background='rgba(59, 130, 246, 0.18)';"
+                            onmouseout="this.style.background='rgba(59, 130, 246, 0.12)';">
+                      📷 사진 촬영
+                    </button>
                   </div>
                 </div>
               `;
@@ -3548,6 +3591,326 @@
             currentInfoWindow = null;
           }
         };
+        
+        // ============================================================================
+        // 📷 PHOTO MODULE - 사진 촬영 및 관리
+        // ============================================================================
+        
+        // 롱프레스 위치에서 사진 촬영
+        window.takePhotoAtLongPressLocation = function() {
+          if (!longPressMarker) {
+            alert('위치 정보를 찾을 수 없습니다.');
+            return;
+          }
+          
+          // 카메라 입력 트리거
+          const cameraInput = document.getElementById('cameraInput');
+          if (cameraInput) {
+            cameraInput.click();
+          }
+        };
+        
+        // 카메라 입력 이벤트 리스너
+        document.getElementById('cameraInput').addEventListener('change', async function(event) {
+          const file = event.target.files[0];
+          if (!file || !longPressMarker) {
+            event.target.value = ''; // 입력 초기화
+            return;
+          }
+          
+          try {
+            // 정보창 닫기
+            if (currentInfoWindow) {
+              currentInfoWindow.close();
+              currentInfoWindow = null;
+            }
+            
+            // 로딩 표시
+            const loadingMessage = document.createElement('div');
+            loadingMessage.id = 'photoLoadingMessage';
+            loadingMessage.style.cssText = `
+              position: fixed;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              background: rgba(0, 0, 0, 0.8);
+              color: white;
+              padding: 20px 30px;
+              border-radius: 12px;
+              z-index: 10000;
+              font-size: 16px;
+              text-align: center;
+            `;
+            loadingMessage.textContent = '사진 처리 중...';
+            document.body.appendChild(loadingMessage);
+            
+            // 이미지 압축 (100kb 목표)
+            const compressedImageData = await compressImageTo100KB(file);
+            
+            // 롱프레스 마커 위치 가져오기
+            const position = longPressMarker.getPosition();
+            const lat = position.lat();
+            const lng = position.lng();
+            
+            // 사진 마커 생성 (롱프레스 마커를 사진 마커로 대체)
+            await createPhotoMarker(lat, lng, compressedImageData);
+            
+            // 롱프레스 마커 제거
+            longPressMarker.setMap(null);
+            longPressMarker = null;
+            
+            // 로딩 메시지 제거
+            loadingMessage.remove();
+            
+            alert('사진이 지도에 저장되었습니다!');
+            
+          } catch (error) {
+            console.error('사진 처리 실패:', error);
+            alert('사진 처리에 실패했습니다: ' + error.message);
+            
+            // 로딩 메시지 제거
+            const loadingMsg = document.getElementById('photoLoadingMessage');
+            if (loadingMsg) loadingMsg.remove();
+          } finally {
+            // 입력 초기화 (같은 파일 다시 선택 가능하도록)
+            event.target.value = '';
+          }
+        });
+        
+        // 이미지를 100KB 이하로 압축하는 함수
+        async function compressImageTo100KB(file) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+              const img = new Image();
+              
+              img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                
+                // 초기 크기 조정 (긴 변이 1024px 이하)
+                const maxDimension = 1024;
+                if (width > height && width > maxDimension) {
+                  height = (height * maxDimension) / width;
+                  width = maxDimension;
+                } else if (height > maxDimension) {
+                  width = (width * maxDimension) / height;
+                  height = maxDimension;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // 품질을 조정하며 100KB 이하로 압축
+                let quality = 0.9;
+                let compressed = canvas.toDataURL('image/jpeg', quality);
+                
+                // 100KB = 102400 bytes
+                // Base64는 원본의 약 1.37배이므로 140000자 이하 목표
+                const targetSize = 140000;
+                
+                while (compressed.length > targetSize && quality > 0.1) {
+                  quality -= 0.1;
+                  compressed = canvas.toDataURL('image/jpeg', quality);
+                }
+                
+                // 여전히 크면 크기를 줄임
+                if (compressed.length > targetSize) {
+                  width = width * 0.7;
+                  height = height * 0.7;
+                  canvas.width = width;
+                  canvas.height = height;
+                  ctx.drawImage(img, 0, 0, width, height);
+                  compressed = canvas.toDataURL('image/jpeg', 0.7);
+                }
+                
+                console.log(`이미지 압축 완료: ${(compressed.length / 1024).toFixed(2)}KB (품질: ${(quality * 100).toFixed(0)}%)`);
+                resolve(compressed);
+              };
+              
+              img.onerror = function() {
+                reject(new Error('이미지 로드 실패'));
+              };
+              
+              img.src = e.target.result;
+            };
+            
+            reader.onerror = function() {
+              reject(new Error('파일 읽기 실패'));
+            };
+            
+            reader.readAsDataURL(file);
+          });
+        }
+        
+        // 사진 마커 생성 함수
+        async function createPhotoMarker(lat, lng, imageData) {
+          // 사진 마커 생성 (📷 이모지)
+          const photoMarker = new google.maps.Marker({
+            position: { lat: lat, lng: lng },
+            map: map,
+            icon: {
+              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+                  <text x="16" y="24" font-family="Arial, sans-serif" font-size="24" text-anchor="middle">📷</text>
+                </svg>
+              `),
+              scaledSize: new google.maps.Size(32, 32),
+              anchor: new google.maps.Point(16, 16)
+            },
+            title: '사진',
+            zIndex: 1000
+          });
+          
+          // 마커 클릭 시 사진 표시
+          photoMarker.addListener('click', function() {
+            showPhotoInfoWindow(photoMarker, imageData, lat, lng);
+          });
+          
+          // Firebase에 저장
+          await savePhotoToFirebase(lat, lng, imageData, photoMarker);
+          
+          return photoMarker;
+        }
+        
+        // 사진 정보창 표시
+        function showPhotoInfoWindow(marker, imageData, lat, lng) {
+          const infoContent = `
+            <div style="padding: 12px; max-width: 300px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #1f2937;">📷 촬영한 사진</h4>
+              <img src="${imageData}" 
+                   style="width: 100%; max-width: 280px; border-radius: 8px; cursor: pointer; margin-bottom: 8px;"
+                   onclick="window.open('${imageData}', '_blank')"
+                   title="클릭하여 크게 보기">
+              <div style="font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 8px;">
+                위도: ${lat.toFixed(6)}<br>
+                경도: ${lng.toFixed(6)}
+              </div>
+            </div>
+          `;
+          
+          const infoWindow = new google.maps.InfoWindow({
+            content: infoContent,
+            maxWidth: 320
+          });
+          
+          // X 버튼 제거
+          google.maps.event.addListener(infoWindow, 'domready', function() {
+            const closeBtn = document.querySelector('.gm-ui-hover-effect');
+            if (closeBtn) {
+              closeBtn.style.display = 'none';
+            }
+          });
+          
+          infoWindow.open(map, marker);
+          currentInfoWindow = infoWindow;
+        }
+        
+        // Firebase에 사진 저장
+        async function savePhotoToFirebase(lat, lng, imageData, marker) {
+          try {
+            if (!window.db || !window.firestore) {
+              throw new Error('Firebase가 초기화되지 않았습니다.');
+            }
+            
+            const photoData = {
+              id: 'photo_' + Date.now(),
+              lat: lat,
+              lng: lng,
+              imageData: imageData,
+              timestamp: new Date().toISOString(),
+              type: 'photo'
+            };
+            
+            // 기존 사진들을 가져와서 맨 앞에 추가
+            const docSnap = await window.firestore.getDoc(
+              window.firestore.doc(window.db, 'users', 'currentUser')
+            );
+            const savedPhotos = docSnap.exists() && docSnap.data().savedPhotos 
+              ? docSnap.data().savedPhotos 
+              : [];
+            
+            const updatedPhotos = [photoData, ...savedPhotos];
+            
+            await window.firestore.updateDoc(
+              window.firestore.doc(window.db, 'users', 'currentUser'),
+              {
+                savedPhotos: updatedPhotos,
+                lastUpdated: window.firestore.serverTimestamp()
+              }
+            );
+            
+            // 전역 변수에 마커 저장 (복원용)
+            if (!window.savedPhotoMarkers) {
+              window.savedPhotoMarkers = [];
+            }
+            photoData.markerElement = marker;
+            window.savedPhotoMarkers.push(photoData);
+            
+            console.log('사진 Firebase 저장 완료');
+            onFirebaseUploadSuccess('사진');
+            
+          } catch (error) {
+            console.error('사진 Firebase 저장 실패:', error);
+            alert('사진 저장에 실패했습니다. 네트워크를 확인해주세요.');
+          }
+        }
+        
+        // 저장된 사진 마커들 복원
+        async function restoreSavedPhotos() {
+          try {
+            if (!window.db || !window.firestore) return;
+            
+            const docSnap = await window.firestore.getDoc(
+              window.firestore.doc(window.db, 'users', 'currentUser')
+            );
+            
+            if (docSnap.exists() && docSnap.data().savedPhotos) {
+              const savedPhotos = docSnap.data().savedPhotos;
+              
+              if (!window.savedPhotoMarkers) {
+                window.savedPhotoMarkers = [];
+              }
+              
+              savedPhotos.forEach(photo => {
+                // 사진 마커 생성
+                const photoMarker = new google.maps.Marker({
+                  position: { lat: photo.lat, lng: photo.lng },
+                  map: map,
+                  icon: {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+                        <text x="16" y="24" font-family="Arial, sans-serif" font-size="24" text-anchor="middle">📷</text>
+                      </svg>
+                    `),
+                    scaledSize: new google.maps.Size(32, 32),
+                    anchor: new google.maps.Point(16, 16)
+                  },
+                  title: '사진',
+                  zIndex: 1000
+                });
+                
+                // 마커 클릭 시 사진 표시
+                photoMarker.addListener('click', function() {
+                  showPhotoInfoWindow(photoMarker, photo.imageData, photo.lat, photo.lng);
+                });
+                
+                // 전역 변수에 저장
+                photo.markerElement = photoMarker;
+                window.savedPhotoMarkers.push(photo);
+              });
+              
+              console.log(`${savedPhotos.length}개의 사진 마커 복원 완료`);
+            }
+          } catch (error) {
+            console.error('사진 마커 복원 실패:', error);
+          }
+        }
         
         // 오른쪽 상단 버튼 초기 상태 설정
         updateTopButtonStates('roadmap');
@@ -3616,6 +3979,9 @@
         
         // 저장된 사용자 정의 일정들 복원
         restoreCustomSchedules();
+        
+        // 저장된 사진 마커들 복원
+        restoreSavedPhotos();
         
 
         
