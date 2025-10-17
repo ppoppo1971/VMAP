@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10171202</title>
+    <title>WMAP10171215</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3173,18 +3173,29 @@
         mapElement.addEventListener('touchend', function(e) {
           // 남아있는 터치 개수 업데이트
           touchCount = e.touches.length;
-          console.log('[TouchEnd] 남은 터치:', touchCount);
+          console.log('[TouchEnd] 남은 터치:', touchCount, 'longPressTriggered:', longPressTriggered);
           
-          // 두 타이머 모두 취소 (중요!)
-          if (delayTimer) {
-            clearTimeout(delayTimer);
-            delayTimer = null;
-            console.log('[TouchEnd] delayTimer 취소됨');
+          // 롱프레스가 이미 트리거되었으면 타이머 취소하지 않음
+          if (longPressTriggered) {
+            console.log('[TouchEnd] 롱프레스 이미 완료 - 타이머 취소 안 함');
+            // 카운트만 초기화
+            if (touchCount === 0) {
+              touchCount = 0;
+            }
+            return;
           }
-          if (longPressTimer) {
-            clearTimeout(longPressTimer);
-            longPressTimer = null;
-            console.log('[TouchEnd] longPressTimer 취소됨');
+          
+          // 롱프레스 완료 전에 손가락을 뗀 경우에만 타이머 취소
+          if (delayTimer || longPressTimer) {
+            console.log('[TouchEnd] 롱프레스 완료 전 - 타이머 취소');
+            if (delayTimer) {
+              clearTimeout(delayTimer);
+              delayTimer = null;
+            }
+            if (longPressTimer) {
+              clearTimeout(longPressTimer);
+              longPressTimer = null;
+            }
           }
           initialTouchPos = null;
           
@@ -3301,9 +3312,16 @@
         
         // 지도 mouseup/touchend 이벤트 - 롱프레스 타이머 취소
         map.addListener('mouseup', function() {
-          console.log('[MouseUp] 타이머 취소');
+          console.log('[MouseUp] longPressTriggered:', longPressTriggered);
           
-          // 두 타이머 모두 취소 (중요!)
+          // 롱프레스가 이미 트리거되었으면 타이머 취소하지 않음
+          if (longPressTriggered) {
+            console.log('[MouseUp] 롱프레스 이미 완료 - 타이머 취소 안 함');
+            return;
+          }
+          
+          // 롱프레스 완료 전에 떼면 타이머 취소
+          console.log('[MouseUp] 롱프레스 완료 전 - 타이머 취소');
           if (delayTimer) {
             clearTimeout(delayTimer);
             delayTimer = null;
