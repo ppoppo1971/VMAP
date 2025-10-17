@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10170330</title>
+    <title>WMAP10170356</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3652,17 +3652,11 @@
             const lat = position.lat();
             const lng = position.lng();
             
-            // 사진 마커 생성 (롱프레스 마커를 사진 마커로 대체)
-            await createPhotoMarker(lat, lng, compressedImageData);
-            
-            // 롱프레스 마커 제거
-            longPressMarker.setMap(null);
-            longPressMarker = null;
-            
             // 로딩 메시지 제거
             loadingMessage.remove();
             
-            alert('사진이 지도에 저장되었습니다!');
+            // 현장 선택 다이얼로그 표시
+            showPhotoLocationSelectDialog(lat, lng, compressedImageData);
             
           } catch (error) {
             console.error('사진 처리 실패:', error);
@@ -3749,7 +3743,7 @@
         }
         
         // 사진 마커 생성 함수
-        async function createPhotoMarker(lat, lng, imageData) {
+        async function createPhotoMarker(lat, lng, imageData, location) {
           // 사진 마커 생성 (📷 이모지)
           const photoMarker = new google.maps.Marker({
             position: { lat: lat, lng: lng },
@@ -3767,30 +3761,67 @@
             zIndex: 1000
           });
           
+          // Firebase에 저장 (마커 클릭 이벤트 등록 전에)
+          await savePhotoToFirebase(lat, lng, imageData, photoMarker, location);
+          
           // 마커 클릭 시 사진 표시
           photoMarker.addListener('click', function() {
-            showPhotoInfoWindow(photoMarker, imageData, lat, lng);
+            // savedPhotoMarkers에서 photoId와 memo 찾기
+            const photoData = window.savedPhotoMarkers.find(p => p.markerElement === photoMarker);
+            if (photoData) {
+              showPhotoInfoWindow(photoMarker, imageData, lat, lng, photoData.id, photoData.memo);
+            }
           });
-          
-          // Firebase에 저장
-          await savePhotoToFirebase(lat, lng, imageData, photoMarker);
           
           return photoMarker;
         }
         
         // 사진 정보창 표시
-        function showPhotoInfoWindow(marker, imageData, lat, lng) {
+        function showPhotoInfoWindow(marker, imageData, lat, lng, photoId, memo) {
+          // photoId 찾기
+          if (!photoId) {
+            // savedPhotoMarkers에서 해당 마커의 ID 찾기
+            const photoData = window.savedPhotoMarkers.find(p => 
+              p.markerElement === marker || (p.lat === lat && p.lng === lng)
+            );
+            photoId = photoData ? photoData.id : null;
+          }
+          
+          // 메모 가져오기
+          const displayMemo = memo || '';
+          
           const infoContent = `
             <div style="padding: 12px; max-width: 300px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
               <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #1f2937;">📷 촬영한 사진</h4>
               <img src="${imageData}" 
                    style="width: 100%; max-width: 280px; border-radius: 8px; cursor: pointer; margin-bottom: 8px;"
-                   onclick="window.open('${imageData}', '_blank')"
+                   onclick="openPhotoViewer('${imageData.replace(/'/g, "\\'")}', '${photoId}')"
                    title="클릭하여 크게 보기">
-              <div style="font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 8px;">
-                위도: ${lat.toFixed(6)}<br>
-                경도: ${lng.toFixed(6)}
+              <div style="font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 8px; margin-bottom: 8px;">
+                <div style="margin-bottom: 4px; font-weight: 600; color: #374151;">메모:</div>
+                <div id="photo-memo-display-${photoId}" 
+                     style="min-height: 20px; padding: 6px; background: rgba(0,0,0,0.02); border-radius: 4px; cursor: pointer;"
+                     onclick="editPhotoMemo('${photoId}', '${displayMemo.replace(/'/g, "\\'")}')">
+                  ${displayMemo || '클릭하여 메모 추가'}
+                </div>
               </div>
+              <button onclick="deletePhoto('${photoId}')" 
+                      style="
+                        width: 100%;
+                        background: rgba(239, 68, 68, 0.12);
+                        color: #dc2626;
+                        border: 1px solid rgba(239, 68, 68, 0.3);
+                        border-radius: 8px;
+                        padding: 8px 16px;
+                        font-size: 13px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                      "
+                      onmouseover="this.style.background='rgba(239, 68, 68, 0.2)';"
+                      onmouseout="this.style.background='rgba(239, 68, 68, 0.12)';">
+                🗑️ 사진 삭제
+              </button>
             </div>
           `;
           
@@ -3811,8 +3842,297 @@
           currentInfoWindow = infoWindow;
         }
         
+        // 사진 뷰어 열기 (전체 화면)
+        window.openPhotoViewer = function(imageData, photoId) {
+          // 전체 화면 뷰어 생성
+          const viewer = document.createElement('div');
+          viewer.id = 'photoViewer';
+          viewer.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+          `;
+          
+          viewer.innerHTML = `
+            <style>
+              @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+              }
+            </style>
+            <button onclick="closePhotoViewer()" 
+                    style="
+                      position: absolute;
+                      top: 20px;
+                      right: 20px;
+                      background: rgba(255, 255, 255, 0.2);
+                      color: white;
+                      border: none;
+                      border-radius: 50%;
+                      width: 44px;
+                      height: 44px;
+                      font-size: 24px;
+                      cursor: pointer;
+                      z-index: 10001;
+                      transition: all 0.2s ease;
+                    "
+                    onmouseover="this.style.background='rgba(255, 255, 255, 0.3)';"
+                    onmouseout="this.style.background='rgba(255, 255, 255, 0.2)';">×</button>
+            <img src="${imageData}" 
+                 style="
+                   max-width: 95vw;
+                   max-height: 95vh;
+                   object-fit: contain;
+                   border-radius: 8px;
+                   cursor: zoom-in;
+                 "
+                 onclick="this.style.cursor = this.style.cursor === 'zoom-out' ? 'zoom-in' : 'zoom-out'; 
+                          this.style.maxWidth = this.style.maxWidth === '95vw' ? 'none' : '95vw';
+                          this.style.maxHeight = this.style.maxHeight === '95vh' ? 'none' : '95vh';"
+                 title="클릭하여 확대/축소">
+          `;
+          
+          document.body.appendChild(viewer);
+          
+          // 뷰어 배경 클릭 시 닫기
+          viewer.addEventListener('click', function(e) {
+            if (e.target === viewer) {
+              closePhotoViewer();
+            }
+          });
+        };
+        
+        // 사진 뷰어 닫기
+        window.closePhotoViewer = function() {
+          const viewer = document.getElementById('photoViewer');
+          if (viewer) {
+            viewer.remove();
+          }
+        };
+        
+        // 사진 저장 위치 선택 다이얼로그
+        function showPhotoLocationSelectDialog(lat, lng, imageData) {
+          // 기존 다이얼로그 제거
+          const existingDialog = document.getElementById('photoLocationDialog');
+          if (existingDialog) {
+            existingDialog.remove();
+          }
+          
+          // Firebase에서 현장 목록 가져오기
+          const customSchedules = window.db ? [] : [];
+          
+          // 다이얼로그 생성
+          const dialog = document.createElement('div');
+          dialog.id = 'photoLocationDialog';
+          dialog.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            width: 400px;
+            max-width: 90vw;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+          `;
+          
+          // 현장 버튼들 HTML 생성
+          let locationButtonsHtml = '';
+          const scheduleButtons = document.querySelectorAll('#additionalDays [data-schedule-title]');
+          
+          if (scheduleButtons.length > 0) {
+            scheduleButtons.forEach(btn => {
+              const scheduleTitle = btn.getAttribute('data-schedule-title');
+              locationButtonsHtml += `
+                <button onclick="savePhotoWithLocation('${lat}', '${lng}', '${imageData.replace(/'/g, "\\'")}', '${scheduleTitle}')" 
+                        style="width: 100%; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);"
+                        onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'"
+                        onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
+                  ${scheduleTitle}
+                </button>
+              `;
+            });
+          } else {
+            locationButtonsHtml = '<p style="text-align: center; color: #6b7280; font-size: 14px;">현장이 없습니다.<br>먼저 현장을 추가해주세요.</p>';
+          }
+          
+          dialog.innerHTML = `
+            <div class="edit-form-header">
+              <h4>사진을 저장할 현장 선택</h4>
+              <button type="button" onclick="closePhotoLocationDialog()" class="close-btn">×</button>
+            </div>
+            <div style="padding: 20px 24px 24px 24px; max-height: 60vh; overflow-y: auto;">
+              ${locationButtonsHtml}
+            </div>
+          `;
+          
+          document.body.appendChild(dialog);
+        }
+        
+        // 사진 저장 위치 선택 다이얼로그 닫기
+        window.closePhotoLocationDialog = function() {
+          const dialog = document.getElementById('photoLocationDialog');
+          if (dialog) {
+            dialog.remove();
+          }
+          
+          // 롱프레스 마커 제거
+          if (longPressMarker) {
+            longPressMarker.setMap(null);
+            longPressMarker = null;
+          }
+          
+          // 정보창 닫기
+          if (currentInfoWindow) {
+            currentInfoWindow.close();
+            currentInfoWindow = null;
+          }
+        };
+        
+        // 선택한 현장에 사진 저장
+        window.savePhotoWithLocation = async function(lat, lng, imageData, location) {
+          try {
+            // 다이얼로그 닫기
+            closePhotoLocationDialog();
+            
+            // 사진 마커 생성 (롱프레스 마커를 사진 마커로 대체)
+            await createPhotoMarker(parseFloat(lat), parseFloat(lng), imageData, location);
+            
+            // 롱프레스 마커 제거
+            if (longPressMarker) {
+              longPressMarker.setMap(null);
+              longPressMarker = null;
+            }
+            
+            alert('사진이 지도에 저장되었습니다!');
+            
+          } catch (error) {
+            console.error('사진 저장 실패:', error);
+            alert('사진 저장에 실패했습니다: ' + error.message);
+          }
+        };
+        
+        // 사진 메모 편집
+        window.editPhotoMemo = async function(photoId, currentMemo) {
+          const newMemo = prompt('메모를 입력하세요:', currentMemo || '');
+          
+          if (newMemo === null) return; // 취소
+          
+          try {
+            // Firebase에서 사진 데이터 업데이트
+            const docSnap = await window.firestore.getDoc(
+              window.firestore.doc(window.db, 'users', 'currentUser')
+            );
+            
+            if (docSnap.exists() && docSnap.data().savedPhotos) {
+              const savedPhotos = docSnap.data().savedPhotos;
+              const photoIndex = savedPhotos.findIndex(p => p.id === photoId);
+              
+              if (photoIndex !== -1) {
+                savedPhotos[photoIndex].memo = newMemo;
+                
+                // Firebase에 저장
+                await window.firestore.updateDoc(
+                  window.firestore.doc(window.db, 'users', 'currentUser'),
+                  {
+                    savedPhotos: savedPhotos,
+                    lastUpdated: window.firestore.serverTimestamp()
+                  }
+                );
+                
+                // 로컬 변수 업데이트
+                const localPhoto = window.savedPhotoMarkers.find(p => p.id === photoId);
+                if (localPhoto) {
+                  localPhoto.memo = newMemo;
+                }
+                
+                // 정보창 업데이트
+                if (currentInfoWindow) {
+                  const photo = savedPhotos[photoIndex];
+                  showPhotoInfoWindow(
+                    localPhoto.markerElement, 
+                    photo.imageData, 
+                    photo.lat, 
+                    photo.lng, 
+                    photo.id,
+                    newMemo
+                  );
+                }
+                
+                onFirebaseUploadSuccess('사진 메모');
+              }
+            }
+          } catch (error) {
+            console.error('메모 저장 실패:', error);
+            alert('메모 저장에 실패했습니다.');
+          }
+        };
+        
+        // 사진 삭제
+        window.deletePhoto = async function(photoId) {
+          if (!confirm('이 사진을 삭제하시겠습니까?')) {
+            return;
+          }
+          
+          try {
+            // Firebase에서 사진 삭제
+            const docSnap = await window.firestore.getDoc(
+              window.firestore.doc(window.db, 'users', 'currentUser')
+            );
+            
+            if (docSnap.exists() && docSnap.data().savedPhotos) {
+              const savedPhotos = docSnap.data().savedPhotos;
+              const updatedPhotos = savedPhotos.filter(p => p.id !== photoId);
+              
+              // Firebase에 업데이트
+              await window.firestore.updateDoc(
+                window.firestore.doc(window.db, 'users', 'currentUser'),
+                {
+                  savedPhotos: updatedPhotos,
+                  lastUpdated: window.firestore.serverTimestamp()
+                }
+              );
+              
+              // 지도에서 마커 제거
+              const photoData = window.savedPhotoMarkers.find(p => p.id === photoId);
+              if (photoData && photoData.markerElement) {
+                photoData.markerElement.setMap(null);
+              }
+              
+              // 로컬 변수에서 제거
+              window.savedPhotoMarkers = window.savedPhotoMarkers.filter(p => p.id !== photoId);
+              
+              // 정보창 닫기
+              if (currentInfoWindow) {
+                currentInfoWindow.close();
+                currentInfoWindow = null;
+              }
+              
+              onFirebaseUploadSuccess('사진 삭제');
+              alert('사진이 삭제되었습니다.');
+            }
+          } catch (error) {
+            console.error('사진 삭제 실패:', error);
+            alert('사진 삭제에 실패했습니다.');
+          }
+        };
+        
         // Firebase에 사진 저장
-        async function savePhotoToFirebase(lat, lng, imageData, marker) {
+        async function savePhotoToFirebase(lat, lng, imageData, marker, location) {
           try {
             if (!window.db || !window.firestore) {
               throw new Error('Firebase가 초기화되지 않았습니다.');
@@ -3823,6 +4143,8 @@
               lat: lat,
               lng: lng,
               imageData: imageData,
+              location: location || '기본',  // 현장(일정) 정보
+              memo: '',  // 빈 메모로 시작
               timestamp: new Date().toISOString(),
               type: 'photo'
             };
@@ -3895,9 +4217,9 @@
                   zIndex: 1000
                 });
                 
-                // 마커 클릭 시 사진 표시
+                // 마커 클릭 시 사진 표시 (memo 포함)
                 photoMarker.addListener('click', function() {
-                  showPhotoInfoWindow(photoMarker, photo.imageData, photo.lat, photo.lng);
+                  showPhotoInfoWindow(photoMarker, photo.imageData, photo.lat, photo.lng, photo.id, photo.memo || '');
                 });
                 
                 // 전역 변수에 저장
@@ -12139,6 +12461,7 @@
               const savedUserMarkers = data.savedUserMarkers || [];
               const markerInfoData = data.markerInfoData || {};
               const routeInfoData = data.routeInfoData || {};
+              const savedPhotos = data.savedPhotos || [];
               
               // 해당 일정 제거
               const updatedSchedules = customSchedules.filter(schedule => schedule.id !== scheduleId);
@@ -12153,6 +12476,10 @@
               // 해당 일정과 관련된 마커들 제거 (location이 일정 제목과 일치하는 마커들)
               const markersToDelete = savedUserMarkers.filter(marker => marker.location === scheduleTitle);
               const updatedMarkers = savedUserMarkers.filter(marker => marker.location !== scheduleTitle);
+              
+              // 해당 일정과 관련된 사진들 제거 (location이 일정 제목과 일치하는 사진들)
+              const photosToDelete = savedPhotos.filter(photo => photo.location === scheduleTitle);
+              const updatedPhotos = savedPhotos.filter(photo => photo.location !== scheduleTitle);
               
               // 해당 체크리스트 항목들의 체크박스 상태도 제거
               const updatedCheckboxes = { ...preparationCheckboxes };
@@ -12203,6 +12530,15 @@
                 }
               });
               
+              // 지도상에서 해당 사진 마커들 제거
+              photosToDelete.forEach(photo => {
+                // 로컬 변수에서 찾아서 마커 제거
+                const localPhoto = window.savedPhotoMarkers.find(p => p.id === photo.id);
+                if (localPhoto && localPhoto.markerElement) {
+                  localPhoto.markerElement.setMap(null);
+                }
+              });
+              
               // Firebase에 저장
               await window.firestore.updateDoc(
                 window.firestore.doc(window.db, 'users', 'currentUser'),
@@ -12212,6 +12548,7 @@
                   preparationCheckboxes: updatedCheckboxes,
                   savedUserRoutes: updatedRoutes,
                   savedUserMarkers: updatedMarkers,
+                  savedPhotos: updatedPhotos,
                   markerInfoData: updatedMarkerInfoData,
                   routeInfoData: updatedRouteInfoData,
                   lastUpdated: window.firestore.serverTimestamp()
@@ -12230,6 +12567,9 @@
               }
               if (typeof window.routeInfoData !== 'undefined') {
                 window.routeInfoData = updatedRouteInfoData;
+              }
+              if (typeof window.savedPhotoMarkers !== 'undefined') {
+                window.savedPhotoMarkers = window.savedPhotoMarkers.filter(p => p.location !== scheduleTitle);
               }
               
               // UI에서 일정 컨테이너 제거
@@ -12254,15 +12594,17 @@
               const deletedCount = {
                 markers: markersToDelete.length,
                 routes: routesToDelete.length,
-                items: userAddedItems.length - updatedUserItems.length
+                items: userAddedItems.length - updatedUserItems.length,
+                photos: photosToDelete.length
               };
               
               let message = '일정 삭제 완료';
-              if (deletedCount.items > 0 || deletedCount.markers > 0 || deletedCount.routes > 0) {
+              if (deletedCount.items > 0 || deletedCount.markers > 0 || deletedCount.routes > 0 || deletedCount.photos > 0) {
                 const parts = [];
                 if (deletedCount.items > 0) parts.push(`체크리스트 ${deletedCount.items}개`);
                 if (deletedCount.markers > 0) parts.push(`마커 ${deletedCount.markers}개`);
                 if (deletedCount.routes > 0) parts.push(`경로 ${deletedCount.routes}개`);
+                if (deletedCount.photos > 0) parts.push(`사진 ${deletedCount.photos}개`);
                 message += ` (${parts.join(', ')} 함께 제거됨)`;
               }
               
