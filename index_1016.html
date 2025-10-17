@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10170514</title>
+    <title>WMAP10170527</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -4072,13 +4072,13 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 10000;
+            z-index: 10100;
             width: 400px;
             max-width: 90vw;
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            box-shadow: 0 12px 48px rgba(0,0,0,0.25);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -4086,6 +4086,22 @@
           `;
           
           dialog.innerHTML = `
+            <style>
+              @keyframes memoDialogFadeIn {
+                from { 
+                  opacity: 0; 
+                  transform: translate(-50%, -50%) scale(0.95);
+                }
+                to { 
+                  opacity: 1; 
+                  transform: translate(-50%, -50%) scale(1);
+                }
+              }
+              
+              #photoMemoDialog {
+                animation: memoDialogFadeIn 0.2s ease-out;
+              }
+            </style>
             <div class="edit-form-header">
               <h4>메모 편집</h4>
               <button type="button" onclick="closePhotoMemoDialog()" class="close-btn">×</button>
@@ -4132,7 +4148,17 @@
         window.closePhotoMemoDialog = function() {
           const dialog = document.getElementById('photoMemoDialog');
           if (dialog) {
-            dialog.remove();
+            // 페이드아웃 애니메이션
+            dialog.style.opacity = '0';
+            dialog.style.transform = 'translate(-50%, -50%) scale(0.95)';
+            dialog.style.transition = 'all 0.2s ease';
+            
+            // 애니메이션 완료 후 제거
+            setTimeout(() => {
+              if (dialog.parentNode) {
+                dialog.remove();
+              }
+            }, 200);
           }
         };
         
@@ -4171,10 +4197,10 @@
                   localPhoto.memo = newMemo;
                 }
                 
-                // 다이얼로그 먼저 닫기
+                // 다이얼로그 먼저 닫기 (페이드아웃 애니메이션: 200ms)
                 closePhotoMemoDialog();
                 
-                // 약간의 지연 후 정보창 업데이트 (모달 닫힘 보장)
+                // 다이얼로그 닫기 애니메이션 완료 후 정보창 업데이트
                 setTimeout(() => {
                   if (currentInfoWindow && localPhoto) {
                     const photo = savedPhotos[photoIndex];
@@ -4187,9 +4213,9 @@
                       newMemo
                     );
                   }
-                }, 100);
-                
-                onFirebaseUploadSuccess('사진 메모');
+                  
+                  onFirebaseUploadSuccess('사진 메모');
+                }, 250);  // 다이얼로그 페이드아웃(200ms) + 여유(50ms)
               }
             }
           } catch (error) {
