@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10170207</title>
+    <title>WMAP10170216</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -11085,9 +11085,9 @@
             </div>
           `;
           
-          // additionalDays 컨테이너에 추가
+          // additionalDays 컨테이너의 맨 위에 추가
           const additionalDaysContainer = document.getElementById('additionalDays');
-          additionalDaysContainer.innerHTML += scheduleHtml;
+          additionalDaysContainer.insertAdjacentHTML('afterbegin', scheduleHtml);
           
           // 스와이프 기능 활성화
           setTimeout(() => {
@@ -11380,7 +11380,14 @@
             if (additionalDaysContainer) {
               let html = '';
               
-              customSchedules.forEach(schedule => {
+              // 최신 항목이 맨 위에 오도록 역순으로 정렬
+              const sortedSchedules = [...customSchedules].sort((a, b) => {
+                const timeA = new Date(a.timestamp || 0).getTime();
+                const timeB = new Date(b.timestamp || 0).getTime();
+                return timeB - timeA; // 내림차순 (최신 항목이 먼저)
+              });
+              
+              sortedSchedules.forEach(schedule => {
                 html += `
                   <div class="user-added-item" data-item-id="${schedule.id}" data-item-type="schedule" data-schedule-id="${schedule.id}" data-schedule-title="${schedule.title}">
                     <div class="item-content">
