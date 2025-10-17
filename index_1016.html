@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10171135</title>
+    <title>WMAP10171146</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3193,7 +3193,7 @@
             return;
           }
           
-          console.log('[MouseDown] 롱프레스 타이머 시작 (touchCount:', touchCount, ')');
+          console.log('[MouseDown] 롱프레스 타이머 준비 (touchCount:', touchCount, ')');
           
           longPressTriggered = false;
           longPressStartLatLng = event.latLng;
@@ -3204,29 +3204,31 @@
             longPressStartPixel = projection.fromLatLngToPoint(longPressStartLatLng);
           }
           
-          // 롱프레스 타이머 시작 (100ms 지연으로 두 번째 손가락 감지 시간 확보)
+          // 롱프레스 타이머 시작 (150ms 지연으로 두 번째 손가락 감지 시간 확보)
           setTimeout(function() {
             // 지연 후에도 여전히 한 손가락인지 확인
+            console.log('[Delay 150ms] touchCount 확인:', touchCount);
             if (touchCount <= 1 && !isMarkerMode && !isRouteMode) {
+              console.log('[Delay 150ms] 한 손가락 확인 - 롱프레스 타이머 시작');
               longPressTimer = setTimeout(function() {
                 // 타이머 실행 시점에도 한 손가락인지 재확인
-                console.log('[LongPress] 타이머 실행 - touchCount:', touchCount);
+                console.log('[LongPress 600ms] 타이머 실행 - touchCount:', touchCount);
                 if (touchCount <= 1) {
                   longPressTriggered = true;
-                  console.log('[LongPress] 롱프레스 트리거 - 정보창 표시');
+                  console.log('[LongPress 600ms] 롱프레스 트리거 - 마커 표시');
                   
                   // 롱프레스 발생 - 해당 위치의 주소 정보 표시
                   if (longPressStartLatLng) {
                     showLongPressInfoWindow(longPressStartLatLng);
                   }
                 } else {
-                  console.log('[LongPress] 두 손가락 감지로 취소됨');
+                  console.log('[LongPress 600ms] 두 손가락 감지로 취소됨');
                 }
               }, LONG_PRESS_DURATION);
             } else {
-              console.log('[MouseDown] 지연 후 두 손가락 감지 - 타이머 시작 취소');
+              console.log('[Delay 150ms] 두 손가락 감지 또는 모드 활성화 - 타이머 시작 취소');
             }
-          }, 100);
+          }, 150);
         });
         
         // 지도 mousemove/touchmove 이벤트 - 이동 시 롱프레스 취소
@@ -4981,8 +4983,17 @@
          if (!link) return;
          
          try {
-           // 현재 탭에서 링크 열기 (뒤로가기로 돌아올 수 있음)
-           window.location.href = link;
+           console.log('[Link] 링크 열기:', link);
+           
+           // 구글드라이브 링크 처리
+           if (link.includes('drive.google.com')) {
+             // 구글드라이브 링크는 직접 URL로 이동 (같은 창)
+             window.location.href = link;
+           } 
+           // 외부 링크는 같은 창에서 열기
+           else {
+             window.location.href = link;
+           }
          } catch (error) {
            console.error('링크 열기 실패:', error);
            alert('링크를 열 수 없습니다. 직접 링크를 복사하여 사용해주세요: ' + link);
