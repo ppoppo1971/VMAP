@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10170545</title>
+    <title>WMAP10200836</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3388,46 +3388,27 @@
                   <div style="font-size: 12px; color: #9ca3af; margin-bottom: 12px;">
                     위도: ${lat.toFixed(6)}, 경도: ${lng.toFixed(6)}
                   </div>
-                  <div style="border-top: 1px solid #e5e7eb; padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display: flex; gap: 8px;">
-                      <button onclick="saveLongPressMarker()" 
-                              style="
-                                flex: 1;
-                                background: rgba(16, 185, 129, 0.12);
-                                color: #059669;
-                                border: 1px solid rgba(16, 185, 129, 0.3);
-                                border-radius: 8px;
-                                padding: 10px 16px;
-                                font-size: 13px;
-                                font-weight: 500;
-                                cursor: pointer;
-                                transition: all 0.2s ease;
-                              "
-                              onmouseover="this.style.background='rgba(16, 185, 129, 0.18)';"
-                              onmouseout="this.style.background='rgba(16, 185, 129, 0.12)';">
-                        마커 저장
-                      </button>
-                      <button onclick="openInGoogleMaps('${lat}', '${lng}', '선택한 위치', '${encodeURIComponent(address)}')" 
-                              style="
-                                flex: 1;
-                                background: rgba(255, 255, 255, 0.12);
-                                color: #000;
-                                border: 1px solid rgba(0, 0, 0, 0.1);
-                                border-radius: 8px;
-                                padding: 10px 16px;
-                                font-size: 13px;
-                                font-weight: 500;
-                                cursor: pointer;
-                                transition: all 0.2s ease;
-                              "
-                              onmouseover="this.style.background='rgba(255, 255, 255, 0.18)';"
-                              onmouseout="this.style.background='rgba(255, 255, 255, 0.12)';">
-                        상세보기
-                      </button>
-                    </div>
+                  <div style="border-top: 1px solid #e5e7eb; padding-top: 12px; display: flex; gap: 8px;">
+                    <button onclick="saveLongPressMarker()" 
+                            style="
+                              flex: 1;
+                              background: rgba(16, 185, 129, 0.12);
+                              color: #059669;
+                              border: 1px solid rgba(16, 185, 129, 0.3);
+                              border-radius: 8px;
+                              padding: 10px 16px;
+                              font-size: 13px;
+                              font-weight: 500;
+                              cursor: pointer;
+                              transition: all 0.2s ease;
+                            "
+                            onmouseover="this.style.background='rgba(16, 185, 129, 0.18)';"
+                            onmouseout="this.style.background='rgba(16, 185, 129, 0.12)';">
+                      마커 저장
+                    </button>
                     <button onclick="takePhotoAtLongPressLocation()" 
                             style="
-                              width: 100%;
+                              flex: 1;
                               background: rgba(59, 130, 246, 0.12);
                               color: #2563eb;
                               border: 1px solid rgba(59, 130, 246, 0.3);
@@ -3440,7 +3421,7 @@
                             "
                             onmouseover="this.style.background='rgba(59, 130, 246, 0.18)';"
                             onmouseout="this.style.background='rgba(59, 130, 246, 0.12)';">
-                      📷 사진 촬영
+                      📷 사진가져오기
                     </button>
                   </div>
                 </div>
@@ -3514,10 +3495,27 @@
                     위도: ${lat.toFixed(6)}<br>
                     경도: ${lng.toFixed(6)}
                   </div>
-                  <div style="border-top: 1px solid #e5e7eb; padding-top: 12px;">
+                  <div style="border-top: 1px solid #e5e7eb; padding-top: 12px; display: flex; gap: 8px;">
+                    <button onclick="saveLongPressMarker()" 
+                            style="
+                              flex: 1;
+                              background: rgba(16, 185, 129, 0.12);
+                              color: #059669;
+                              border: 1px solid rgba(16, 185, 129, 0.3);
+                              border-radius: 8px;
+                              padding: 10px 16px;
+                              font-size: 13px;
+                              font-weight: 500;
+                              cursor: pointer;
+                              transition: all 0.2s ease;
+                            "
+                            onmouseover="this.style.background='rgba(16, 185, 129, 0.18)';"
+                            onmouseout="this.style.background='rgba(16, 185, 129, 0.12)';">
+                      마커 저장
+                    </button>
                     <button onclick="takePhotoAtLongPressLocation()" 
                             style="
-                              width: 100%;
+                              flex: 1;
                               background: rgba(59, 130, 246, 0.12);
                               color: #2563eb;
                               border: 1px solid rgba(59, 130, 246, 0.3);
@@ -3530,7 +3528,7 @@
                             "
                             onmouseover="this.style.background='rgba(59, 130, 246, 0.18)';"
                             onmouseout="this.style.background='rgba(59, 130, 246, 0.12)';">
-                      📷 사진 촬영
+                      📷 사진가져오기
                     </button>
                   </div>
                 </div>
@@ -7715,7 +7713,7 @@
             <div style="margin-bottom: 16px;">
               <input id="route-edit-link" type="text" placeholder="링크를 입력하세요 (https://...)" value="${(current.link||'').replace(/"/g,'&quot;')}" style="width:100%; padding: 16px 18px; border: none; border-radius: 12px; font-size: 15px; background: rgba(255, 255, 255, 0.12); color: #000; box-sizing: border-box; outline: none; transition: all 0.2s ease; backdrop-filter: blur(10px);" onfocus="this.style.background='rgba(255, 255, 255, 0.18)'" onblur="this.style.background='rgba(255, 255, 255, 0.12)'" />
             </div>
-            <div style="margin-bottom: 24px;">
+            <div style="margin-bottom: 16px;">
               <div style="margin-bottom: 8px; color: #333; font-size: 14px; font-weight: 500;">경로 색상</div>
               <div style="display: flex; gap: ${isMobileView ? '4px' : '8px'}; flex-wrap: ${isMobileView ? 'nowrap' : 'wrap'}; justify-content: center;">
                 ${colorOptions.map(color => `
@@ -7725,6 +7723,23 @@
                     ${color.label}
                   </button>
                 `).join('')}
+              </div>
+            </div>
+            <div style="margin-bottom: 24px;">
+              <div style="margin-bottom: 8px; color: #333; font-size: 14px; font-weight: 500;">표시 방식</div>
+              <div style="display: flex; gap: 8px; justify-content: center;">
+                <button type="button" onclick="selectRouteLineStyle('${routeId}', 'dotted')" id="lineStyle-dotted-${routeId}"
+                        style="flex: 1; padding: 10px 16px; border-radius: 8px; border: ${(current.lineStyle || 'dotted') === 'dotted' ? '3px solid #000' : '2px solid rgba(255,255,255,0.3)'}; background: rgba(255, 255, 255, 0.12); cursor: pointer; transition: all 0.2s ease; font-size: 14px; font-weight: 500; color: #333; backdrop-filter: blur(10px);"
+                        onmouseover="if(this.style.border.includes('2px')) this.style.background='rgba(255, 255, 255, 0.18)'"
+                        onmouseout="if(this.style.border.includes('2px')) this.style.background='rgba(255, 255, 255, 0.12)'">
+                  ●──●──● 점선
+                </button>
+                <button type="button" onclick="selectRouteLineStyle('${routeId}', 'solid')" id="lineStyle-solid-${routeId}"
+                        style="flex: 1; padding: 10px 16px; border-radius: 8px; border: ${(current.lineStyle || 'dotted') === 'solid' ? '3px solid #000' : '2px solid rgba(255,255,255,0.3)'}; background: rgba(255, 255, 255, 0.12); cursor: pointer; transition: all 0.2s ease; font-size: 14px; font-weight: 500; color: #333; backdrop-filter: blur(10px);"
+                        onmouseover="if(this.style.border.includes('2px')) this.style.background='rgba(255, 255, 255, 0.18)'"
+                        onmouseout="if(this.style.border.includes('2px')) this.style.background='rgba(255, 255, 255, 0.12)'">
+                  ━━━━━ 실선
+                </button>
               </div>
             </div>
             <div style="display:flex; gap:12px; flex-direction: row;">
@@ -7799,6 +7814,28 @@
 
       }
       
+      // 경로 표시 방식 선택 함수
+      function selectRouteLineStyle(routeId, lineStyle) {
+        // 선택된 표시 방식을 전역 변수에 저장
+        window.selectedRouteLineStyle = window.selectedRouteLineStyle || {};
+        window.selectedRouteLineStyle[routeId] = lineStyle;
+        
+        // UI 업데이트
+        const dottedBtn = document.getElementById(`lineStyle-dotted-${routeId}`);
+        const solidBtn = document.getElementById(`lineStyle-solid-${routeId}`);
+        
+        if (dottedBtn && solidBtn) {
+          if (lineStyle === 'dotted') {
+            dottedBtn.style.border = '3px solid #000';
+            solidBtn.style.border = '2px solid rgba(255,255,255,0.3)';
+          } else {
+            dottedBtn.style.border = '2px solid rgba(255,255,255,0.3)';
+            solidBtn.style.border = '3px solid #000';
+          }
+        }
+        
+      }
+      
       // 경로 색상 업데이트 함수
       function updateRouteColor(routeId, color) {
 
@@ -7842,6 +7879,11 @@
                              window.selectedRouteColor[routeId] : 
                              (routeInfoData[routeId] && routeInfoData[routeId].color) || '#3b82f6';
         
+        // 선택된 표시 방식 가져오기
+        const selectedLineStyle = window.selectedRouteLineStyle && window.selectedRouteLineStyle[routeId] !== undefined ?
+                                 window.selectedRouteLineStyle[routeId] :
+                                 (routeInfoData[routeId] && routeInfoData[routeId].lineStyle) || 'dotted';
+        
         // 동시 수정 방지를 위한 락 획득
         const lockKey = `route_${routeId}`;
         if (!acquireLock(lockKey)) {
@@ -7864,7 +7906,8 @@
               ...existingRouteInfo,
               content: newContent, 
               link: newLink, 
-              color: selectedColor 
+              color: selectedColor,
+              lineStyle: selectedLineStyle
             }
           };
           
@@ -7881,7 +7924,8 @@
             ...existingRouteInfo,
             content: newContent, 
             link: newLink, 
-            color: selectedColor 
+            color: selectedColor,
+            lineStyle: selectedLineStyle 
           };
           
           // 편집 다이얼로그 닫기
@@ -8728,9 +8772,11 @@
             // 디버깅: 각 경로의 스타일 정보 출력
             console.log(`[Route ${route.id}] isKmlRoute:`, isKmlRoute, 'routeInfo:', routeInfo);
             
-            // KML 경로는 저장된 스타일 사용, 일반 경로는 기존 스타일 유지
+            // 경로 스타일 설정
+            const lineStyle = routeInfo.lineStyle || 'dotted'; // 기본값: 점선
             const strokeWeight = isKmlRoute ? (routeInfo.strokeWeight || 2.0) : 2;
-            const strokeOpacity = isKmlRoute ? (routeInfo.strokeOpacity || 0.8) : 0.1;
+            // lineStyle이 'solid'면 불투명하게, 'dotted'면 투명하게
+            const strokeOpacity = lineStyle === 'solid' ? 0.8 : (isKmlRoute ? (routeInfo.strokeOpacity || 0.8) : 0.1);
             
             // 메인 경로
             route.pathElement = new google.maps.Polyline({
@@ -8761,8 +8807,8 @@
               showRouteInfo(route, event.latLng);
             });
             
-            // KML 경로가 아닌 경우에만 점선 효과 추가
-            if (!isKmlRoute) {
+            // lineStyle이 'dotted'인 경우에만 점선 효과 추가
+            if (lineStyle === 'dotted') {
               route.dottedPathElement = new google.maps.Polyline({
                 path: path,
                 geodesic: true,
