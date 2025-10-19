@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP10200836</title>
+    <title>WMAP10200747</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -7732,13 +7732,13 @@
                         style="flex: 1; padding: 10px 16px; border-radius: 8px; border: ${(current.lineStyle || 'dotted') === 'dotted' ? '3px solid #000' : '2px solid rgba(255,255,255,0.3)'}; background: rgba(255, 255, 255, 0.12); cursor: pointer; transition: all 0.2s ease; font-size: 14px; font-weight: 500; color: #333; backdrop-filter: blur(10px);"
                         onmouseover="if(this.style.border.includes('2px')) this.style.background='rgba(255, 255, 255, 0.18)'"
                         onmouseout="if(this.style.border.includes('2px')) this.style.background='rgba(255, 255, 255, 0.12)'">
-                  ●──●──● 점선
+                  점선
                 </button>
                 <button type="button" onclick="selectRouteLineStyle('${routeId}', 'solid')" id="lineStyle-solid-${routeId}"
                         style="flex: 1; padding: 10px 16px; border-radius: 8px; border: ${(current.lineStyle || 'dotted') === 'solid' ? '3px solid #000' : '2px solid rgba(255,255,255,0.3)'}; background: rgba(255, 255, 255, 0.12); cursor: pointer; transition: all 0.2s ease; font-size: 14px; font-weight: 500; color: #333; backdrop-filter: blur(10px);"
                         onmouseover="if(this.style.border.includes('2px')) this.style.background='rgba(255, 255, 255, 0.18)'"
                         onmouseout="if(this.style.border.includes('2px')) this.style.background='rgba(255, 255, 255, 0.12)'">
-                  ━━━━━ 실선
+                  실선
                 </button>
               </div>
             </div>
@@ -7925,7 +7925,7 @@
             content: newContent, 
             link: newLink, 
             color: selectedColor,
-            lineStyle: selectedLineStyle 
+            lineStyle: selectedLineStyle
           };
           
           // 편집 다이얼로그 닫기
@@ -8772,11 +8772,13 @@
             // 디버깅: 각 경로의 스타일 정보 출력
             console.log(`[Route ${route.id}] isKmlRoute:`, isKmlRoute, 'routeInfo:', routeInfo);
             
-            // 경로 스타일 설정
-            const lineStyle = routeInfo.lineStyle || 'dotted'; // 기본값: 점선
+            // 표시 방식 가져오기 (저장된 경로는 기존 값 유지)
+            const lineStyle = routeInfo.lineStyle || (isKmlRoute ? 'solid' : 'dotted');
+            
+            // KML 경로는 저장된 스타일 사용, 일반 경로는 표시 방식에 따라 설정
             const strokeWeight = isKmlRoute ? (routeInfo.strokeWeight || 2.0) : 2;
-            // lineStyle이 'solid'면 불투명하게, 'dotted'면 투명하게
-            const strokeOpacity = lineStyle === 'solid' ? 0.8 : (isKmlRoute ? (routeInfo.strokeOpacity || 0.8) : 0.1);
+            // solid면 진하게, dotted면 투명하게
+            const strokeOpacity = lineStyle === 'solid' ? (isKmlRoute ? (routeInfo.strokeOpacity || 0.8) : 0.8) : 0;
             
             // 메인 경로
             route.pathElement = new google.maps.Polyline({
@@ -8812,9 +8814,9 @@
               route.dottedPathElement = new google.maps.Polyline({
                 path: path,
                 geodesic: true,
-                strokeColor: '#ffffff',
-                strokeOpacity: 0.1,
-                strokeWeight: 1,
+                strokeColor: 'transparent',
+                strokeOpacity: 0,
+                strokeWeight: 0,
                 zIndex: 15, // 메인 경로보다는 위에, 라벨보다는 아래
                 icons: [{
                   icon: {
