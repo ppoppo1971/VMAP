@@ -5885,7 +5885,7 @@
           const options = {
             enableHighAccuracy: isMobile ? false : true, // 모바일에서는 배터리 절약
             timeout: isMobile ? 10000 : 5000, // 모바일에서는 더 긴 타임아웃
-            maximumAge: isMobile ? 60000 : 0 // 모바일에서는 1분간 캐시된 위치 허용
+            maximumAge: 0 // 항상 최신 위치를 가져옴 (차량 이동 중에도 정확한 위치 표시)
           };
           
           navigator.geolocation.getCurrentPosition(
