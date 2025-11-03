@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030204</title>
+    <title>WMAP11030213</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -8279,6 +8279,11 @@
           return;
         }
         
+        // 동기화 플래그 설정 (실시간 리스너가 덮어쓰는 것 방지)
+        if (typeof isSyncing !== 'undefined') {
+          isSyncing = true;
+        }
+        
         try {
           // Firebase에 먼저 저장 (로컬 캐시 로직 단순화)
           if (!window.db || !window.firestore) {
@@ -8403,6 +8408,13 @@
         } finally {
           // 락 해제
           releaseLock(lockKey);
+          
+          // 동기화 플래그 해제 (짧은 지연 후 - Firebase 업데이트 완료 대기)
+          setTimeout(() => {
+            if (typeof isSyncing !== 'undefined') {
+              isSyncing = false;
+            }
+          }, 300); // 300ms 후 플래그 해제
         }
       }
       
@@ -8436,6 +8448,10 @@
           return;
         }
         
+        // 동기화 플래그 설정 (실시간 리스너가 덮어쓰는 것 방지)
+        if (typeof isSyncing !== 'undefined') {
+          isSyncing = true;
+        }
         
         try {
           // 정보창과 편집 다이얼로그 닫기
@@ -8591,6 +8607,13 @@
         } catch (error) {
           console.error('마커 삭제 실패:', error);
           alert('마커 삭제에 실패했습니다. 다시 시도해주세요.');
+        } finally {
+          // 동기화 플래그 해제 (짧은 지연 후 - Firebase 업데이트 완료 대기)
+          setTimeout(() => {
+            if (typeof isSyncing !== 'undefined') {
+              isSyncing = false;
+            }
+          }, 300); // 300ms 후 플래그 해제
         }
       }
       
@@ -11211,18 +11234,24 @@
                 if (data.savedUserRoutes) {
                   console.log('경로 동기화 중...');
                   
+                  // 로컬 수정 중이면 동기화 건너뛰기 (로컬 변경사항 보호)
+                  if (typeof isSyncing !== 'undefined' && isSyncing) {
+                    console.log('로컬 수정 중 - 경로 동기화 건너뜀');
+                    return;
+                  }
+                  
                   // 기존 경로와 비교하여 변경사항이 있는지 확인
                   const currentRoutes = savedUserRoutes || [];
                   const newRoutes = data.savedUserRoutes;
                   
-                  // 경로 개수나 ID가 다르면 업데이트 (강제 업데이트 옵션 추가)
+                  // 경로 개수나 ID가 다르면 업데이트
                   const routesChanged = currentRoutes.length !== newRoutes.length || 
                       JSON.stringify(currentRoutes.map(route => route.id).sort()) !== 
                       JSON.stringify(newRoutes.map(route => route.id).sort());
                   
-                  // 실시간 동기화 강제 실행 (삭제 감지를 위해)
-                  console.log('경로 동기화 강제 실행 - 삭제 감지를 위해');
-                  if (true) {  // 항상 업데이트하여 삭제 반영
+                  // 변경사항이 있을 때만 업데이트
+                  console.log('경로 동기화 체크', { routesChanged });
+                  if (routesChanged) {  // 변경이 있을 때만 업데이트
                     
                     console.log('경로 변경 감지 - UI 업데이트', {
                       이전개수: currentRoutes.length,
@@ -11251,18 +11280,24 @@
                 if (data.savedUserMarkers) {
                   console.log('마커 동기화 중...');
                   
+                  // 로컬 수정 중이면 동기화 건너뛰기 (로컬 변경사항 보호)
+                  if (typeof isSyncing !== 'undefined' && isSyncing) {
+                    console.log('로컬 수정 중 - 마커 동기화 건너뜀');
+                    return;
+                  }
+                  
                   // 기존 마커와 비교하여 변경사항이 있는지 확인
                   const currentMarkers = window.savedUserMarkers || [];
                   const newMarkers = data.savedUserMarkers;
                   
-                  // 마커 개수나 ID가 다르면 업데이트 (강제 업데이트 옵션 추가)
+                  // 마커 개수나 ID가 다르면 업데이트
                   const markersChanged = currentMarkers.length !== newMarkers.length || 
                       JSON.stringify(currentMarkers.map(marker => marker.id).sort()) !== 
                       JSON.stringify(newMarkers.map(marker => marker.id).sort());
                   
-                  // 실시간 동기화 강제 실행 (삭제 감지를 위해)
-                  console.log('마커 동기화 강제 실행 - 삭제 감지를 위해');
-                  if (true) {  // 항상 업데이트하여 삭제 반영
+                  // 변경사항이 있을 때만 업데이트
+                  console.log('마커 동기화 체크', { markersChanged });
+                  if (markersChanged) {  // 변경이 있을 때만 업데이트
                     
                     console.log('마커 변경 감지 - UI 업데이트', {
                       이전개수: currentMarkers.length,
