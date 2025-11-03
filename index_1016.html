@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030153</title>
+    <title>WMAP11030204</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -8463,9 +8463,24 @@
           // 해당 인덱스의 마커만 삭제
           if (markerGroup.markerElements && markerGroup.markerElements[index]) {
             
-            // 지도에서 마커 제거 (즉시 피드백을 위해)
-            markerGroup.markerElements[index].setMap(null);
+            // 지도에서 마커와 타이틀 라벨 즉시 제거 (즉각적인 UI 피드백)
+            const targetMarker = markerGroup.markerElements[index];
             
+            // 이벤트 리스너 정리
+            if (targetMarker && google.maps && google.maps.event) {
+              google.maps.event.clearInstanceListeners(targetMarker);
+            }
+            
+            // 타이틀 라벨도 제거
+            if (targetMarker && targetMarker.titleLabel) {
+              if (google.maps && google.maps.event) {
+                google.maps.event.clearInstanceListeners(targetMarker.titleLabel);
+              }
+              targetMarker.titleLabel.setMap(null);
+            }
+            
+            // 마커 제거
+            targetMarker.setMap(null);
             
             // Firebase 저장용 데이터 생성 (로컬 데이터는 실시간 동기화로만 업데이트)
             const updatedMarkers = [...savedMarkers];
@@ -8535,12 +8550,14 @@
               // markerInfoData도 즉시 업데이트
               markerInfoData = updatedMarkerInfoData;
               
-              // 인덱스 재정렬 후 마커 번호 업데이트
+              // 인덱스 재정렬 후 마커 번호 및 타이틀 라벨 업데이트
               markerGroup.markerElements.forEach((marker, i) => {
                 if (marker) {
                   const info = markerInfoData[(groupForId && groupForId.id) ? `${groupForId.id}-${i}` : `${markerGroupName}-${i}`];
                   const emoji = info && info.emoji;
+                  const title = info && info.title;
                   
+                  // 마커 번호 업데이트
                   if (!emoji) {
                     marker.setLabel({
                       text: (i + 1).toString(),
@@ -8548,6 +8565,11 @@
                       fontWeight: 'bold',
                       color: '#ffffff'
                     });
+                  }
+                  
+                  // 타이틀 라벨 업데이트
+                  if (marker.titleLabel && marker.updateTitleLabel) {
+                    marker.updateTitleLabel(title || `마커 ${i + 1}`);
                   }
                 }
               });
