@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030304</title>
+    <title>WMAP11030213</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -1911,7 +1911,6 @@
       let currentInfoWindow = null; // 현재 열린 정보창
       let kmlLayerActive = false; // KML 레이어 활성화 상태
       let kmlFeatures = []; // 현재 로드된 KML features
-      let isMarkerOrRouteClicked = false; // 마커/경로 클릭 플래그 (지도 클릭과 구분)
       
       // 🔍 주소 검색 관련 전역 변수
       let addressMarker = null; // 주소 검색 마커 (기존 호환성용)
@@ -3283,14 +3282,7 @@
             return; // 장소 클릭 시 무시
           }
           
-          // 마커/경로 클릭이면 해당 이벤트 핸들러에서 처리하도록 함
-          if (isMarkerOrRouteClicked) {
-            console.log('[지도 클릭] 마커/경로 클릭 감지 - 지도 핸들러 건너뜀');
-            isMarkerOrRouteClicked = false; // 플래그 초기화
-            return; // 마커/경로 클릭 핸들러에서 처리
-          }
-          
-          // 정보창이 열려있으면 우선 정보창 닫기 (빈 지도 영역 클릭 시만)
+          // 정보창이 열려있으면 우선 정보창 닫기
           if (currentInfoWindow) {
             closeAllDialogsAndMenus();
             return;
@@ -6637,9 +6629,6 @@
           
           // 임시 경로 클릭 이벤트 추가
           userRoutePath.addListener('click', function(event) {
-            // 마커/경로 클릭 플래그 설정
-            isMarkerOrRouteClicked = true;
-            
             // 메뉴창 닫기
             const customMapMenu = getElement('customMapMenu');
             const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -6649,11 +6638,6 @@
             }
             if (rightPanelOpen) {
               hideRightMenu();
-            }
-            
-            // 기존 정보창 닫기
-            if (currentInfoWindow) {
-              currentInfoWindow.close();
             }
             
             const tempRoute = {
@@ -6688,9 +6672,6 @@
           
           // 점선 경로에도 클릭 이벤트 추가
           userRouteDottedPath.addListener('click', function(event) {
-            // 마커/경로 클릭 플래그 설정
-            isMarkerOrRouteClicked = true;
-            
             // 메뉴창 닫기
             const customMapMenu = getElement('customMapMenu');
             const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -6700,11 +6681,6 @@
             }
             if (rightPanelOpen) {
               hideRightMenu();
-            }
-            
-            // 기존 정보창 닫기
-            if (currentInfoWindow) {
-              currentInfoWindow.close();
             }
             
             const tempRoute = {
@@ -7178,11 +7154,6 @@
                 
                 // 마커 클릭 시 정보 표시 및 줌 15로 중심 이동
                 marker.addListener('click', function() {
-                  console.log(`[마커 클릭] 그룹: ${markerGroup.name}, 인덱스: ${index}, 모드 상태:`, { isMarkerMode, isRouteMode });
-                  
-                  // 마커/경로 클릭 플래그 설정 (지도 클릭 핸들러 차단)
-                  isMarkerOrRouteClicked = true;
-                  
                   // 메뉴창 닫기
                   const customMapMenu = getElement('customMapMenu');
                   const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -7196,11 +7167,6 @@
                   
                   if (isMarkerMode) { addCustomMarker(marker.getPosition()); return; }
                   if (isRouteMode) { addUserRoutePoint(marker.getPosition()); return; }
-                  
-                  // 기존 정보창 닫기
-                  if (currentInfoWindow) {
-                    currentInfoWindow.close();
-                  }
                   
                   showMarkerInfo(markerGroup, markerData, index);
                 });
@@ -7260,16 +7226,8 @@
       
       // 마커 정보 표시
       function showMarkerInfo(markerGroup, markerData, index) {
-        console.log('[showMarkerInfo] 호출됨:', { 
-          markerGroup: markerGroup.name, 
-          index, 
-          isMarkerMode, 
-          isRouteMode 
-        });
-        
         // 생성 모드에서는 정보창을 표시하지 않음
         if (isMarkerMode || isRouteMode) {
-          console.warn('[showMarkerInfo] 생성 모드 활성화로 인해 정보창 표시 중단:', { isMarkerMode, isRouteMode });
           return;
         }
          // 기존 정보창이 있으면 제거
@@ -7332,16 +7290,8 @@
       
       // 경로 정보창 표시 함수
       function showRouteInfo(route, clickPosition) {
-        console.log('[showRouteInfo] 호출됨:', { 
-          routeId: route.id, 
-          routeName: route.name, 
-          isMarkerMode, 
-          isRouteMode 
-        });
-        
         // 생성 모드에서는 정보창을 표시하지 않음
         if (isMarkerMode || isRouteMode) {
-          console.warn('[showRouteInfo] 생성 모드 활성화로 인해 정보창 표시 중단:', { isMarkerMode, isRouteMode });
           return;
         }
         
@@ -7687,10 +7637,7 @@
           return;
         }
         
-        // 동기화 플래그 설정 (실시간 리스너가 덮어쓰는 것 방지)
-        if (typeof isSyncing !== 'undefined') {
-          isSyncing = true;
-        }
+
         
         try {
           // 정보창과 편집 다이얼로그 닫기
@@ -7714,46 +7661,37 @@
           
           const route = savedUserRoutes[routeIndex];
           
-          // 지도에서 경로 즉시 제거 (이벤트 리스너도 함께 정리)
+
+          
+          // 지도에서 경로 시각적 제거 (즉시 피드백을 위해)
           if (route.pathElement) {
-            if (google.maps && google.maps.event) {
-              google.maps.event.clearInstanceListeners(route.pathElement);
-            }
             route.pathElement.setMap(null);
           }
           if (route.dottedPathElement) {
-            if (google.maps && google.maps.event) {
-              google.maps.event.clearInstanceListeners(route.dottedPathElement);
-            }
             route.dottedPathElement.setMap(null);
           }
           
-          // Firebase 저장용 배열 생성
+          // Firebase 저장용 배열 생성 (로컬 배열은 실시간 동기화로만 업데이트)
           const updatedRoutes = [...savedUserRoutes];
           updatedRoutes.splice(routeIndex, 1);
           
-          // routeInfoData에서도 제거
-          const updatedRouteInfoData = { ...routeInfoData };
-          delete updatedRouteInfoData[routeId];
+
           
           // Firebase에 업데이트
           if (window.db && window.firestore) {
+
+            
             const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
             const sanitizedRoutes = sanitizeRoutesForFirestore(updatedRoutes);
             await window.firestore.updateDoc(userDocRef, {
               savedUserRoutes: sanitizedRoutes,
-              routeInfoData: updatedRouteInfoData,
               lastUpdated: window.firestore.serverTimestamp()
             });
             
-            // 로컬 데이터 즉시 업데이트 (실시간 동기화 대기하지 않음)
-            savedUserRoutes.splice(routeIndex, 1);
-            routeInfoData = updatedRouteInfoData;
+
             
-            // UI 업데이트
-            updateRouteRemoveButtons();
-            
-            alert(`"${routeName}" 경로가 삭제되었습니다.`);
+            // UI 업데이트는 실시간 동기화를 통해 처리되므로 여기서는 하지 않음
+
           } else {
             console.warn('Firebase가 초기화되지 않았습니다 - 경로 삭제가 저장되지 않음');
             alert('Firebase 연결이 되지 않았습니다. 경로 삭제가 저장되지 않을 수 있습니다.');
@@ -7766,24 +7704,7 @@
             message: error.message,
             stack: error.stack
           });
-          
-          // 에러 타입에 따른 구체적인 메시지
-          let errorMessage = '경로 삭제 중 오류가 발생했습니다.\n';
-          if (error.code === 'permission-denied') {
-            errorMessage += '권한이 없습니다. 로그인 상태를 확인해주세요.';
-          } else if (error.code === 'unavailable') {
-            errorMessage += '네트워크 연결을 확인해주세요.';
-          } else if (error.message) {
-            errorMessage += `오류: ${error.message}`;
-          }
-          alert(errorMessage);
-        } finally {
-          // 동기화 플래그 해제 (짧은 지연 후 - Firebase 업데이트 완료 대기)
-          setTimeout(() => {
-            if (typeof isSyncing !== 'undefined') {
-              isSyncing = false;
-            }
-          }, 300); // 300ms 후 플래그 해제
+          alert(`경로 삭제에 실패했습니다: ${error.message}\n다시 시도해주세요.`);
         }
       }
       
@@ -7809,27 +7730,6 @@
       
       // 경로 정보 수정 다이얼로그
       function editRouteInfo(routeId, routeName) {
-        // 마커/경로 생성 모드 강제 비활성화 (정보창 표시 방지 문제 해결)
-        if (isMarkerMode) {
-          isMarkerMode = false;
-          const markerBtn = document.getElementById('topMarkerBtn');
-          if (markerBtn) {
-            markerBtn.textContent = '마커생성';
-            markerBtn.style.background = 'rgba(255, 255, 255, 0.12)';
-            markerBtn.style.color = '#1a1a1a';
-          }
-        }
-        
-        if (isRouteMode) {
-          isRouteMode = false;
-          const routeBtn = document.getElementById('topRouteBtn');
-          if (routeBtn) {
-            routeBtn.textContent = '경로생성';
-            routeBtn.style.background = 'rgba(255, 255, 255, 0.12)';
-            routeBtn.style.color = '#1a1a1a';
-          }
-        }
-        
         // 현재 저장된 정보 가져오기
         const current = (routeInfoData && routeInfoData[routeId]) ? routeInfoData[routeId] : { content: '', link: '', color: '#3b82f6' };
         const isMobileView = window.innerWidth <= 768;
@@ -8036,11 +7936,6 @@
           return;
         }
         
-        // 동기화 플래그 설정 (실시간 리스너가 덮어쓰는 것 방지)
-        if (typeof isSyncing !== 'undefined') {
-          isSyncing = true;
-        }
-        
         try {
           // Firebase에 먼저 저장 (로컬 캐시 로직 단순화)
           if (!window.db || !window.firestore) {
@@ -8084,102 +7979,15 @@
             editDialog.remove();
           }
           
-          // 마커처럼 개별 경로만 업데이트 (전체 다시 그리지 않음 - 클릭 이벤트 유지)
-          const route = savedUserRoutes.find(r => r.id === routeId);
+          // 모든 경로를 다시 그려서 스타일 적용 (KML 경로의 실선 유지)
+          drawAllSavedRoutes();
           
-          if (route && route.pathElement) {
-            console.log('[saveRouteInfo] 개별 경로 스타일 업데이트:', {
-              routeId,
-              color: selectedColor,
-              lineStyle: selectedLineStyle
-            });
-            
-            // 메인 경로 스타일만 업데이트 (이벤트 리스너 유지)
-            const strokeOpacity = selectedLineStyle === 'solid' ? 0.8 : 0;
-            route.pathElement.setOptions({
-              strokeColor: selectedColor,
-              strokeOpacity: strokeOpacity,
-              strokeWeight: 2
-            });
-            
-            // 점선 경로 업데이트
-            if (selectedLineStyle === 'dotted') {
-              // 기존 점선이 없으면 생성
-              if (!route.dottedPathElement) {
-                const path = route.path.map(point => new google.maps.LatLng(point.lat, point.lng));
-                route.dottedPathElement = new google.maps.Polyline({
-                  path: path,
-                  geodesic: true,
-                  strokeColor: 'transparent',
-                  strokeOpacity: 0,
-                  strokeWeight: 0,
-                  zIndex: 15,
-                  icons: [{
-                    icon: {
-                      path: google.maps.SymbolPath.CIRCLE,
-                      fillColor: selectedColor,
-                      fillOpacity: 1,
-                      strokeColor: '#ffffff',
-                      strokeWeight: 1,
-                      scale: 6
-                    },
-                    offset: '0',
-                    repeat: '15px'
-                  }]
-                });
-                route.dottedPathElement.setMap(map);
-                
-                // 클릭 이벤트 추가
-                route.dottedPathElement.addListener('click', function(event) {
-                  // 마커/경로 클릭 플래그 설정
-                  isMarkerOrRouteClicked = true;
-                  
-                  if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
-                  if (isMarkerMode) { addCustomMarker(event.latLng); return; }
-                  
-                  // 기존 정보창 닫기
-                  if (currentInfoWindow) {
-                    currentInfoWindow.close();
-                  }
-                  
-                  showRouteInfo(route, event.latLng);
-                });
-              } else {
-                // 기존 점선 색상만 업데이트
-                route.dottedPathElement.setOptions({
-                  icons: [{
-                    icon: {
-                      path: google.maps.SymbolPath.CIRCLE,
-                      fillColor: selectedColor,
-                      fillOpacity: 1,
-                      strokeColor: '#ffffff',
-                      strokeWeight: 1,
-                      scale: 6
-                    },
-                    offset: '0',
-                    repeat: '15px'
-                  }]
-                });
-              }
-            } else {
-              // solid 스타일이면 점선 제거
-              if (route.dottedPathElement) {
-                if (google.maps && google.maps.event) {
-                  google.maps.event.clearInstanceListeners(route.dottedPathElement);
-                }
-                route.dottedPathElement.setMap(null);
-                route.dottedPathElement = null;
-              }
-            }
-            
-            console.log('[saveRouteInfo] 경로 스타일 업데이트 완료 - 클릭 이벤트 유지됨');
-          }
-          
-          // 정보창 갱신 (내용/링크 반영)
-          showRouteInfo(route || { id: routeId, name: routeName, path: [] }, null);
+          // 저장 후 현재 정보창에 내용 표시로 갱신
+          const route = savedUserRoutes.find(r => r.id === routeId) || { id: routeId, name: routeName, path: [] };
+          showRouteInfo(route, null);
           
           // 성공 알림
-          console.log('[saveRouteInfo] 저장 완료 - 모드 상태:', { isMarkerMode, isRouteMode });
+
           
         } catch (error) {
           console.error('경로 정보 저장 실패:', error);
@@ -8194,12 +8002,7 @@
           
           // 로컬 캐시에는 즉시 반영 (사용자 경험 향상)
           routeInfoData = routeInfoData || {};
-          routeInfoData[routeId] = { 
-            content: newContent, 
-            link: newLink, 
-            color: selectedColor,
-            lineStyle: selectedLineStyle
-          };
+          routeInfoData[routeId] = { content: newContent, link: newLink, color: selectedColor };
           
           // 편집 다이얼로그 닫기
           const editDialog = document.getElementById('routeEditDialog');
@@ -8207,35 +8010,12 @@
             editDialog.remove();
           }
           
-          // 개별 경로 스타일 즉시 업데이트 (에러 시에도 동일하게 처리)
-          const route = savedUserRoutes.find(r => r.id === routeId);
-          if (route && route.pathElement) {
-            const strokeOpacity = selectedLineStyle === 'solid' ? 0.8 : 0;
-            route.pathElement.setOptions({
-              strokeColor: selectedColor,
-              strokeOpacity: strokeOpacity
-            });
-            
-            if (route.dottedPathElement) {
-              route.dottedPathElement.setOptions({
-                icons: [{
-                  icon: {
-                    path: google.maps.SymbolPath.CIRCLE,
-                    fillColor: selectedColor,
-                    fillOpacity: 1,
-                    strokeColor: '#ffffff',
-                    strokeWeight: 1,
-                    scale: 6
-                  },
-                  offset: '0',
-                  repeat: '15px'
-                }]
-              });
-            }
-          }
+          // 경로 색상 즉시 업데이트
+          updateRouteColor(routeId, selectedColor);
           
-          // 정보창 갱신
-          showRouteInfo(route || { id: routeId, name: routeName, path: [] }, null);
+          // 저장 후 현재 정보창에 내용 표시로 갱신
+          const route = savedUserRoutes.find(r => r.id === routeId) || { id: routeId, name: routeName, path: [] };
+          showRouteInfo(route, null);
           
           // 구체적인 오류 메시지
           let errorMessage = '경로 정보가 임시 저장되었습니다.';
@@ -8252,38 +8032,10 @@
         } finally {
           // 락 해제
           releaseLock(lockKey);
-          
-          // 동기화 플래그 해제 (짧은 지연 후 - Firebase 업데이트 완료 대기)
-          setTimeout(() => {
-            if (typeof isSyncing !== 'undefined') {
-              isSyncing = false;
-            }
-          }, 300); // 300ms 후 플래그 해제
         }
       }
       // 마커 정보 수정 함수
       function editMarkerInfo(markerGroupName, index) {
-        // 마커/경로 생성 모드 강제 비활성화 (정보창 표시 방지 문제 해결)
-        if (isMarkerMode) {
-          isMarkerMode = false;
-          const markerBtn = document.getElementById('topMarkerBtn');
-          if (markerBtn) {
-            markerBtn.textContent = '마커생성';
-            markerBtn.style.background = 'rgba(255, 255, 255, 0.12)';
-            markerBtn.style.color = '#1a1a1a';
-          }
-        }
-        
-        if (isRouteMode) {
-          isRouteMode = false;
-          const routeBtn = document.getElementById('topRouteBtn');
-          if (routeBtn) {
-            routeBtn.textContent = '경로생성';
-            routeBtn.style.background = 'rgba(255, 255, 255, 0.12)';
-            routeBtn.style.color = '#1a1a1a';
-          }
-        }
-        
         // group id 우선 키 사용 (하위 호환으로 name-index 유지)
         const savedMarkers = window.savedUserMarkers || [];
         const group = savedMarkers.find(g => g && (g.id === markerGroupName || g.name === markerGroupName));
@@ -8920,19 +8672,6 @@
       
       // 저장된 정보로 마커 정보창 표시
       function showMarkerInfoWithData(markerGroupName, index) {
-        console.log('[showMarkerInfoWithData] 호출됨:', { 
-          markerGroupName, 
-          index, 
-          isMarkerMode, 
-          isRouteMode 
-        });
-        
-        // 생성 모드에서는 정보창을 표시하지 않음
-        if (isMarkerMode || isRouteMode) {
-          console.warn('[showMarkerInfoWithData] 생성 모드 활성화로 인해 정보창 표시 중단:', { isMarkerMode, isRouteMode });
-          return;
-        }
-        
         // 현재 열린 마커 정보 추적
         window.currentOpenMarkerGroup = markerGroupName;
         window.currentOpenMarkerIndex = index;
@@ -9162,14 +8901,10 @@
           return;
         }
         
-        // 기존 경로들 제거 (이벤트 리스너도 함께 정리)
+        // 기존 경로들 제거
         savedUserRoutes.forEach(route => {
           if (route && route.pathElement) {
             try {
-              // 이벤트 리스너 정리
-              if (google.maps && google.maps.event) {
-                google.maps.event.clearInstanceListeners(route.pathElement);
-              }
               route.pathElement.setMap(null);
             } catch (error) {
               console.warn('경로 제거 오류:', error);
@@ -9177,10 +8912,6 @@
           }
           if (route && route.dottedPathElement) {
             try {
-              // 이벤트 리스너 정리
-              if (google.maps && google.maps.event) {
-                google.maps.event.clearInstanceListeners(route.dottedPathElement);
-              }
               route.dottedPathElement.setMap(null);
             } catch (error) {
               console.warn('점선 경로 제거 오류:', error);
@@ -9230,11 +8961,6 @@
             
             // 경로 클릭 이벤트 추가
             route.pathElement.addListener('click', function(event) {
-              console.log(`[경로 클릭] ID: ${route.id}, 이름: ${route.name}, 모드 상태:`, { isMarkerMode, isRouteMode });
-              
-              // 마커/경로 클릭 플래그 설정 (지도 클릭 핸들러 차단)
-              isMarkerOrRouteClicked = true;
-              
               // 메뉴창 닫기
               const customMapMenu = getElement('customMapMenu');
               const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -9248,16 +8974,8 @@
               
               if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
               if (isMarkerMode) { addCustomMarker(event.latLng); return; }
-              
-              // 기존 정보창 닫기
-              if (currentInfoWindow) {
-                currentInfoWindow.close();
-              }
-              
               showRouteInfo(route, event.latLng);
             });
-            
-            console.log(`[경로 생성 완료] ID: ${route.id}, 클릭 이벤트 등록됨`);
             
             // lineStyle이 'dotted'인 경우에만 점선 효과 추가
             if (lineStyle === 'dotted') {
@@ -9285,11 +9003,6 @@
               
               // 점선 경로에도 클릭 이벤트 추가
               route.dottedPathElement.addListener('click', function(event) {
-                console.log(`[점선 경로 클릭] ID: ${route.id}, 이름: ${route.name}`);
-                
-                // 마커/경로 클릭 플래그 설정 (지도 클릭 핸들러 차단)
-                isMarkerOrRouteClicked = true;
-                
                 // 메뉴창 닫기
                 const customMapMenu = getElement('customMapMenu');
                 const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -9303,16 +9016,8 @@
                 
                 if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
                 if (isMarkerMode) { addCustomMarker(event.latLng); return; }
-                
-                // 기존 정보창 닫기
-                if (currentInfoWindow) {
-                  currentInfoWindow.close();
-                }
-                
                 showRouteInfo(route, event.latLng);
               });
-              
-              console.log(`[점선 경로 생성 완료] ID: ${route.id}, 클릭 이벤트 등록됨`);
             }
           } catch (error) {
             console.error('경로 그리기 오류:', error, route);
@@ -11529,15 +11234,13 @@
                 if (data.savedUserRoutes) {
                   console.log('경로 동기화 중...');
                   
-                  // 로컬 수정 중이 아닐 때만 동기화 실행
-                  const canSyncRoutes = !(typeof isSyncing !== 'undefined' && isSyncing);
-                  
-                  if (!canSyncRoutes) {
+                  // 로컬 수정 중이면 동기화 건너뛰기 (로컬 변경사항 보호)
+                  if (typeof isSyncing !== 'undefined' && isSyncing) {
                     console.log('로컬 수정 중 - 경로 동기화 건너뜀');
+                    return;
                   }
                   
-                  if (canSyncRoutes) {
-                    // 기존 경로와 비교하여 변경사항이 있는지 확인
+                  // 기존 경로와 비교하여 변경사항이 있는지 확인
                   const currentRoutes = savedUserRoutes || [];
                   const newRoutes = data.savedUserRoutes;
                   
@@ -11571,22 +11274,19 @@
                       새경로수: newRoutes.length
                     });
                   }
-                  }  // canSyncRoutes 블록 닫기
                 }
                 
                 // 마커 동기화 (Firebase에서 직접)
                 if (data.savedUserMarkers) {
                   console.log('마커 동기화 중...');
                   
-                  // 로컬 수정 중이 아닐 때만 동기화 실행
-                  const canSyncMarkers = !(typeof isSyncing !== 'undefined' && isSyncing);
-                  
-                  if (!canSyncMarkers) {
+                  // 로컬 수정 중이면 동기화 건너뛰기 (로컬 변경사항 보호)
+                  if (typeof isSyncing !== 'undefined' && isSyncing) {
                     console.log('로컬 수정 중 - 마커 동기화 건너뜀');
+                    return;
                   }
                   
-                  if (canSyncMarkers) {
-                    // 기존 마커와 비교하여 변경사항이 있는지 확인
+                  // 기존 마커와 비교하여 변경사항이 있는지 확인
                   const currentMarkers = window.savedUserMarkers || [];
                   const newMarkers = data.savedUserMarkers;
                   
@@ -11620,22 +11320,13 @@
                       새마커수: newMarkers.length
                     });
                   }
-                  }  // canSyncMarkers 블록 닫기
                 }
                 
                 // 마커 정보 데이터 동기화 (Firebase에서 직접)
                 if (data.markerInfoData) {
                   console.log('마커 정보 데이터 동기화 중...');
                   
-                  // 로컬 수정 중이 아닐 때만 동기화 실행
-                  const canSyncMarkerInfo = !(typeof isSyncing !== 'undefined' && isSyncing);
-                  
-                  if (!canSyncMarkerInfo) {
-                    console.log('로컬 수정 중 - 마커 정보 동기화 건너뜀');
-                  }
-                  
-                  if (canSyncMarkerInfo) {
-                    // 기존 마커 정보와 비교하여 변경사항이 있는지 확인
+                  // 기존 마커 정보와 비교하여 변경사항이 있는지 확인
                   const currentMarkerInfo = markerInfoData || {};
                   const newMarkerInfo = data.markerInfoData;
                   
@@ -11662,24 +11353,14 @@
                   } else {
                     console.log('마커 정보 변경 없음 - 업데이트 건너뜀');
                   }
-                  }  // canSyncMarkerInfo 블록 닫기
                 }
 
                 // 경로 정보 데이터 동기화 (내용/링크)
                 if (data.routeInfoData) {
                   console.log('경로 정보 데이터 동기화 중...');
-                  
-                  // 로컬 수정 중이 아닐 때만 동기화 실행
-                  const canSyncRouteInfo = !(typeof isSyncing !== 'undefined' && isSyncing);
-                  
-                  if (!canSyncRouteInfo) {
-                    console.log('로컬 수정 중 - 경로 정보 동기화 건너뜀');
-                  }
-                  
-                  if (canSyncRouteInfo) {
-                    const currentRouteInfo = routeInfoData || {};
-                    const newRouteInfo = data.routeInfoData;
-                    if (JSON.stringify(currentRouteInfo) !== JSON.stringify(newRouteInfo)) {
+                  const currentRouteInfo = routeInfoData || {};
+                  const newRouteInfo = data.routeInfoData;
+                  if (JSON.stringify(currentRouteInfo) !== JSON.stringify(newRouteInfo)) {
                     routeInfoData = newRouteInfo;
                     console.log('경로 정보 동기화 완료 (isKmlRoute 포함)', newRouteInfo);
                     
@@ -11702,7 +11383,6 @@
                       console.log('경로 정보창 갱신 중 오류:', e);
                     }
                   }
-                  }  // canSyncRouteInfo 블록 닫기
                 }
                 
                 // 사용자 정의 일정 동기화
