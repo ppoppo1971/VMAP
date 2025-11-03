@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030245</title>
+    <title>WMAP11030253</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -1911,6 +1911,7 @@
       let currentInfoWindow = null; // 현재 열린 정보창
       let kmlLayerActive = false; // KML 레이어 활성화 상태
       let kmlFeatures = []; // 현재 로드된 KML features
+      let isMarkerOrRouteClicked = false; // 마커/경로 클릭 플래그 (지도 클릭과 구분)
       
       // 🔍 주소 검색 관련 전역 변수
       let addressMarker = null; // 주소 검색 마커 (기존 호환성용)
@@ -3282,7 +3283,14 @@
             return; // 장소 클릭 시 무시
           }
           
-          // 정보창이 열려있으면 우선 정보창 닫기
+          // 마커/경로 클릭이면 해당 이벤트 핸들러에서 처리하도록 함
+          if (isMarkerOrRouteClicked) {
+            console.log('[지도 클릭] 마커/경로 클릭 감지 - 지도 핸들러 건너뜀');
+            isMarkerOrRouteClicked = false; // 플래그 초기화
+            return; // 마커/경로 클릭 핸들러에서 처리
+          }
+          
+          // 정보창이 열려있으면 우선 정보창 닫기 (빈 지도 영역 클릭 시만)
           if (currentInfoWindow) {
             closeAllDialogsAndMenus();
             return;
@@ -6629,6 +6637,9 @@
           
           // 임시 경로 클릭 이벤트 추가
           userRoutePath.addListener('click', function(event) {
+            // 마커/경로 클릭 플래그 설정
+            isMarkerOrRouteClicked = true;
+            
             // 메뉴창 닫기
             const customMapMenu = getElement('customMapMenu');
             const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -6638,6 +6649,11 @@
             }
             if (rightPanelOpen) {
               hideRightMenu();
+            }
+            
+            // 기존 정보창 닫기
+            if (currentInfoWindow) {
+              currentInfoWindow.close();
             }
             
             const tempRoute = {
@@ -6672,6 +6688,9 @@
           
           // 점선 경로에도 클릭 이벤트 추가
           userRouteDottedPath.addListener('click', function(event) {
+            // 마커/경로 클릭 플래그 설정
+            isMarkerOrRouteClicked = true;
+            
             // 메뉴창 닫기
             const customMapMenu = getElement('customMapMenu');
             const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -6681,6 +6700,11 @@
             }
             if (rightPanelOpen) {
               hideRightMenu();
+            }
+            
+            // 기존 정보창 닫기
+            if (currentInfoWindow) {
+              currentInfoWindow.close();
             }
             
             const tempRoute = {
@@ -7154,6 +7178,11 @@
                 
                 // 마커 클릭 시 정보 표시 및 줌 15로 중심 이동
                 marker.addListener('click', function() {
+                  console.log(`[마커 클릭] 그룹: ${markerGroup.name}, 인덱스: ${index}`);
+                  
+                  // 마커/경로 클릭 플래그 설정 (지도 클릭 핸들러 차단)
+                  isMarkerOrRouteClicked = true;
+                  
                   // 메뉴창 닫기
                   const customMapMenu = getElement('customMapMenu');
                   const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -7167,6 +7196,11 @@
                   
                   if (isMarkerMode) { addCustomMarker(marker.getPosition()); return; }
                   if (isRouteMode) { addUserRoutePoint(marker.getPosition()); return; }
+                  
+                  // 기존 정보창 닫기
+                  if (currentInfoWindow) {
+                    currentInfoWindow.close();
+                  }
                   
                   showMarkerInfo(markerGroup, markerData, index);
                 });
@@ -8060,8 +8094,17 @@
                 
                 // 클릭 이벤트 추가
                 route.dottedPathElement.addListener('click', function(event) {
+                  // 마커/경로 클릭 플래그 설정
+                  isMarkerOrRouteClicked = true;
+                  
                   if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
                   if (isMarkerMode) { addCustomMarker(event.latLng); return; }
+                  
+                  // 기존 정보창 닫기
+                  if (currentInfoWindow) {
+                    currentInfoWindow.close();
+                  }
+                  
                   showRouteInfo(route, event.latLng);
                 });
               } else {
@@ -9118,6 +9161,9 @@
             route.pathElement.addListener('click', function(event) {
               console.log(`[경로 클릭] ID: ${route.id}, 이름: ${route.name}`);
               
+              // 마커/경로 클릭 플래그 설정 (지도 클릭 핸들러 차단)
+              isMarkerOrRouteClicked = true;
+              
               // 메뉴창 닫기
               const customMapMenu = getElement('customMapMenu');
               const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -9131,6 +9177,12 @@
               
               if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
               if (isMarkerMode) { addCustomMarker(event.latLng); return; }
+              
+              // 기존 정보창 닫기
+              if (currentInfoWindow) {
+                currentInfoWindow.close();
+              }
+              
               showRouteInfo(route, event.latLng);
             });
             
@@ -9164,6 +9216,9 @@
               route.dottedPathElement.addListener('click', function(event) {
                 console.log(`[점선 경로 클릭] ID: ${route.id}, 이름: ${route.name}`);
                 
+                // 마커/경로 클릭 플래그 설정 (지도 클릭 핸들러 차단)
+                isMarkerOrRouteClicked = true;
+                
                 // 메뉴창 닫기
                 const customMapMenu = getElement('customMapMenu');
                 const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -9177,6 +9232,12 @@
                 
                 if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
                 if (isMarkerMode) { addCustomMarker(event.latLng); return; }
+                
+                // 기존 정보창 닫기
+                if (currentInfoWindow) {
+                  currentInfoWindow.close();
+                }
+                
                 showRouteInfo(route, event.latLng);
               });
               
