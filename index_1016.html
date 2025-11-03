@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030339</title>
+    <title>WMAP11030353</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -7043,6 +7043,10 @@
               markerGroup.markerElements.forEach(marker => {
                 try {
                   if (marker && marker.setMap) {
+                    // 타이틀 라벨도 함께 제거
+                    if (marker.titleLabel) {
+                      marker.titleLabel.setMap(null);
+                    }
                     marker.setMap(null);
                   }
                 } catch (error) {
@@ -7188,6 +7192,10 @@
             if (markerGroup && markerGroup.markerElements) {
               markerGroup.markerElements.forEach(function(marker) {
                 if (marker) {
+                  // 타이틀 라벨도 함께 제거
+                  if (marker.titleLabel) {
+                    marker.titleLabel.setMap(null);
+                  }
                   marker.setMap(null);
                 }
               });
@@ -8354,50 +8362,9 @@
           // 정보창을 일반 보기 모드로 되돌리기
           showMarkerInfoWithData(markerGroupName, index);
 
-          // 저장 직후 지도상의 마커 라벨/아이콘 즉시 갱신
-          try {
-            const savedMarkers = window.savedUserMarkers || [];
-            const group = savedMarkers.find(g => g && (g.id === markerGroupName || g.name === markerGroupName));
-            if (group && group.markerElements && group.markerElements[index]) {
-              const markerEl = group.markerElements[index];
-              
-              // 마커 타이틀 라벨 업데이트
-              if (markerEl.updateTitleLabel) {
-                markerEl.updateTitleLabel(newInfo.title);
-              }
-              
-              if (newInfo.emoji) {
-                markerEl.setIcon({
-                  path: google.maps.SymbolPath.CIRCLE,
-                  fillColor: 'transparent',
-                  fillOpacity: 0,
-                  strokeColor: 'transparent',
-                  strokeWeight: 0,
-                  scale: 12
-                });
-                markerEl.setLabel({
-                  text: newInfo.emoji,
-                  fontSize: '20px',
-                  fontWeight: 'bold'
-                });
-              } else {
-                markerEl.setIcon({
-                  path: google.maps.SymbolPath.CIRCLE,
-                  fillColor: '#8b5cf6',
-                  fillOpacity: 1,
-                  strokeColor: '#ffffff',
-                  strokeWeight: 1,
-                  scale: 12
-                });
-                markerEl.setLabel({
-                  text: (index + 1).toString(),
-                  fontSize: '18px',
-                  fontWeight: 'bold',
-                  color: '#ffffff'
-                });
-              }
-            }
-          } catch (_) {}
+          // 저장 직후 모든 마커 완전히 재렌더링 (이모지 중복 방지)
+          clearAllRenderedMarkers();
+          drawAllSavedMarkers();
           
         } catch (error) {
           console.error('마커 정보 저장 실패:', error);
@@ -8427,6 +8394,10 @@
           
           // 정보창을 일반 보기 모드로 되돌리기 (로컬 데이터로)
           showMarkerInfoWithData(markerGroupName, index);
+          
+          // 오프라인 저장 후에도 모든 마커 완전히 재렌더링 (이모지 중복 방지)
+          clearAllRenderedMarkers();
+          drawAllSavedMarkers();
           
           // 구체적인 오류 메시지
           let errorMessage = '마커 정보가 임시 저장되었습니다.';
