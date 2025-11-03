@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030213</title>
+    <title>WMAP11030225</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -7637,7 +7637,10 @@
           return;
         }
         
-
+        // 동기화 플래그 설정 (실시간 리스너가 덮어쓰는 것 방지)
+        if (typeof isSyncing !== 'undefined') {
+          isSyncing = true;
+        }
         
         try {
           // 정보창과 편집 다이얼로그 닫기
@@ -7661,37 +7664,46 @@
           
           const route = savedUserRoutes[routeIndex];
           
-
-          
-          // 지도에서 경로 시각적 제거 (즉시 피드백을 위해)
+          // 지도에서 경로 즉시 제거 (이벤트 리스너도 함께 정리)
           if (route.pathElement) {
+            if (google.maps && google.maps.event) {
+              google.maps.event.clearInstanceListeners(route.pathElement);
+            }
             route.pathElement.setMap(null);
           }
           if (route.dottedPathElement) {
+            if (google.maps && google.maps.event) {
+              google.maps.event.clearInstanceListeners(route.dottedPathElement);
+            }
             route.dottedPathElement.setMap(null);
           }
           
-          // Firebase 저장용 배열 생성 (로컬 배열은 실시간 동기화로만 업데이트)
+          // Firebase 저장용 배열 생성
           const updatedRoutes = [...savedUserRoutes];
           updatedRoutes.splice(routeIndex, 1);
           
-
+          // routeInfoData에서도 제거
+          const updatedRouteInfoData = { ...routeInfoData };
+          delete updatedRouteInfoData[routeId];
           
           // Firebase에 업데이트
           if (window.db && window.firestore) {
-
-            
             const userDocRef = window.firestore.doc(window.db, 'users', 'currentUser');
             const sanitizedRoutes = sanitizeRoutesForFirestore(updatedRoutes);
             await window.firestore.updateDoc(userDocRef, {
               savedUserRoutes: sanitizedRoutes,
+              routeInfoData: updatedRouteInfoData,
               lastUpdated: window.firestore.serverTimestamp()
             });
             
-
+            // 로컬 데이터 즉시 업데이트 (실시간 동기화 대기하지 않음)
+            savedUserRoutes.splice(routeIndex, 1);
+            routeInfoData = updatedRouteInfoData;
             
-            // UI 업데이트는 실시간 동기화를 통해 처리되므로 여기서는 하지 않음
-
+            // UI 업데이트
+            updateRouteRemoveButtons();
+            
+            alert(`"${routeName}" 경로가 삭제되었습니다.`);
           } else {
             console.warn('Firebase가 초기화되지 않았습니다 - 경로 삭제가 저장되지 않음');
             alert('Firebase 연결이 되지 않았습니다. 경로 삭제가 저장되지 않을 수 있습니다.');
@@ -7704,7 +7716,24 @@
             message: error.message,
             stack: error.stack
           });
-          alert(`경로 삭제에 실패했습니다: ${error.message}\n다시 시도해주세요.`);
+          
+          // 에러 타입에 따른 구체적인 메시지
+          let errorMessage = '경로 삭제 중 오류가 발생했습니다.\n';
+          if (error.code === 'permission-denied') {
+            errorMessage += '권한이 없습니다. 로그인 상태를 확인해주세요.';
+          } else if (error.code === 'unavailable') {
+            errorMessage += '네트워크 연결을 확인해주세요.';
+          } else if (error.message) {
+            errorMessage += `오류: ${error.message}`;
+          }
+          alert(errorMessage);
+        } finally {
+          // 동기화 플래그 해제 (짧은 지연 후 - Firebase 업데이트 완료 대기)
+          setTimeout(() => {
+            if (typeof isSyncing !== 'undefined') {
+              isSyncing = false;
+            }
+          }, 300); // 300ms 후 플래그 해제
         }
       }
       
@@ -7936,6 +7965,11 @@
           return;
         }
         
+        // 동기화 플래그 설정 (실시간 리스너가 덮어쓰는 것 방지)
+        if (typeof isSyncing !== 'undefined') {
+          isSyncing = true;
+        }
+        
         try {
           // Firebase에 먼저 저장 (로컬 캐시 로직 단순화)
           if (!window.db || !window.firestore) {
@@ -8032,6 +8066,13 @@
         } finally {
           // 락 해제
           releaseLock(lockKey);
+          
+          // 동기화 플래그 해제 (짧은 지연 후 - Firebase 업데이트 완료 대기)
+          setTimeout(() => {
+            if (typeof isSyncing !== 'undefined') {
+              isSyncing = false;
+            }
+          }, 300); // 300ms 후 플래그 해제
         }
       }
       // 마커 정보 수정 함수
@@ -8901,10 +8942,14 @@
           return;
         }
         
-        // 기존 경로들 제거
+        // 기존 경로들 제거 (이벤트 리스너도 함께 정리)
         savedUserRoutes.forEach(route => {
           if (route && route.pathElement) {
             try {
+              // 이벤트 리스너 정리
+              if (google.maps && google.maps.event) {
+                google.maps.event.clearInstanceListeners(route.pathElement);
+              }
               route.pathElement.setMap(null);
             } catch (error) {
               console.warn('경로 제거 오류:', error);
@@ -8912,6 +8957,10 @@
           }
           if (route && route.dottedPathElement) {
             try {
+              // 이벤트 리스너 정리
+              if (google.maps && google.maps.event) {
+                google.maps.event.clearInstanceListeners(route.dottedPathElement);
+              }
               route.dottedPathElement.setMap(null);
             } catch (error) {
               console.warn('점선 경로 제거 오류:', error);
@@ -8961,6 +9010,8 @@
             
             // 경로 클릭 이벤트 추가
             route.pathElement.addListener('click', function(event) {
+              console.log(`[경로 클릭] ID: ${route.id}, 이름: ${route.name}`);
+              
               // 메뉴창 닫기
               const customMapMenu = getElement('customMapMenu');
               const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -8976,6 +9027,8 @@
               if (isMarkerMode) { addCustomMarker(event.latLng); return; }
               showRouteInfo(route, event.latLng);
             });
+            
+            console.log(`[경로 생성 완료] ID: ${route.id}, 클릭 이벤트 등록됨`);
             
             // lineStyle이 'dotted'인 경우에만 점선 효과 추가
             if (lineStyle === 'dotted') {
@@ -9003,6 +9056,8 @@
               
               // 점선 경로에도 클릭 이벤트 추가
               route.dottedPathElement.addListener('click', function(event) {
+                console.log(`[점선 경로 클릭] ID: ${route.id}, 이름: ${route.name}`);
+                
                 // 메뉴창 닫기
                 const customMapMenu = getElement('customMapMenu');
                 const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -9018,6 +9073,8 @@
                 if (isMarkerMode) { addCustomMarker(event.latLng); return; }
                 showRouteInfo(route, event.latLng);
               });
+              
+              console.log(`[점선 경로 생성 완료] ID: ${route.id}, 클릭 이벤트 등록됨`);
             }
           } catch (error) {
             console.error('경로 그리기 오류:', error, route);
@@ -11326,6 +11383,12 @@
                 if (data.markerInfoData) {
                   console.log('마커 정보 데이터 동기화 중...');
                   
+                  // 로컬 수정 중이면 동기화 건너뛰기 (로컬 변경사항 보호)
+                  if (typeof isSyncing !== 'undefined' && isSyncing) {
+                    console.log('로컬 수정 중 - 마커 정보 동기화 건너뜀');
+                    return;
+                  }
+                  
                   // 기존 마커 정보와 비교하여 변경사항이 있는지 확인
                   const currentMarkerInfo = markerInfoData || {};
                   const newMarkerInfo = data.markerInfoData;
@@ -11358,6 +11421,13 @@
                 // 경로 정보 데이터 동기화 (내용/링크)
                 if (data.routeInfoData) {
                   console.log('경로 정보 데이터 동기화 중...');
+                  
+                  // 로컬 수정 중이면 동기화 건너뛰기 (로컬 변경사항 보호)
+                  if (typeof isSyncing !== 'undefined' && isSyncing) {
+                    console.log('로컬 수정 중 - 경로 정보 동기화 건너뜀');
+                    return;
+                  }
+                  
                   const currentRouteInfo = routeInfoData || {};
                   const newRouteInfo = data.routeInfoData;
                   if (JSON.stringify(currentRouteInfo) !== JSON.stringify(newRouteInfo)) {
