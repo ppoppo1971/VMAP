@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030332</title>
+    <title>WMAP11030339</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -7295,6 +7295,16 @@
           return;
         }
         
+        // 기존 외부 클릭 이벤트 리스너 제거 (중요!)
+        if (window.routeInfoOutsideClickHandler) {
+          document.removeEventListener('click', window.routeInfoOutsideClickHandler);
+          window.routeInfoOutsideClickHandler = null;
+        }
+        if (window.markerInfoOutsideClickHandler) {
+          document.removeEventListener('click', window.markerInfoOutsideClickHandler);
+          window.markerInfoOutsideClickHandler = null;
+        }
+        
         // 현재 열린 경로 정보 추적
         window.currentOpenRouteId = route.id;
          const path = route.path || route.getPath();
@@ -8705,6 +8715,16 @@
       
       // 저장된 정보로 마커 정보창 표시
       function showMarkerInfoWithData(markerGroupName, index) {
+        // 기존 외부 클릭 이벤트 리스너 제거 (중요!)
+        if (window.markerInfoOutsideClickHandler) {
+          document.removeEventListener('click', window.markerInfoOutsideClickHandler);
+          window.markerInfoOutsideClickHandler = null;
+        }
+        if (window.routeInfoOutsideClickHandler) {
+          document.removeEventListener('click', window.routeInfoOutsideClickHandler);
+          window.routeInfoOutsideClickHandler = null;
+        }
+        
         // 현재 열린 마커 정보 추적
         window.currentOpenMarkerGroup = markerGroupName;
         window.currentOpenMarkerIndex = index;
