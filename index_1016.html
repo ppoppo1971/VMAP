@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030519</title>
+    <title>WMAP11030524</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -4215,17 +4215,31 @@
                 // 다이얼로그 닫기
                 closePhotoMemoDialog();
                 
-                // 사진 정보창을 업데이트된 메모로 다시 열기
-                if (localPhoto && localPhoto.markerElement) {
-                  showPhotoInfoWindow(
-                    localPhoto.markerElement, 
-                    localPhoto.imageData, 
-                    localPhoto.lat, 
-                    localPhoto.lng, 
-                    photoId, 
-                    newMemo
-                  );
+                // 기존 정보창 완전히 닫기
+                if (currentInfoWindow) {
+                  currentInfoWindow.close();
+                  currentInfoWindow = null;
                 }
+                
+                // 기존 외부 클릭 이벤트 리스너 제거
+                if (window.photoInfoOutsideClickHandler) {
+                  document.removeEventListener('click', window.photoInfoOutsideClickHandler);
+                  window.photoInfoOutsideClickHandler = null;
+                }
+                
+                // 약간의 지연 후 사진 정보창을 업데이트된 메모로 다시 열기
+                setTimeout(() => {
+                  if (localPhoto && localPhoto.markerElement) {
+                    showPhotoInfoWindow(
+                      localPhoto.markerElement, 
+                      localPhoto.imageData, 
+                      localPhoto.lat, 
+                      localPhoto.lng, 
+                      photoId, 
+                      newMemo
+                    );
+                  }
+                }, 150);
                 
                 // 저장 완료 메시지
                 setTimeout(() => {
