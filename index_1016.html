@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030529</title>
+    <title>WMAP11030534</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -1870,7 +1870,7 @@
     </div>
     
     <!-- GPS 위치 버튼 -->
-    <button id="locationBtn" onclick="getCurrentLocation()" title="현재 위치로 이동">📍</button>
+    <button id="locationBtn" onclick="getCurrentLocation()" title="현재 위치로 이동">📌</button>
     
     <!-- 카메라 입력 (숨김) - iOS에서 네이티브 카메라 앱 사용을 위해 capture 속성 제거 -->
     <input type="file" id="cameraInput" accept="image/*" style="display: none;">
@@ -5996,7 +5996,7 @@
               });
 
               locationBtn.classList.remove('loading');
-              locationBtn.textContent = '📍';
+              locationBtn.textContent = '📌';
             },
             (error) => {
               console.error('위치 정보를 가져올 수 없습니다:', error.message);
@@ -6019,14 +6019,14 @@
               
               alert(errorMessage);
               locationBtn.classList.remove('loading');
-              locationBtn.textContent = '📍';
+              locationBtn.textContent = '📌';
             },
             options
           );
         } else {
           alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
           locationBtn.classList.remove('loading');
-          locationBtn.textContent = '📍';
+          locationBtn.textContent = '📌';
         }
       }
       
