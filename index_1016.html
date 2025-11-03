@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030447</title>
+    <title>WMAP11030459</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3348,8 +3348,19 @@
           
           // Geocoding으로 주소 조회
           geocoder.geocode({ location: latLng }, function(results, status) {
-            if (status === 'OK' && results && results[0]) {
-              const result = results[0];
+            if (status === 'OK' && results && results.length > 0) {
+              // Plus Code가 아닌 실제 주소 찾기
+              let bestResult = results[0];
+              for (let i = 0; i < Math.min(results.length, 5); i++) {
+                const addr = results[i].formatted_address || '';
+                // Plus Code 패턴 체크 (숫자+문자+문자+숫자+ 형식)
+                const isPlusCode = /^[A-Z0-9]{4,8}\+[A-Z0-9]{2,}/.test(addr);
+                if (!isPlusCode && addr.length > 10) {
+                  bestResult = results[i];
+                  break;
+                }
+              }
+              const result = bestResult;
               const address = result.formatted_address;
               
               // 정보창 내용 생성
