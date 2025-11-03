@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030213</title>
+    <title>WMAP11030332</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -7369,10 +7369,22 @@
            window.currentInfoWindow.close();
          }
          
+         // clickPosition이 null이면 경로의 중간 지점 계산
+         let infoPosition = clickPosition;
+         if (!infoPosition && path && path.length > 0) {
+           const middleIndex = Math.floor(path.length / 2);
+           const middlePoint = path[middleIndex];
+           if (middlePoint instanceof google.maps.LatLng) {
+             infoPosition = middlePoint;
+           } else {
+             infoPosition = new google.maps.LatLng(middlePoint.lat, middlePoint.lng);
+           }
+         }
+         
          // 새 정보창 생성
          window.currentInfoWindow = new google.maps.InfoWindow({
            content: info,
-           position: clickPosition,
+           position: infoPosition,
            disableAutoPan: false,
            maxWidth: 200
          });
@@ -7984,7 +7996,14 @@
           
           // 저장 후 현재 정보창에 내용 표시로 갱신
           const route = savedUserRoutes.find(r => r.id === routeId) || { id: routeId, name: routeName, path: [] };
-          showRouteInfo(route, null);
+          // 경로의 중간 지점 계산
+          let centerPos = null;
+          if (route.path && route.path.length > 0) {
+            const midIdx = Math.floor(route.path.length / 2);
+            const midPoint = route.path[midIdx];
+            centerPos = new google.maps.LatLng(midPoint.lat, midPoint.lng);
+          }
+          showRouteInfo(route, centerPos);
           
           // 성공 알림
 
@@ -8015,7 +8034,14 @@
           
           // 저장 후 현재 정보창에 내용 표시로 갱신
           const route = savedUserRoutes.find(r => r.id === routeId) || { id: routeId, name: routeName, path: [] };
-          showRouteInfo(route, null);
+          // 경로의 중간 지점 계산
+          let centerPos = null;
+          if (route.path && route.path.length > 0) {
+            const midIdx = Math.floor(route.path.length / 2);
+            const midPoint = route.path[midIdx];
+            centerPos = new google.maps.LatLng(midPoint.lat, midPoint.lng);
+          }
+          showRouteInfo(route, centerPos);
           
           // 구체적인 오류 메시지
           let errorMessage = '경로 정보가 임시 저장되었습니다.';
@@ -8440,7 +8466,14 @@
         
         // 정보창을 일반 보기 모드로 되돌리기
         const route = savedUserRoutes.find(r => r.id === routeId) || { id: routeId, name: routeName, path: [] };
-        showRouteInfo(route, null);
+        // 경로의 중간 지점 계산
+        let centerPos = null;
+        if (route.path && route.path.length > 0) {
+          const midIdx = Math.floor(route.path.length / 2);
+          const midPoint = route.path[midIdx];
+          centerPos = new google.maps.LatLng(midPoint.lat, midPoint.lng);
+        }
+        showRouteInfo(route, centerPos);
       }
       // 편집 모드에서 마커 삭제 함수
       async function deleteMarkerFromEdit(markerGroupName, index) {
@@ -11376,7 +11409,14 @@
                         const route = savedUserRoutes.find(r => r.id === window.currentOpenRouteId);
                         if (route) {
                           console.log('현재 열린 경로 정보창 실시간 갱신:', route.id);
-                          showRouteInfo(route, null);
+                          // 경로의 중간 지점 계산
+                          let centerPos = null;
+                          if (route.path && route.path.length > 0) {
+                            const midIdx = Math.floor(route.path.length / 2);
+                            const midPoint = route.path[midIdx];
+                            centerPos = new google.maps.LatLng(midPoint.lat, midPoint.lng);
+                          }
+                          showRouteInfo(route, centerPos);
                         }
                       }
                     } catch (e) {
