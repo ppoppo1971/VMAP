@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030253</title>
+    <title>WMAP11030304</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -7178,7 +7178,7 @@
                 
                 // 마커 클릭 시 정보 표시 및 줌 15로 중심 이동
                 marker.addListener('click', function() {
-                  console.log(`[마커 클릭] 그룹: ${markerGroup.name}, 인덱스: ${index}`);
+                  console.log(`[마커 클릭] 그룹: ${markerGroup.name}, 인덱스: ${index}, 모드 상태:`, { isMarkerMode, isRouteMode });
                   
                   // 마커/경로 클릭 플래그 설정 (지도 클릭 핸들러 차단)
                   isMarkerOrRouteClicked = true;
@@ -7260,8 +7260,16 @@
       
       // 마커 정보 표시
       function showMarkerInfo(markerGroup, markerData, index) {
+        console.log('[showMarkerInfo] 호출됨:', { 
+          markerGroup: markerGroup.name, 
+          index, 
+          isMarkerMode, 
+          isRouteMode 
+        });
+        
         // 생성 모드에서는 정보창을 표시하지 않음
         if (isMarkerMode || isRouteMode) {
+          console.warn('[showMarkerInfo] 생성 모드 활성화로 인해 정보창 표시 중단:', { isMarkerMode, isRouteMode });
           return;
         }
          // 기존 정보창이 있으면 제거
@@ -7324,8 +7332,16 @@
       
       // 경로 정보창 표시 함수
       function showRouteInfo(route, clickPosition) {
+        console.log('[showRouteInfo] 호출됨:', { 
+          routeId: route.id, 
+          routeName: route.name, 
+          isMarkerMode, 
+          isRouteMode 
+        });
+        
         // 생성 모드에서는 정보창을 표시하지 않음
         if (isMarkerMode || isRouteMode) {
+          console.warn('[showRouteInfo] 생성 모드 활성화로 인해 정보창 표시 중단:', { isMarkerMode, isRouteMode });
           return;
         }
         
@@ -7793,6 +7809,27 @@
       
       // 경로 정보 수정 다이얼로그
       function editRouteInfo(routeId, routeName) {
+        // 마커/경로 생성 모드 강제 비활성화 (정보창 표시 방지 문제 해결)
+        if (isMarkerMode) {
+          isMarkerMode = false;
+          const markerBtn = document.getElementById('topMarkerBtn');
+          if (markerBtn) {
+            markerBtn.textContent = '마커생성';
+            markerBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+            markerBtn.style.color = '#1a1a1a';
+          }
+        }
+        
+        if (isRouteMode) {
+          isRouteMode = false;
+          const routeBtn = document.getElementById('topRouteBtn');
+          if (routeBtn) {
+            routeBtn.textContent = '경로생성';
+            routeBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+            routeBtn.style.color = '#1a1a1a';
+          }
+        }
+        
         // 현재 저장된 정보 가져오기
         const current = (routeInfoData && routeInfoData[routeId]) ? routeInfoData[routeId] : { content: '', link: '', color: '#3b82f6' };
         const isMobileView = window.innerWidth <= 768;
@@ -8142,7 +8179,7 @@
           showRouteInfo(route || { id: routeId, name: routeName, path: [] }, null);
           
           // 성공 알림
-
+          console.log('[saveRouteInfo] 저장 완료 - 모드 상태:', { isMarkerMode, isRouteMode });
           
         } catch (error) {
           console.error('경로 정보 저장 실패:', error);
@@ -8226,6 +8263,27 @@
       }
       // 마커 정보 수정 함수
       function editMarkerInfo(markerGroupName, index) {
+        // 마커/경로 생성 모드 강제 비활성화 (정보창 표시 방지 문제 해결)
+        if (isMarkerMode) {
+          isMarkerMode = false;
+          const markerBtn = document.getElementById('topMarkerBtn');
+          if (markerBtn) {
+            markerBtn.textContent = '마커생성';
+            markerBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+            markerBtn.style.color = '#1a1a1a';
+          }
+        }
+        
+        if (isRouteMode) {
+          isRouteMode = false;
+          const routeBtn = document.getElementById('topRouteBtn');
+          if (routeBtn) {
+            routeBtn.textContent = '경로생성';
+            routeBtn.style.background = 'rgba(255, 255, 255, 0.12)';
+            routeBtn.style.color = '#1a1a1a';
+          }
+        }
+        
         // group id 우선 키 사용 (하위 호환으로 name-index 유지)
         const savedMarkers = window.savedUserMarkers || [];
         const group = savedMarkers.find(g => g && (g.id === markerGroupName || g.name === markerGroupName));
@@ -8862,6 +8920,19 @@
       
       // 저장된 정보로 마커 정보창 표시
       function showMarkerInfoWithData(markerGroupName, index) {
+        console.log('[showMarkerInfoWithData] 호출됨:', { 
+          markerGroupName, 
+          index, 
+          isMarkerMode, 
+          isRouteMode 
+        });
+        
+        // 생성 모드에서는 정보창을 표시하지 않음
+        if (isMarkerMode || isRouteMode) {
+          console.warn('[showMarkerInfoWithData] 생성 모드 활성화로 인해 정보창 표시 중단:', { isMarkerMode, isRouteMode });
+          return;
+        }
+        
         // 현재 열린 마커 정보 추적
         window.currentOpenMarkerGroup = markerGroupName;
         window.currentOpenMarkerIndex = index;
@@ -9159,7 +9230,7 @@
             
             // 경로 클릭 이벤트 추가
             route.pathElement.addListener('click', function(event) {
-              console.log(`[경로 클릭] ID: ${route.id}, 이름: ${route.name}`);
+              console.log(`[경로 클릭] ID: ${route.id}, 이름: ${route.name}, 모드 상태:`, { isMarkerMode, isRouteMode });
               
               // 마커/경로 클릭 플래그 설정 (지도 클릭 핸들러 차단)
               isMarkerOrRouteClicked = true;
