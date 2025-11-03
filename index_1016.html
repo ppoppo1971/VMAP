@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030225</title>
+    <title>WMAP11030238</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -8014,10 +8014,27 @@
           }
           
           // 모든 경로를 다시 그려서 스타일 적용 (KML 경로의 실선 유지)
+          console.log('[saveRouteInfo] drawAllSavedRoutes 호출 전', {
+            routeId,
+            routeInfoData: routeInfoData[routeId],
+            savedUserRoutesCount: savedUserRoutes.length
+          });
+          
           drawAllSavedRoutes();
+          
+          console.log('[saveRouteInfo] drawAllSavedRoutes 호출 후 - 클릭 이벤트 재등록 완료');
           
           // 저장 후 현재 정보창에 내용 표시로 갱신
           const route = savedUserRoutes.find(r => r.id === routeId) || { id: routeId, name: routeName, path: [] };
+          
+          // 경로 객체에 클릭 이벤트가 제대로 등록되었는지 확인
+          if (route.pathElement) {
+            console.log('[saveRouteInfo] 경로 클릭 이벤트 확인:', {
+              hasClickListener: google.maps.event.hasListeners(route.pathElement, 'click'),
+              pathElementExists: !!route.pathElement
+            });
+          }
+          
           showRouteInfo(route, null);
           
           // 성공 알림
@@ -11291,13 +11308,15 @@
                 if (data.savedUserRoutes) {
                   console.log('경로 동기화 중...');
                   
-                  // 로컬 수정 중이면 동기화 건너뛰기 (로컬 변경사항 보호)
-                  if (typeof isSyncing !== 'undefined' && isSyncing) {
+                  // 로컬 수정 중이 아닐 때만 동기화 실행
+                  const canSyncRoutes = !(typeof isSyncing !== 'undefined' && isSyncing);
+                  
+                  if (!canSyncRoutes) {
                     console.log('로컬 수정 중 - 경로 동기화 건너뜀');
-                    return;
                   }
                   
-                  // 기존 경로와 비교하여 변경사항이 있는지 확인
+                  if (canSyncRoutes) {
+                    // 기존 경로와 비교하여 변경사항이 있는지 확인
                   const currentRoutes = savedUserRoutes || [];
                   const newRoutes = data.savedUserRoutes;
                   
@@ -11331,19 +11350,22 @@
                       새경로수: newRoutes.length
                     });
                   }
+                  }  // canSyncRoutes 블록 닫기
                 }
                 
                 // 마커 동기화 (Firebase에서 직접)
                 if (data.savedUserMarkers) {
                   console.log('마커 동기화 중...');
                   
-                  // 로컬 수정 중이면 동기화 건너뛰기 (로컬 변경사항 보호)
-                  if (typeof isSyncing !== 'undefined' && isSyncing) {
+                  // 로컬 수정 중이 아닐 때만 동기화 실행
+                  const canSyncMarkers = !(typeof isSyncing !== 'undefined' && isSyncing);
+                  
+                  if (!canSyncMarkers) {
                     console.log('로컬 수정 중 - 마커 동기화 건너뜀');
-                    return;
                   }
                   
-                  // 기존 마커와 비교하여 변경사항이 있는지 확인
+                  if (canSyncMarkers) {
+                    // 기존 마커와 비교하여 변경사항이 있는지 확인
                   const currentMarkers = window.savedUserMarkers || [];
                   const newMarkers = data.savedUserMarkers;
                   
@@ -11377,19 +11399,22 @@
                       새마커수: newMarkers.length
                     });
                   }
+                  }  // canSyncMarkers 블록 닫기
                 }
                 
                 // 마커 정보 데이터 동기화 (Firebase에서 직접)
                 if (data.markerInfoData) {
                   console.log('마커 정보 데이터 동기화 중...');
                   
-                  // 로컬 수정 중이면 동기화 건너뛰기 (로컬 변경사항 보호)
-                  if (typeof isSyncing !== 'undefined' && isSyncing) {
+                  // 로컬 수정 중이 아닐 때만 동기화 실행
+                  const canSyncMarkerInfo = !(typeof isSyncing !== 'undefined' && isSyncing);
+                  
+                  if (!canSyncMarkerInfo) {
                     console.log('로컬 수정 중 - 마커 정보 동기화 건너뜀');
-                    return;
                   }
                   
-                  // 기존 마커 정보와 비교하여 변경사항이 있는지 확인
+                  if (canSyncMarkerInfo) {
+                    // 기존 마커 정보와 비교하여 변경사항이 있는지 확인
                   const currentMarkerInfo = markerInfoData || {};
                   const newMarkerInfo = data.markerInfoData;
                   
@@ -11416,21 +11441,24 @@
                   } else {
                     console.log('마커 정보 변경 없음 - 업데이트 건너뜀');
                   }
+                  }  // canSyncMarkerInfo 블록 닫기
                 }
 
                 // 경로 정보 데이터 동기화 (내용/링크)
                 if (data.routeInfoData) {
                   console.log('경로 정보 데이터 동기화 중...');
                   
-                  // 로컬 수정 중이면 동기화 건너뛰기 (로컬 변경사항 보호)
-                  if (typeof isSyncing !== 'undefined' && isSyncing) {
+                  // 로컬 수정 중이 아닐 때만 동기화 실행
+                  const canSyncRouteInfo = !(typeof isSyncing !== 'undefined' && isSyncing);
+                  
+                  if (!canSyncRouteInfo) {
                     console.log('로컬 수정 중 - 경로 정보 동기화 건너뜀');
-                    return;
                   }
                   
-                  const currentRouteInfo = routeInfoData || {};
-                  const newRouteInfo = data.routeInfoData;
-                  if (JSON.stringify(currentRouteInfo) !== JSON.stringify(newRouteInfo)) {
+                  if (canSyncRouteInfo) {
+                    const currentRouteInfo = routeInfoData || {};
+                    const newRouteInfo = data.routeInfoData;
+                    if (JSON.stringify(currentRouteInfo) !== JSON.stringify(newRouteInfo)) {
                     routeInfoData = newRouteInfo;
                     console.log('경로 정보 동기화 완료 (isKmlRoute 포함)', newRouteInfo);
                     
@@ -11453,6 +11481,7 @@
                       console.log('경로 정보창 갱신 중 오류:', e);
                     }
                   }
+                  }  // canSyncRouteInfo 블록 닫기
                 }
                 
                 // 사용자 정의 일정 동기화
