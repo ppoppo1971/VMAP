@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030512</title>
+    <title>WMAP11030519</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3841,12 +3841,35 @@
             maxWidth: 320
           });
           
-          // X 버튼 제거
+          // X 버튼 제거 및 외부 클릭 이벤트 설정
           google.maps.event.addListener(infoWindow, 'domready', function() {
             const closeBtn = document.querySelector('.gm-ui-hover-effect');
             if (closeBtn) {
               closeBtn.style.display = 'none';
             }
+            
+            // 정보창 외부 클릭으로 닫기 기능 추가
+            setTimeout(() => {
+              const infoWindowElement = document.querySelector('.gm-style-iw-c');
+              if (infoWindowElement) {
+                // 기존 이벤트 리스너 제거
+                if (window.photoInfoOutsideClickHandler) {
+                  document.removeEventListener('click', window.photoInfoOutsideClickHandler);
+                }
+                
+                // 정보창 외부 클릭 감지를 위한 이벤트 리스너
+                window.photoInfoOutsideClickHandler = function(event) {
+                  if (!infoWindowElement.contains(event.target)) {
+                    closeInfoWindow();
+                  }
+                };
+                
+                // 약간의 지연 후 이벤트 리스너 추가 (정보창이 완전히 렌더링된 후)
+                setTimeout(() => {
+                  document.addEventListener('click', window.photoInfoOutsideClickHandler);
+                }, 100);
+              }
+            }, 200);
           });
           
           infoWindow.open(map, marker);
@@ -7366,6 +7389,10 @@
           document.removeEventListener('click', window.markerInfoOutsideClickHandler);
           window.markerInfoOutsideClickHandler = null;
         }
+        if (window.photoInfoOutsideClickHandler) {
+          document.removeEventListener('click', window.photoInfoOutsideClickHandler);
+          window.photoInfoOutsideClickHandler = null;
+        }
         
         // 현재 열린 경로 정보 추적
         window.currentOpenRouteId = route.id;
@@ -8738,6 +8765,11 @@
           window.routeInfoOutsideClickHandler = null;
         }
         
+        if (window.photoInfoOutsideClickHandler) {
+          document.removeEventListener('click', window.photoInfoOutsideClickHandler);
+          window.photoInfoOutsideClickHandler = null;
+        }
+        
         // 경로 정보창 스와이프 상태 초기화
         if (routeInfoContainer) {
           routeInfoContainer.classList.remove('swiped');
@@ -8758,6 +8790,10 @@
         if (window.routeInfoOutsideClickHandler) {
           document.removeEventListener('click', window.routeInfoOutsideClickHandler);
           window.routeInfoOutsideClickHandler = null;
+        }
+        if (window.photoInfoOutsideClickHandler) {
+          document.removeEventListener('click', window.photoInfoOutsideClickHandler);
+          window.photoInfoOutsideClickHandler = null;
         }
         
         // 현재 열린 마커 정보 추적
