@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030437</title>
+    <title>WMAP11030444</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -4439,8 +4439,8 @@
                 fillColor: '#1d4ed8',
                 fillOpacity: 1,
                 strokeColor: '#ffffff',
-                strokeWeight: 1,
-                scale: 6
+                strokeWeight: 0.5,
+                scale: 3
               }
             };
           } else {
@@ -6677,11 +6677,11 @@
                 fillColor: '#3b82f6',
                 fillOpacity: 1,
                 strokeColor: '#ffffff',
-                strokeWeight: 1,
-                scale: 6
+                strokeWeight: 0.5,
+                scale: 3
               },
               offset: '0',
-              repeat: '15px'
+              repeat: '8px'
             }]
           });
           userRouteDottedPath.setMap(map);
@@ -7126,7 +7126,7 @@
                   };
                   markerOptions.label = {
                     text: emoji,
-                    fontSize: '10px',
+                    fontSize: '15px',
                     fontWeight: 'bold'
                   };
                 } else {
@@ -7970,6 +7970,8 @@
             const icons = route.dottedPathElement.get('icons');
             if (icons && icons.length > 0) {
               icons[0].icon.fillColor = color;
+              icons[0].icon.scale = 3;  // 크기도 일관되게 유지
+              icons[0].icon.strokeWeight = 0.5;
               route.dottedPathElement.setOptions({
                 icons: icons
               });
@@ -8301,7 +8303,7 @@
                     });
                     marker.setLabel({
                       text: emoji,
-                      fontSize: '10px',
+                      fontSize: '15px',
                       fontWeight: 'bold'
                     });
                   } else {
@@ -9064,11 +9066,11 @@
                     fillColor: routeColor,
                     fillOpacity: 1,
                     strokeColor: '#ffffff',
-                    strokeWeight: 1,
-                    scale: 6
+                    strokeWeight: 0.5,
+                    scale: 3
                   },
                   offset: '0',
-                  repeat: '15px'
+                  repeat: '8px'
                 }]
               });
               route.dottedPathElement.setMap(map);
