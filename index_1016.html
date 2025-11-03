@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030353</title>
+    <title>WMAP11030413</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -6174,10 +6174,18 @@
             
             // 경로 폴리라인 제거
             if (userRoutePath) {
+              // 이벤트 리스너 정리
+              if (google.maps && google.maps.event) {
+                google.maps.event.clearInstanceListeners(userRoutePath);
+              }
               userRoutePath.setMap(null);
               userRoutePath = null;
             }
             if (userRouteDottedPath) {
+              // 이벤트 리스너 정리
+              if (google.maps && google.maps.event) {
+                google.maps.event.clearInstanceListeners(userRouteDottedPath);
+              }
               userRouteDottedPath.setMap(null);
               userRouteDottedPath = null;
             }
@@ -6606,9 +6614,17 @@
       function updateUserRoute() {
         // 기존 경로 제거
         if (userRoutePath) {
+          // 이벤트 리스너 정리 (메모리 누수 및 중복 방지)
+          if (google.maps && google.maps.event) {
+            google.maps.event.clearInstanceListeners(userRoutePath);
+          }
           userRoutePath.setMap(null);
         }
         if (userRouteDottedPath) {
+          // 이벤트 리스너 정리 (메모리 누수 및 중복 방지)
+          if (google.maps && google.maps.event) {
+            google.maps.event.clearInstanceListeners(userRouteDottedPath);
+          }
           userRouteDottedPath.setMap(null);
         }
         
@@ -6729,9 +6745,17 @@
         // 저장된 모든 경로 제거
         savedUserRoutes.forEach(route => {
           if (route.pathElement) {
+            // 이벤트 리스너 정리
+            if (google.maps && google.maps.event) {
+              google.maps.event.clearInstanceListeners(route.pathElement);
+            }
             route.pathElement.setMap(null);
           }
           if (route.dottedPathElement) {
+            // 이벤트 리스너 정리
+            if (google.maps && google.maps.event) {
+              google.maps.event.clearInstanceListeners(route.dottedPathElement);
+            }
             route.dottedPathElement.setMap(null);
           }
         });
@@ -6835,10 +6859,18 @@
         
         // 임시 경로 제거
         if (userRoutePath) {
+          // 이벤트 리스너 정리
+          if (google.maps && google.maps.event) {
+            google.maps.event.clearInstanceListeners(userRoutePath);
+          }
           userRoutePath.setMap(null);
           userRoutePath = null;
         }
         if (userRouteDottedPath) {
+          // 이벤트 리스너 정리
+          if (google.maps && google.maps.event) {
+            google.maps.event.clearInstanceListeners(userRouteDottedPath);
+          }
           userRouteDottedPath.setMap(null);
           userRouteDottedPath = null;
         }
@@ -7695,9 +7727,17 @@
           
           // 지도에서 경로 시각적 제거 (즉시 피드백을 위해)
           if (route.pathElement) {
+            // 이벤트 리스너 정리 (메모리 누수 및 중복 방지)
+            if (google.maps && google.maps.event) {
+              google.maps.event.clearInstanceListeners(route.pathElement);
+            }
             route.pathElement.setMap(null);
           }
           if (route.dottedPathElement) {
+            // 이벤트 리스너 정리 (메모리 누수 및 중복 방지)
+            if (google.maps && google.maps.event) {
+              google.maps.event.clearInstanceListeners(route.dottedPathElement);
+            }
             route.dottedPathElement.setMap(null);
           }
           
@@ -8929,6 +8969,10 @@
         savedUserRoutes.forEach(route => {
           if (route && route.pathElement) {
             try {
+              // 이벤트 리스너 정리 (메모리 누수 및 중복 방지)
+              if (google.maps && google.maps.event) {
+                google.maps.event.clearInstanceListeners(route.pathElement);
+              }
               route.pathElement.setMap(null);
             } catch (error) {
               console.warn('경로 제거 오류:', error);
@@ -8936,6 +8980,10 @@
           }
           if (route && route.dottedPathElement) {
             try {
+              // 이벤트 리스너 정리 (메모리 누수 및 중복 방지)
+              if (google.maps && google.maps.event) {
+                google.maps.event.clearInstanceListeners(route.dottedPathElement);
+              }
               route.dottedPathElement.setMap(null);
             } catch (error) {
               console.warn('점선 경로 제거 오류:', error);
@@ -9055,9 +9103,17 @@
         try {
           (savedUserRoutes || []).forEach(function(route) {
             if (route && route.pathElement) {
+              // 이벤트 리스너 정리 (메모리 누수 및 중복 방지)
+              if (google.maps && google.maps.event) {
+                google.maps.event.clearInstanceListeners(route.pathElement);
+              }
               route.pathElement.setMap(null);
             }
             if (route && route.dottedPathElement) {
+              // 이벤트 리스너 정리 (메모리 누수 및 중복 방지)
+              if (google.maps && google.maps.event) {
+                google.maps.event.clearInstanceListeners(route.dottedPathElement);
+              }
               route.dottedPathElement.setMap(null);
             }
           });
@@ -9147,9 +9203,17 @@
            // 해당 위치의 경로들만 제거
            locationRoutes.forEach(route => {
              if (route.pathElement) {
+               // 이벤트 리스너 정리 (메모리 누수 및 중복 방지)
+               if (google.maps && google.maps.event) {
+                 google.maps.event.clearInstanceListeners(route.pathElement);
+               }
                route.pathElement.setMap(null);
              }
              if (route.dottedPathElement) {
+               // 이벤트 리스너 정리 (메모리 누수 및 중복 방지)
+               if (google.maps && google.maps.event) {
+                 google.maps.event.clearInstanceListeners(route.dottedPathElement);
+               }
                route.dottedPathElement.setMap(null);
              }
            });
