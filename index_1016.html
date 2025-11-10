@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11101224</title>
+    <title>WMAP11100102</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -6448,16 +6448,44 @@
         if (navigator.geolocation) {
           // 모바일에서 위치 정확도 최적화
           const options = {
-            enableHighAccuracy: isMobile ? false : true, // 모바일에서는 배터리 절약
-            timeout: isMobile ? 10000 : 5000, // 모바일에서는 더 긴 타임아웃
-            maximumAge: 0 // 항상 최신 위치를 가져옴 (차량 이동 중에도 정확한 위치 표시)
+            enableHighAccuracy: true, // 항상 GPS 사용 (정확한 실시간 위치)
+            timeout: isMobile ? 15000 : 10000, // 모바일: 15초, 데스크톱: 10초
+            maximumAge: 0 // 항상 최신 위치를 가져옴 (캐시 사용 안 함)
           };
           
           navigator.geolocation.getCurrentPosition(
             (position) => {
               const lat = position.coords.latitude;
               const lng = position.coords.longitude;
+              const accuracy = position.coords.accuracy; // 정확도 (미터)
+              const timestamp = position.timestamp; // 위치 획득 시간
               const currentLocation = { lat: lat, lng: lng };
+              
+              // 위치 정보 로깅 (디버깅용)
+              const now = new Date();
+              const positionTime = new Date(timestamp);
+              const timeDiff = (now - positionTime) / 1000; // 초 단위
+              
+              console.log('📍 위치 정보:', {
+                위도: lat.toFixed(6),
+                경도: lng.toFixed(6),
+                정확도: accuracy.toFixed(1) + 'm',
+                획득시간: positionTime.toLocaleTimeString('ko-KR'),
+                현재시간: now.toLocaleTimeString('ko-KR'),
+                시간차이: timeDiff.toFixed(1) + '초',
+                GPS사용: options.enableHighAccuracy ? 'GPS' : 'WiFi/셀타워'
+              });
+              
+              // 오래된 위치 경고
+              if (timeDiff > 30) {
+                console.warn('⚠️ 경고: 위치 정보가 ' + timeDiff.toFixed(0) + '초 전 데이터입니다!');
+              }
+              
+              // 정확도가 너무 낮으면 경고
+              if (accuracy > 100) {
+                console.warn('⚠️ 경고: 위치 정확도가 낮습니다 (' + accuracy.toFixed(0) + 'm)');
+                alert('📍 위치 정확도가 낮습니다 (오차: ' + accuracy.toFixed(0) + 'm)\n실외에서 다시 시도하거나 GPS를 켜주세요.');
+              }
               
               // 현재 위치 중심으로 확대
               const currentZoom = map.getZoom();
@@ -6477,7 +6505,7 @@
                   scaledSize: new google.maps.Size(isMobile ? 28 : 32, isMobile ? 28 : 32),
                   anchor: new google.maps.Point(isMobile ? 14 : 16, isMobile ? 14 : 16)
                 },
-                title: '현재 위치',
+                title: '현재 위치 (정확도: ' + accuracy.toFixed(0) + 'm)',
                 zIndex: 1000, // 다른 마커보다 위에 표시
                 optimized: isMobile ? false : true // 모바일에서는 최적화 비활성화로 성능 향상
               });
@@ -6495,6 +6523,32 @@
                   hideRightMenu();
                 }
                 
+                // 위치 정보 표시
+                const infoContent = `
+                  <div style="padding: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">📍 현재 위치</div>
+                    <div style="font-size: 12px; color: #666; line-height: 1.6;">
+                      <div>위도: ${lat.toFixed(6)}</div>
+                      <div>경도: ${lng.toFixed(6)}</div>
+                      <div>정확도: ${accuracy.toFixed(0)}m</div>
+                      <div>획득: ${positionTime.toLocaleTimeString('ko-KR')}</div>
+                      ${timeDiff > 10 ? '<div style="color: #ef4444;">⚠️ ' + timeDiff.toFixed(0) + '초 전 데이터</div>' : ''}
+                    </div>
+                  </div>
+                `;
+                
+                // 기존 정보창 닫기
+                if (currentInfoWindow) {
+                  currentInfoWindow.close();
+                }
+                
+                // 정보창 표시
+                currentInfoWindow = new google.maps.InfoWindow({
+                  content: infoContent,
+                  maxWidth: isMobile ? 280 : 320
+                });
+                currentInfoWindow.open(map, currentLocationMarker);
+                
                 try {
                   map.setZoom(15);
                   map.panTo(currentLocation);
@@ -6503,6 +6557,9 @@
 
               locationBtn.classList.remove('loading');
               locationBtn.textContent = '📌';
+              
+              // 성공 메시지 (정확도 표시)
+              console.log('✅ 현재 위치 표시 완료 (정확도: ' + accuracy.toFixed(0) + 'm)');
             },
             (error) => {
               console.error('위치 정보를 가져올 수 없습니다:', error.message);
