@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, minimal-ui">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11101109</title>
+    <title>WMAP11101122</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -21,7 +21,9 @@
             padding: 0;
             overflow: hidden;
             -webkit-overflow-scrolling: touch;
+            background-color: #e5e3df;
         }
+        
         #map {
             width: 100vw;
             height: 100vh;
@@ -29,17 +31,27 @@
             touch-action: manipulation;
         }
         
-        /* PWA 모드에서 지도를 홈 인디케이터 영역까지 확장 */
+        /* PWA 모드(홈 화면에서 실행)일 때 */
         @media (display-mode: standalone) {
             html, body {
-                /* 배경을 지도 색상과 동일하게 */
+                position: fixed;
+                width: 100%;
+                height: 100%;
+                top: 0;
+                left: 0;
                 background-color: #e5e3df;
             }
             
             #map {
-                /* 안전 영역 무시하고 전체 화면 채우기 */
-                height: calc(100vh + env(safe-area-inset-bottom));
-                height: calc(100vh + constant(safe-area-inset-bottom)); /* iOS 11.0-11.2 */
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                /* 홈 인디케이터 영역까지 확장 */
+                padding-bottom: env(safe-area-inset-bottom) !important;
+                padding-bottom: constant(safe-area-inset-bottom) !important;
+                box-sizing: border-box !important;
             }
             
             /* Google Maps 로고와 저작권을 안전 영역 안쪽으로 이동 */
@@ -47,6 +59,27 @@
             .gm-style .gm-style-cc {
                 margin-bottom: env(safe-area-inset-bottom) !important;
                 margin-bottom: constant(safe-area-inset-bottom) !important;
+            }
+        }
+        
+        /* iOS Safari 웹앱 모드 감지 (추가 대응) */
+        @supports (-webkit-touch-callout: none) {
+            body.standalone html,
+            body.standalone body {
+                position: fixed;
+                width: 100%;
+                height: 100%;
+                background-color: #e5e3df;
+            }
+            
+            body.standalone #map {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                padding-bottom: env(safe-area-inset-bottom) !important;
+                box-sizing: border-box !important;
             }
         }
         h1 {
@@ -70,6 +103,34 @@
         .gm-style .gmnoprint:hover,
         .gm-style .gm-style-cc:hover {
             opacity: 1;
+        }
+        
+        /* 더블탭 새로고침 애니메이션 */
+        @keyframes refreshPulse {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 0.8; }
+            100% { opacity: 0; transform: scale(2); }
+        }
+        
+        .refresh-indicator {
+            position: fixed;
+            pointer-events: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(29, 78, 216, 0.6);
+            z-index: 10000;
+            animation: refreshPulse 0.6s ease-out;
+        }
+        
+        .refresh-indicator::after {
+            content: '↻';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            color: white;
         }
 
         /* 사이드바 스타일 - 모바일 최적화 */
@@ -3116,6 +3177,69 @@
       // 🗺️ MAP MODULE - 지도 초기화 및 관리
       // ============================================================================
       
+      // PWA 모드에서 더블탭 새로고침 기능
+      function setupDoubleTapRefresh() {
+        let lastTapTime = 0;
+        let tapCount = 0;
+        const DOUBLE_TAP_DELAY = 400; // 400ms 이내 두 번 탭
+        const REFRESH_ZONE_HEIGHT = 100; // 상단 100px 영역
+        
+        // 시각적 피드백 표시 함수
+        function showRefreshIndicator(x, y) {
+          const indicator = document.createElement('div');
+          indicator.className = 'refresh-indicator';
+          indicator.style.left = (x - 30) + 'px';
+          indicator.style.top = (y - 30) + 'px';
+          document.body.appendChild(indicator);
+          
+          // 애니메이션 후 제거
+          setTimeout(() => {
+            indicator.remove();
+          }, 600);
+        }
+        
+        document.addEventListener('touchstart', function(event) {
+          // 한 손가락 터치만 감지
+          if (event.touches.length !== 1) return;
+          
+          const touch = event.touches[0];
+          const currentTime = Date.now();
+          
+          // 상단 100px 영역 또는 하단 100px 영역에서만 작동
+          const isTopZone = touch.clientY < REFRESH_ZONE_HEIGHT;
+          const isBottomZone = touch.clientY > (window.innerHeight - REFRESH_ZONE_HEIGHT);
+          
+          if (!isTopZone && !isBottomZone) {
+            // 영역 밖이면 카운터 리셋
+            tapCount = 0;
+            return;
+          }
+          
+          // 더블탭 감지
+          if (currentTime - lastTapTime < DOUBLE_TAP_DELAY) {
+            tapCount++;
+            
+            if (tapCount >= 1) { // 두 번째 탭
+              // 시각적 피드백 표시
+              showRefreshIndicator(touch.clientX, touch.clientY);
+              
+              // 새로고침 실행 (확인 없이 바로)
+              setTimeout(() => {
+                location.reload();
+              }, 300);
+              
+              tapCount = 0;
+            }
+          } else {
+            tapCount = 0;
+          }
+          
+          lastTapTime = currentTime;
+        }, { passive: true });
+        
+        console.log('💡 팁: 화면 상단이나 하단을 빠르게 두 번 탭하면 새로고침됩니다.');
+      }
+      
       // 구글맵 초기화 함수
       function initMap() {
         // PWA 모드(홈 화면에서 실행) 감지
@@ -3124,6 +3248,9 @@
         if (isStandalone) {
           document.body.classList.add('standalone');
           console.log('PWA 모드로 실행 중');
+          
+          // PWA 모드에서만 더블탭 새로고침 기능 활성화
+          setupDoubleTapRefresh();
         }
         
         // 모바일 최적화 적용
