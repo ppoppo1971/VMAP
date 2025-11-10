@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11101146</title>
+    <title>WMAP11101202</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -2002,10 +2002,10 @@
             100% { left: 100%; }
         }
 
-        @keyframes slideInFromTop {
+        @keyframes slideInFromBottom {
             from {
                 opacity: 0;
-                transform: translateX(-50%) translateY(-20px);
+                transform: translateX(-50%) translateY(30px);
             }
             to {
                 opacity: 1;
@@ -2013,14 +2013,14 @@
             }
         }
 
-        @keyframes fadeOut {
+        @keyframes fadeOutToBottom {
             from {
                 opacity: 1;
                 transform: translateX(-50%) translateY(0);
             }
             to {
                 opacity: 0;
-                transform: translateX(-50%) translateY(-10px);
+                transform: translateX(-50%) translateY(30px);
             }
         }
 
@@ -3177,69 +3177,10 @@
       // 🗺️ MAP MODULE - 지도 초기화 및 관리
       // ============================================================================
       
-      // PWA 모드에서 더블탭 새로고침 기능 (지도 영역만)
+      // PWA 모드에서 두 손가락 더블탭 새로고침 기능
       function setupDoubleTapRefresh() {
-        let lastTapTime = 0;
-        let lastTapPosition = null;
+        let lastTwoFingerTapTime = 0;
         const DOUBLE_TAP_DELAY = 500; // 500ms 이내 두 번 탭
-        const TAP_POSITION_THRESHOLD = 80; // 80px 이내 같은 위치
-        
-        // 터치 대상이 UI 요소인지 확인하는 함수
-        function isUIElement(element) {
-          if (!element) return false;
-          
-          // 제외할 요소들 (버튼, 메뉴, 입력 필드 등)
-          const excludedSelectors = [
-            'button',
-            'input',
-            'a',
-            '.toggle-btn',
-            '.map-type-btn',
-            '#customMapMenu',
-            '#mapTypeSelector',
-            '#zoomControls',
-            '#locationBtn',
-            '#menuToggleBtn',
-            '#rightMenuToggleBtn',
-            '.gm-style-iw',  // 정보창
-            '.gm-style-iw-c',
-            '.marker-info-container',
-            '.route-info-container',
-            '[onclick]',  // onclick이 있는 모든 요소
-          ];
-          
-          // 현재 요소와 부모 요소들 검사
-          let currentElement = element;
-          while (currentElement && currentElement !== document.body) {
-            // 태그 이름 검사
-            const tagName = currentElement.tagName?.toLowerCase();
-            if (['button', 'input', 'a', 'select', 'textarea'].includes(tagName)) {
-              return true;
-            }
-            
-            // 셀렉터 검사
-            for (const selector of excludedSelectors) {
-              if (currentElement.matches && currentElement.matches(selector)) {
-                return true;
-              }
-            }
-            
-            // 클래스 검사
-            const className = currentElement.className || '';
-            if (typeof className === 'string') {
-              if (className.includes('btn') || 
-                  className.includes('button') || 
-                  className.includes('menu') ||
-                  className.includes('control')) {
-                return true;
-              }
-            }
-            
-            currentElement = currentElement.parentElement;
-          }
-          
-          return false;
-        }
         
         // 시각적 피드백 표시 함수
         function showRefreshIndicator(x, y) {
@@ -3260,61 +3201,29 @@
         }
         
         document.addEventListener('touchend', function(event) {
-          // 한 손가락 터치만 감지
-          if (event.changedTouches.length !== 1) {
-            console.log('❌ 멀티터치 감지됨');
-            return;
-          }
-          
-          const touch = event.changedTouches[0];
-          const target = document.elementFromPoint(touch.clientX, touch.clientY);
-          
-          console.log('👆 터치 대상:', target?.tagName, target?.className);
-          
-          // UI 요소를 터치했는지 확인
-          if (isUIElement(target)) {
-            console.log('❌ UI 요소 터치 (버튼/메뉴) - 새로고침 차단');
-            lastTapTime = 0;
-            lastTapPosition = null;
-            return;
-          }
-          
-          // 지도 영역인지 확인
-          const mapElement = document.getElementById('map');
-          if (!mapElement?.contains(target) && target !== mapElement) {
-            console.log('❌ 지도 영역 밖');
-            lastTapTime = 0;
-            lastTapPosition = null;
-            return;
-          }
-          
-          console.log('✅ 지도 영역 터치 확인');
-          
           const currentTime = Date.now();
-          const timeSinceLastTap = currentTime - lastTapTime;
+          const timeSinceLastTap = currentTime - lastTwoFingerTapTime;
           
-          // 더블탭 감지
-          if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 50) {
-            // 같은 위치 확인
-            let samePosition = true;
-            if (lastTapPosition) {
-              const distance = Math.sqrt(
-                Math.pow(touch.clientX - lastTapPosition.x, 2) +
-                Math.pow(touch.clientY - lastTapPosition.y, 2)
-              );
-              samePosition = distance < TAP_POSITION_THRESHOLD;
-              console.log('📏 터치 거리:', distance.toFixed(1), 'px');
-            }
+          // 두 손가락 터치 종료 감지 (터치가 0개가 되는 순간)
+          if (event.touches.length === 0 && event.changedTouches.length === 2) {
+            console.log('👆 두 손가락 터치 종료 감지');
             
-            if (samePosition) {
-              console.log('🎉 지도 영역 더블탭 감지! 새로고침 시작...');
+            // 더블탭 감지
+            if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 50) {
+              console.log('🎉 두 손가락 더블탭 감지! 새로고침 시작...');
+              
+              // 두 손가락 중앙 위치 계산
+              const touch1 = event.changedTouches[0];
+              const touch2 = event.changedTouches[1];
+              const centerX = (touch1.clientX + touch2.clientX) / 2;
+              const centerY = (touch1.clientY + touch2.clientY) / 2;
               
               // 시각적 피드백 표시
-              showRefreshIndicator(touch.clientX, touch.clientY);
+              showRefreshIndicator(centerX, centerY);
               
               // 진동 피드백 (지원하는 기기만)
               if (navigator.vibrate) {
-                navigator.vibrate(50);
+                navigator.vibrate([50, 50, 50]); // 3번 진동으로 강조
               }
               
               // 새로고침 실행
@@ -3324,25 +3233,19 @@
               }, 400);
               
               // 리셋
-              lastTapTime = 0;
-              lastTapPosition = null;
+              lastTwoFingerTapTime = 0;
               return;
-            } else {
-              console.log('❌ 터치 위치가 너무 멀어짐');
             }
+            
+            // 첫 번째 탭 기록
+            lastTwoFingerTapTime = currentTime;
+            console.log('📝 두 손가락 첫 번째 탭 기록');
           }
-          
-          // 첫 번째 탭 기록
-          lastTapTime = currentTime;
-          lastTapPosition = {
-            x: touch.clientX,
-            y: touch.clientY
-          };
           
         }, false);
         
-        console.log('💡 팁: 지도 영역을 빠르게 두 번 탭하면 새로고침됩니다.');
-        console.log('🚫 버튼, 메뉴, 마커는 제외됩니다.');
+        console.log('💡 팁: 두 손가락으로 지도를 빠르게 두 번 탭하면 새로고침됩니다.');
+        console.log('🚫 한 손가락 더블탭은 차단되어 있습니다.');
       }
       
       // 구글맵 초기화 함수
@@ -10790,7 +10693,7 @@
          notification.id = 'searchResultNotification';
          notification.style.cssText = `
            position: fixed;
-           top: 20px;
+           bottom: 100px;
            left: 50%;
            transform: translateX(-50%);
            z-index: 10000;
@@ -10803,7 +10706,7 @@
            font-weight: 600;
            max-width: 90vw;
            text-align: center;
-           animation: slideInFromTop 0.3s ease-out;
+           animation: slideInFromBottom 0.3s ease-out;
          `;
          
          notification.textContent = message;
@@ -10812,7 +10715,7 @@
          // 3초 후 자동 제거
          setTimeout(() => {
            if (notification && notification.parentNode) {
-             notification.style.animation = 'fadeOut 0.3s ease-out';
+             notification.style.animation = 'fadeOutToBottom 0.3s ease-out';
              setTimeout(() => {
                if (notification && notification.parentNode) {
                  notification.remove();
@@ -12252,9 +12155,9 @@
         statusDiv.id = 'syncStatusIndicator';
         statusDiv.style.cssText = `
           position: fixed;
-          top: 10px;
+          bottom: 80px;
           left: 50%;
-          transform: translateX(-50%);
+          transform: translateX(-50%) translateY(50px);
           z-index: 1000;
           padding: 8px 12px;
           border-radius: 20px;
@@ -12265,7 +12168,6 @@
           backdrop-filter: blur(10px);
           transition: all 0.3s ease;
           opacity: 0;
-          transform: translateX(-50%) translateY(-20px);
         `;
         statusDiv.textContent = '동기화 준비 중...';
         document.body.appendChild(statusDiv);
@@ -12329,7 +12231,7 @@
         indicator.textContent = message;
         indicator.style.background = colors[type] || colors.info;
         
-        // 표시하기
+        // 아래에서 위로 나타나기
         indicator.style.opacity = '1';
         indicator.style.transform = 'translateX(-50%) translateY(0)';
         
@@ -12337,8 +12239,9 @@
         const hideDelay = (type === 'success' && message.includes('동기화 완료')) ? 1500 : 3000;
         
         setTimeout(() => {
+          // 아래로 사라지기
           indicator.style.opacity = '0';
-          indicator.style.transform = 'translateX(-50%) translateY(-20px)';
+          indicator.style.transform = 'translateX(-50%) translateY(50px)';
           setTimeout(() => {
             if (indicator.parentNode) {
               indicator.parentNode.removeChild(indicator);
