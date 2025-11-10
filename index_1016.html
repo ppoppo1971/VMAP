@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11101047</title>
+    <title>WMAP11101059</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -21,11 +21,23 @@
             padding: 0;
             overflow: hidden;
             -webkit-overflow-scrolling: touch;
+            /* PWA 모드에서 하단 빈 공간 제거 */
+            position: fixed;
+            width: 100%;
+            /* 배경색을 지도 색상과 동일하게 (빈 공간 방지) */
+            background-color: #e5e3df;
         }
         #map {
-            width: 100vw;
+            width: 100%;
+            height: 100%;
+            /* PWA/전체화면 모드 대응 */
             height: 100vh;
-            min-height: 100%;
+            height: -webkit-fill-available;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             touch-action: manipulation;
         }
         h1 {
@@ -381,6 +393,9 @@
             position: absolute;
             bottom: 10px;
             right: 10px;
+            /* PWA 모드에서 홈 인디케이터 영역 피하기 */
+            bottom: max(10px, env(safe-area-inset-bottom));
+            right: max(10px, env(safe-area-inset-right));
             z-index: 10;
             background: transparent;
             color: #333;
@@ -423,6 +438,9 @@
             position: absolute;
             bottom: 10px;
             left: 10px;
+            /* PWA 모드에서 홈 인디케이터 영역 피하기 */
+            bottom: max(10px, env(safe-area-inset-bottom));
+            left: max(10px, env(safe-area-inset-left));
             z-index: 10;
             display: flex;
             flex-direction: column;
@@ -455,6 +473,23 @@
         #fullscreenBtn.active {
             background: rgba(29, 78, 216, 0.2);
             color: #1d4ed8;
+        }
+        
+        /* PWA 모드(홈 화면에서 실행)에서는 전체화면 버튼 숨기기 */
+        @media (display-mode: standalone) {
+            #fullscreenBtn {
+                display: none !important;
+            }
+        }
+        
+        /* iOS PWA 모드 감지 */
+        @media (prefers-color-scheme: light), (prefers-color-scheme: dark) {
+            @supports (-webkit-touch-callout: none) {
+                /* iOS standalone 모드 */
+                body.standalone #fullscreenBtn {
+                    display: none !important;
+                }
+            }
         }
         
         #zoomInBtn:hover, #zoomOutBtn:hover, #fullscreenBtn:hover {
@@ -3055,6 +3090,14 @@
       
       // 구글맵 초기화 함수
       function initMap() {
+        // PWA 모드(홈 화면에서 실행) 감지
+        const isStandalone = window.navigator.standalone || 
+                           window.matchMedia('(display-mode: standalone)').matches;
+        if (isStandalone) {
+          document.body.classList.add('standalone');
+          console.log('PWA 모드로 실행 중');
+        }
+        
         // 모바일 최적화 적용
         optimizeForMobile();
         
