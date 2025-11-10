@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11101202</title>
+    <title>WMAP11101212/title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3179,8 +3179,10 @@
       
       // PWA 모드에서 두 손가락 더블탭 새로고침 기능
       function setupDoubleTapRefresh() {
-        let lastTwoFingerTapTime = 0;
-        const DOUBLE_TAP_DELAY = 500; // 500ms 이내 두 번 탭
+        let lastTwoFingerStartTime = 0;
+        let twoFingerTapCount = 0;
+        let resetTimer = null;
+        const DOUBLE_TAP_DELAY = 600; // 600ms 이내 두 번 탭
         
         // 시각적 피드백 표시 함수
         function showRefreshIndicator(x, y) {
@@ -3200,21 +3202,33 @@
           }, 600);
         }
         
-        document.addEventListener('touchend', function(event) {
+        // 두 손가락 터치 시작 감지
+        document.addEventListener('touchstart', function(event) {
           const currentTime = Date.now();
-          const timeSinceLastTap = currentTime - lastTwoFingerTapTime;
           
-          // 두 손가락 터치 종료 감지 (터치가 0개가 되는 순간)
-          if (event.touches.length === 0 && event.changedTouches.length === 2) {
-            console.log('👆 두 손가락 터치 종료 감지');
+          // 두 손가락 터치 시작 감지
+          if (event.touches.length === 2) {
+            console.log('👆 두 손가락 터치 시작 감지');
             
-            // 더블탭 감지
-            if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 50) {
+            // 이전 리셋 타이머 취소
+            if (resetTimer) {
+              clearTimeout(resetTimer);
+            }
+            
+            // 터치 카운트 증가
+            twoFingerTapCount++;
+            console.log('📊 터치 카운트:', twoFingerTapCount);
+            
+            // 두 번째 터치인지 확인
+            const timeSinceLastStart = currentTime - lastTwoFingerStartTime;
+            console.log('⏱️ 이전 터치와의 시간 간격:', timeSinceLastStart, 'ms');
+            
+            if (twoFingerTapCount === 2 && timeSinceLastStart < DOUBLE_TAP_DELAY) {
               console.log('🎉 두 손가락 더블탭 감지! 새로고침 시작...');
               
               // 두 손가락 중앙 위치 계산
-              const touch1 = event.changedTouches[0];
-              const touch2 = event.changedTouches[1];
+              const touch1 = event.touches[0];
+              const touch2 = event.touches[1];
               const centerX = (touch1.clientX + touch2.clientX) / 2;
               const centerY = (touch1.clientY + touch2.clientY) / 2;
               
@@ -3233,16 +3247,40 @@
               }, 400);
               
               // 리셋
-              lastTwoFingerTapTime = 0;
+              twoFingerTapCount = 0;
+              lastTwoFingerStartTime = 0;
+              if (resetTimer) {
+                clearTimeout(resetTimer);
+                resetTimer = null;
+              }
               return;
             }
             
-            // 첫 번째 탭 기록
-            lastTwoFingerTapTime = currentTime;
-            console.log('📝 두 손가락 첫 번째 탭 기록');
+            // 첫 번째 또는 이후 터치 시간 기록
+            lastTwoFingerStartTime = currentTime;
+            
+            // 600ms 후 카운터 자동 리셋
+            resetTimer = setTimeout(() => {
+              console.log('🔄 터치 카운터 리셋 (타임아웃)');
+              twoFingerTapCount = 0;
+              lastTwoFingerStartTime = 0;
+            }, DOUBLE_TAP_DELAY);
           }
           
         }, false);
+        
+        // 터치가 이동하면 카운터 리셋 (핀치 줌 감지)
+        document.addEventListener('touchmove', function(event) {
+          if (event.touches.length === 2 && twoFingerTapCount > 0) {
+            console.log('🔄 핀치 줌 감지 - 터치 카운터 리셋');
+            twoFingerTapCount = 0;
+            lastTwoFingerStartTime = 0;
+            if (resetTimer) {
+              clearTimeout(resetTimer);
+              resetTimer = null;
+            }
+          }
+        }, { passive: true });
         
         console.log('💡 팁: 두 손가락으로 지도를 빠르게 두 번 탭하면 새로고침됩니다.');
         console.log('🚫 한 손가락 더블탭은 차단되어 있습니다.');
@@ -3378,12 +3416,11 @@
         // 더블클릭/더블탭 기능 제거 (줌 컨트롤 버튼으로 대체)
         // disableDoubleClickZoom: true 설정으로 기본 더블클릭 줌 비활성화됨
         
-        // 한 손가락/두 손가락 더블탭 줌 완전 비활성화 (줌 컨트롤 버튼으로 대체)
+        // 한 손가락 더블탭 줌 차단 (줌 컨트롤 버튼으로 대체)
         const mapElement = document.getElementById('map');
         
-        // 더블탭 감지 및 차단 변수
+        // 한 손가락 더블탭 차단 변수
         let lastOneTapTime = 0;
-        let lastTwoFingerTapTime = 0;
         const DOUBLE_TAP_THRESHOLD = 300; // 300ms 이내 두 번 탭하면 더블탭으로 간주
         
         mapElement.addEventListener('touchstart', function(event) {
@@ -3423,18 +3460,10 @@
             // 롱프레스 시작 좌표 초기화
             longPressStartLatLng = null;
             longPressStartPixel = null;
-            
-            // 두 손가락 더블탭 감지 및 차단
-            const currentTime = Date.now();
-            if (currentTime - lastTwoFingerTapTime < DOUBLE_TAP_THRESHOLD) {
-              // 두 손가락 더블탭 감지됨 - 이벤트 차단
-              event.preventDefault();
-              event.stopPropagation();
-              lastTwoFingerTapTime = 0; // 리셋
-            } else {
-              lastTwoFingerTapTime = currentTime;
-            }
           }
+          
+          // 주의: 두 손가락 더블탭은 차단하지 않음 (새로고침 기능에 사용)
+          
         }, { passive: false }); // passive: false로 변경하여 preventDefault 가능하도록
         
         // 터치 이동 중에는 더블탭 타이머 리셋 및 롱프레스 취소
@@ -3448,7 +3477,7 @@
             return; // 정보창 관련 요소는 건드리지 않음
           }
           
-          // 터치가 이동하면 모든 더블탭 타이머 리셋
+          // 터치가 이동하면 한 손가락 더블탭 타이머 리셋
           if (event.touches.length === 1) {
             lastOneTapTime = 0; // 한 손가락 이동 시 더블탭 리셋
           }
@@ -3463,13 +3492,10 @@
             // 롱프레스 시작 좌표 초기화
             longPressStartLatLng = null;
             longPressStartPixel = null;
-            
-            // 터치가 이동하면 더블탭 타이머 리셋 (핀치 줌 허용)
-            lastTwoFingerTapTime = 0;
           }
         }, { passive: true });
         
-        // 터치 종료 시 더블탭 차단 강화
+        // 터치 종료 시 한 손가락 더블탭 차단 강화
         mapElement.addEventListener('touchend', function(event) {
           // 한 손가락 더블탭 추가 차단
           if (event.touches.length === 0 && lastOneTapTime !== 0) {
@@ -3480,14 +3506,8 @@
             }
           }
           
-          // 두 손가락 더블탭으로 인한 줌이 발생하지 않도록 추가 차단
-          if (event.touches.length === 0 && lastTwoFingerTapTime !== 0) {
-            const currentTime = Date.now();
-            if (currentTime - lastTwoFingerTapTime < DOUBLE_TAP_THRESHOLD + 100) {
-              event.preventDefault();
-              event.stopPropagation();
-            }
-          }
+          // 주의: 두 손가락 더블탭은 차단하지 않음 (새로고침 기능에 사용)
+          
         }, { passive: false });
         
         
