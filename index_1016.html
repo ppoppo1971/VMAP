@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11101008</title>
+    <title>WMAP11101018</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -3151,21 +3151,16 @@
         map.mapTypes.set('브이월드일반', vworldRoadmapType);
         map.mapTypes.set('브이월드영상', vworldSatelliteType);
         
-        // 커스텀 더블클릭 이벤트 - 1단계 축소 기능
-        map.addListener('dblclick', function(event) {
-          const currentZoom = map.getZoom();
-          // 현재 줌 레벨에서 1단계 축소
-          const newZoom = Math.max(currentZoom - 1, CONSTANTS.MIN_ZOOM); // 최소 줌 레벨 제한
-          map.setZoom(newZoom);
-          
-          // 축소된 위치로 중심점 이동 (클릭한 지점을 중심으로)
-          map.setCenter(event.latLng);
-          
-        });
+        // 더블클릭/더블탭 기능 제거 (줌 컨트롤 버튼으로 대체)
+        // disableDoubleClickZoom: true 설정으로 기본 더블클릭 줌 비활성화됨
         
-        // 두 손가락 더블탭 기능 제거됨 (줌 컨트롤 버튼으로 대체)
-        // 롱프레스 취소를 위한 터치 이벤트만 유지
+        // 한 손가락/두 손가락 더블탭 줌 완전 비활성화 (줌 컨트롤 버튼으로 대체)
         const mapElement = document.getElementById('map');
+        
+        // 더블탭 감지 및 차단 변수
+        let lastOneTapTime = 0;
+        let lastTwoFingerTapTime = 0;
+        const DOUBLE_TAP_THRESHOLD = 300; // 300ms 이내 두 번 탭하면 더블탭으로 간주
         
         mapElement.addEventListener('touchstart', function(event) {
           // 정보창 내부 요소를 터치한 경우 무시 (정보창 이벤트와 충돌 방지)
@@ -3179,6 +3174,20 @@
             return; // 정보창 관련 요소는 건드리지 않음
           }
           
+          // 한 손가락 더블탭 감지 및 차단
+          if (event.touches.length === 1) {
+            const currentTime = Date.now();
+            if (currentTime - lastOneTapTime < DOUBLE_TAP_THRESHOLD) {
+              // 한 손가락 더블탭 감지됨 - 이벤트 차단
+              event.preventDefault();
+              event.stopPropagation();
+              lastOneTapTime = 0; // 리셋
+              return;
+            } else {
+              lastOneTapTime = currentTime;
+            }
+          }
+          
           // 두 손가락 이상 터치 시 롱프레스 타이머 취소
           if (event.touches.length >= 2) {
             // 롱프레스 타이머 취소 (두 손가락 이상일 때)
@@ -3190,10 +3199,21 @@
             // 롱프레스 시작 좌표 초기화
             longPressStartLatLng = null;
             longPressStartPixel = null;
+            
+            // 두 손가락 더블탭 감지 및 차단
+            const currentTime = Date.now();
+            if (currentTime - lastTwoFingerTapTime < DOUBLE_TAP_THRESHOLD) {
+              // 두 손가락 더블탭 감지됨 - 이벤트 차단
+              event.preventDefault();
+              event.stopPropagation();
+              lastTwoFingerTapTime = 0; // 리셋
+            } else {
+              lastTwoFingerTapTime = currentTime;
+            }
           }
-        }, { passive: true });
+        }, { passive: false }); // passive: false로 변경하여 preventDefault 가능하도록
         
-        // 터치 이동 중에도 두 손가락 이상이면 롱프레스 취소
+        // 터치 이동 중에는 더블탭 타이머 리셋 및 롱프레스 취소
         mapElement.addEventListener('touchmove', function(event) {
           // 정보창 내부 요소를 터치한 경우 무시 (정보창 이벤트와 충돌 방지)
           const target = event.target;
@@ -3202,6 +3222,11 @@
               target.closest('.marker-info-container') ||
               target.closest('.route-info-container')) {
             return; // 정보창 관련 요소는 건드리지 않음
+          }
+          
+          // 터치가 이동하면 모든 더블탭 타이머 리셋
+          if (event.touches.length === 1) {
+            lastOneTapTime = 0; // 한 손가락 이동 시 더블탭 리셋
           }
           
           // 두 손가락 이상 터치 중이면 롱프레스 타이머 취소
@@ -3214,8 +3239,32 @@
             // 롱프레스 시작 좌표 초기화
             longPressStartLatLng = null;
             longPressStartPixel = null;
+            
+            // 터치가 이동하면 더블탭 타이머 리셋 (핀치 줌 허용)
+            lastTwoFingerTapTime = 0;
           }
         }, { passive: true });
+        
+        // 터치 종료 시 더블탭 차단 강화
+        mapElement.addEventListener('touchend', function(event) {
+          // 한 손가락 더블탭 추가 차단
+          if (event.touches.length === 0 && lastOneTapTime !== 0) {
+            const currentTime = Date.now();
+            if (currentTime - lastOneTapTime < DOUBLE_TAP_THRESHOLD + 100) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          }
+          
+          // 두 손가락 더블탭으로 인한 줌이 발생하지 않도록 추가 차단
+          if (event.touches.length === 0 && lastTwoFingerTapTime !== 0) {
+            const currentTime = Date.now();
+            if (currentTime - lastTwoFingerTapTime < DOUBLE_TAP_THRESHOLD + 100) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          }
+        }, { passive: false });
         
         
         // 🔥 지도 롱프레스 기능을 위한 변수들
