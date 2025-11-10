@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11030534</title>
+    <title>WMAP11101008</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -418,6 +418,46 @@
             50% { opacity: 0.7; }
         }
         
+        /* 줌 컨트롤 버튼 스타일 */
+        #zoomControls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        #zoomInBtn, #zoomOutBtn {
+            background: transparent;
+            color: #333;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            font-size: 1.5rem;
+            font-weight: 300;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s ease;
+            line-height: 1;
+        }
+        
+        #zoomInBtn:hover, #zoomOutBtn:hover {
+            background: rgba(51, 51, 51, 0.1);
+            transform: scale(1.05);
+        }
+        
+        #zoomInBtn:active, #zoomOutBtn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
         /* 오른쪽 상단 토글 버튼 - 모바일 최적화 */
         #rightMenuToggleBtn {
             position: absolute;
@@ -541,6 +581,18 @@
                 right: 15px;
             }
             
+            #zoomControls {
+                bottom: 15px;
+                left: 15px;
+                gap: 10px;
+            }
+            
+            #zoomInBtn, #zoomOutBtn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.6rem;
+            }
+            
 
             
             /* 모바일에서 터치 최적화 */
@@ -631,6 +683,18 @@
                 font-size: 1rem;
                 bottom: 10px;
                 right: 10px;
+            }
+            
+            #zoomControls {
+                bottom: 10px;
+                left: 10px;
+                gap: 6px;
+            }
+            
+            #zoomInBtn, #zoomOutBtn {
+                width: 37px;
+                height: 37px;
+                font-size: 1.3rem;
             }
             
 
@@ -1872,6 +1936,12 @@
     <!-- GPS 위치 버튼 -->
     <button id="locationBtn" onclick="getCurrentLocation()" title="현재 위치로 이동">📌</button>
     
+    <!-- 줌 컨트롤 버튼 -->
+    <div id="zoomControls">
+        <button id="zoomInBtn" onclick="zoomIn()" title="확대">+</button>
+        <button id="zoomOutBtn" onclick="zoomOut()" title="축소">−</button>
+    </div>
+    
     <!-- 카메라 입력 (숨김) - iOS에서 네이티브 카메라 앱 사용을 위해 capture 속성 제거 -->
     <input type="file" id="cameraInput" accept="image/*" style="display: none;">
 
@@ -3093,12 +3163,8 @@
           
         });
         
-        // 두 손가락 더블클릭 감지 변수
-        let twoFingerTouchCount = 0;
-        let twoFingerTimer = null;
-        let lastTwoFingerPosition = null;
-        
-        // 터치 이벤트 리스너 - 두 손가락 더블클릭 감지
+        // 두 손가락 더블탭 기능 제거됨 (줌 컨트롤 버튼으로 대체)
+        // 롱프레스 취소를 위한 터치 이벤트만 유지
         const mapElement = document.getElementById('map');
         
         mapElement.addEventListener('touchstart', function(event) {
@@ -3124,38 +3190,6 @@
             // 롱프레스 시작 좌표 초기화
             longPressStartLatLng = null;
             longPressStartPixel = null;
-          }
-          
-          // 두 손가락 터치 감지
-          if (event.touches.length === 2) {
-            twoFingerTouchCount++;
-            lastTwoFingerPosition = {
-              lat: (event.touches[0].clientY + event.touches[1].clientY) / 2,
-              lng: (event.touches[0].clientX + event.touches[1].clientX) / 2
-            };
-            
-            // 기존 타이머 클리어
-            if (twoFingerTimer) {
-              clearTimeout(twoFingerTimer);
-            }
-            
-            // 500ms 후에 터치 카운터 리셋
-            twoFingerTimer = setTimeout(function() {
-              twoFingerTouchCount = 0;
-            }, 500);
-            
-            // 두 손가락 더블클릭 감지
-            if (twoFingerTouchCount === 2) {
-              const currentZoom = map.getZoom();
-              const newZoom = Math.min(currentZoom + 1, CONSTANTS.MAX_ZOOM); // 최대 줌 레벨 제한
-              map.setZoom(newZoom);
-              
-              // 터치 중심점을 지도 좌표로 변환하여 중심점 이동
-              const centerLatLng = map.getCenter();
-              map.setCenter(centerLatLng);
-              
-              twoFingerTouchCount = 0;
-            }
           }
         }, { passive: true });
         
@@ -5916,6 +5950,20 @@
       // ============================================================================
       
       // 현재 위치 가져오기 함수 - 모바일 최적화
+      // 줌 인 함수
+      function zoomIn() {
+        const currentZoom = map.getZoom();
+        const newZoom = Math.min(currentZoom + 1, CONSTANTS.MAX_ZOOM);
+        map.setZoom(newZoom);
+      }
+      
+      // 줌 아웃 함수
+      function zoomOut() {
+        const currentZoom = map.getZoom();
+        const newZoom = Math.max(currentZoom - 1, CONSTANTS.MIN_ZOOM);
+        map.setZoom(newZoom);
+      }
+      
       function getCurrentLocation() {
         const locationBtn = document.getElementById('locationBtn');
         const isLoading = locationBtn.classList.contains('loading');
