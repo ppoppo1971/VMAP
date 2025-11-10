@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11101018</title>
+    <title>WMAP11101047</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -429,7 +429,7 @@
             gap: 8px;
         }
         
-        #zoomInBtn, #zoomOutBtn {
+        #zoomInBtn, #zoomOutBtn, #fullscreenBtn {
             background: transparent;
             color: #333;
             border: none;
@@ -448,12 +448,21 @@
             line-height: 1;
         }
         
-        #zoomInBtn:hover, #zoomOutBtn:hover {
+        #fullscreenBtn {
+            font-size: 1.3rem;
+        }
+        
+        #fullscreenBtn.active {
+            background: rgba(29, 78, 216, 0.2);
+            color: #1d4ed8;
+        }
+        
+        #zoomInBtn:hover, #zoomOutBtn:hover, #fullscreenBtn:hover {
             background: rgba(51, 51, 51, 0.1);
             transform: scale(1.05);
         }
         
-        #zoomInBtn:active, #zoomOutBtn:active {
+        #zoomInBtn:active, #zoomOutBtn:active, #fullscreenBtn:active {
             transform: scale(0.95);
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
@@ -587,10 +596,14 @@
                 gap: 10px;
             }
             
-            #zoomInBtn, #zoomOutBtn {
+            #zoomInBtn, #zoomOutBtn, #fullscreenBtn {
                 width: 50px;
                 height: 50px;
                 font-size: 1.6rem;
+            }
+            
+            #fullscreenBtn {
+                font-size: 1.4rem;
             }
             
 
@@ -691,10 +704,14 @@
                 gap: 6px;
             }
             
-            #zoomInBtn, #zoomOutBtn {
+            #zoomInBtn, #zoomOutBtn, #fullscreenBtn {
                 width: 37px;
                 height: 37px;
                 font-size: 1.3rem;
+            }
+            
+            #fullscreenBtn {
+                font-size: 1.1rem;
             }
             
 
@@ -1940,6 +1957,7 @@
     <div id="zoomControls">
         <button id="zoomInBtn" onclick="zoomIn()" title="확대">+</button>
         <button id="zoomOutBtn" onclick="zoomOut()" title="축소">−</button>
+        <button id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면">⛶</button>
     </div>
     
     <!-- 카메라 입력 (숨김) - iOS에서 네이티브 카메라 앱 사용을 위해 capture 속성 제거 -->
@@ -6011,6 +6029,79 @@
         const currentZoom = map.getZoom();
         const newZoom = Math.max(currentZoom - 1, CONSTANTS.MIN_ZOOM);
         map.setZoom(newZoom);
+      }
+      
+      // 전체화면 토글 함수
+      function toggleFullscreen() {
+        const elem = document.documentElement;
+        const btn = document.getElementById('fullscreenBtn');
+        
+        if (!document.fullscreenElement && 
+            !document.webkitFullscreenElement && 
+            !document.mozFullScreenElement && 
+            !document.msFullscreenElement) {
+          // 전체화면 진입
+          if (elem.requestFullscreen) {
+            elem.requestFullscreen();
+          } else if (elem.webkitRequestFullscreen) { /* Safari/Chrome */
+            elem.webkitRequestFullscreen();
+          } else if (elem.mozRequestFullScreen) { /* Firefox */
+            elem.mozRequestFullScreen();
+          } else if (elem.msRequestFullscreen) { /* IE/Edge */
+            elem.msRequestFullscreen();
+          }
+          
+          // 버튼 상태 변경
+          if (btn) {
+            btn.classList.add('active');
+            btn.innerHTML = '⛶'; // 전체화면 종료 아이콘
+            btn.title = '전체화면 종료';
+          }
+        } else {
+          // 전체화면 종료
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) { /* Safari/Chrome */
+            document.webkitExitFullscreen();
+          } else if (document.mozCancelFullScreen) { /* Firefox */
+            document.mozCancelFullScreen();
+          } else if (document.msExitFullscreen) { /* IE/Edge */
+            document.msExitFullscreen();
+          }
+          
+          // 버튼 상태 변경
+          if (btn) {
+            btn.classList.remove('active');
+            btn.innerHTML = '⛶'; // 전체화면 진입 아이콘
+            btn.title = '전체화면';
+          }
+        }
+      }
+      
+      // 전체화면 상태 변경 감지 (ESC 키 등으로 종료 시)
+      document.addEventListener('fullscreenchange', updateFullscreenButton);
+      document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+      document.addEventListener('mozfullscreenchange', updateFullscreenButton);
+      document.addEventListener('MSFullscreenChange', updateFullscreenButton);
+      
+      function updateFullscreenButton() {
+        const btn = document.getElementById('fullscreenBtn');
+        if (!btn) return;
+        
+        const isFullscreen = !!(document.fullscreenElement || 
+                                document.webkitFullscreenElement || 
+                                document.mozFullScreenElement || 
+                                document.msFullscreenElement);
+        
+        if (isFullscreen) {
+          btn.classList.add('active');
+          btn.innerHTML = '⛶';
+          btn.title = '전체화면 종료';
+        } else {
+          btn.classList.remove('active');
+          btn.innerHTML = '⛶';
+          btn.title = '전체화면';
+        }
       }
       
       function getCurrentLocation() {
