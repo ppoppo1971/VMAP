@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1d4ed8">
-    <title>WMAP11101122</title>
+    <title>WMAP11101135</title>
     
     <!-- KML/KMZ 파일 처리 라이브러리 -->
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
@@ -86,23 +86,23 @@
             display: none;
         }
         
-        /* Google Maps 로고 및 저작권 정보 스타일 최소화 */
-        .gm-style .gmnoprint {
-            /* 로고를 작고 반투명하게 */
-            opacity: 0.4;
-            transform: scale(0.8);
+        /* Google Maps 로고 및 저작권 정보 완전히 숨기기 */
+        .gm-style .gmnoprint,
+        .gm-style .gm-style-cc,
+        .gm-style-cc,
+        .gm-style a[href^="https://maps.google.com"],
+        a[href^="https://maps.google.com/maps"],
+        .gmnoprint,
+        .gm-bundled-control,
+        .gm-svpc {
+            display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
         }
         
-        .gm-style .gm-style-cc {
-            /* 저작권 정보를 작고 반투명하게 */
-            opacity: 0.3;
-            font-size: 10px !important;
-        }
-        
-        /* 호버 시 보이도록 (접근성) */
-        .gm-style .gmnoprint:hover,
-        .gm-style .gm-style-cc:hover {
-            opacity: 1;
+        /* 구글맵 컨트롤 버튼들도 숨기기 */
+        .gm-control-active {
+            display: none !important;
         }
         
         /* 더블탭 새로고침 애니메이션 */
@@ -3180,9 +3180,10 @@
       // PWA 모드에서 더블탭 새로고침 기능
       function setupDoubleTapRefresh() {
         let lastTapTime = 0;
-        let tapCount = 0;
-        const DOUBLE_TAP_DELAY = 400; // 400ms 이내 두 번 탭
-        const REFRESH_ZONE_HEIGHT = 100; // 상단 100px 영역
+        let lastTapPosition = null;
+        const DOUBLE_TAP_DELAY = 500; // 500ms 이내 두 번 탭
+        const REFRESH_ZONE_HEIGHT = 120; // 상단/하단 120px 영역
+        const TAP_POSITION_THRESHOLD = 50; // 50px 이내 같은 위치
         
         // 시각적 피드백 표시 함수
         function showRefreshIndicator(x, y) {
@@ -3192,52 +3193,93 @@
           indicator.style.top = (y - 30) + 'px';
           document.body.appendChild(indicator);
           
+          console.log('✨ 새로고침 인디케이터 표시:', x, y);
+          
           // 애니메이션 후 제거
           setTimeout(() => {
-            indicator.remove();
+            if (indicator.parentNode) {
+              indicator.remove();
+            }
           }, 600);
         }
         
-        document.addEventListener('touchstart', function(event) {
+        document.addEventListener('touchend', function(event) {
           // 한 손가락 터치만 감지
-          if (event.touches.length !== 1) return;
+          if (event.changedTouches.length !== 1) {
+            console.log('❌ 멀티터치 감지됨');
+            return;
+          }
           
-          const touch = event.touches[0];
+          const touch = event.changedTouches[0];
           const currentTime = Date.now();
+          const timeSinceLastTap = currentTime - lastTapTime;
           
-          // 상단 100px 영역 또는 하단 100px 영역에서만 작동
+          console.log('👆 터치 감지:', {
+            y: touch.clientY,
+            timeSinceLastTap: timeSinceLastTap,
+            windowHeight: window.innerHeight
+          });
+          
+          // 상단 120px 영역 또는 하단 120px 영역에서만 작동
           const isTopZone = touch.clientY < REFRESH_ZONE_HEIGHT;
           const isBottomZone = touch.clientY > (window.innerHeight - REFRESH_ZONE_HEIGHT);
           
           if (!isTopZone && !isBottomZone) {
-            // 영역 밖이면 카운터 리셋
-            tapCount = 0;
+            console.log('❌ 영역 밖:', touch.clientY);
+            lastTapTime = 0;
+            lastTapPosition = null;
             return;
           }
           
+          console.log('✅ 새로고침 영역 내:', isTopZone ? '상단' : '하단');
+          
           // 더블탭 감지
-          if (currentTime - lastTapTime < DOUBLE_TAP_DELAY) {
-            tapCount++;
+          if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 50) {
+            // 같은 위치 확인 (선택사항)
+            let samePosition = true;
+            if (lastTapPosition) {
+              const distance = Math.sqrt(
+                Math.pow(touch.clientX - lastTapPosition.x, 2) +
+                Math.pow(touch.clientY - lastTapPosition.y, 2)
+              );
+              samePosition = distance < TAP_POSITION_THRESHOLD;
+            }
             
-            if (tapCount >= 1) { // 두 번째 탭
+            if (samePosition) {
+              console.log('🎉 더블탭 감지! 새로고침 시작...');
+              
               // 시각적 피드백 표시
               showRefreshIndicator(touch.clientX, touch.clientY);
               
-              // 새로고침 실행 (확인 없이 바로)
-              setTimeout(() => {
-                location.reload();
-              }, 300);
+              // 진동 피드백 (지원하는 기기만)
+              if (navigator.vibrate) {
+                navigator.vibrate(50);
+              }
               
-              tapCount = 0;
+              // 새로고침 실행
+              setTimeout(() => {
+                console.log('🔄 새로고침 실행!');
+                location.reload();
+              }, 400);
+              
+              // 리셋
+              lastTapTime = 0;
+              lastTapPosition = null;
+              return;
             }
-          } else {
-            tapCount = 0;
           }
           
+          // 첫 번째 탭 기록
           lastTapTime = currentTime;
-        }, { passive: true });
+          lastTapPosition = {
+            x: touch.clientX,
+            y: touch.clientY
+          };
+          
+        }, false); // passive: false로 변경하여 preventDefault 가능하도록
         
         console.log('💡 팁: 화면 상단이나 하단을 빠르게 두 번 탭하면 새로고침됩니다.');
+        console.log('📍 새로고침 영역: 상단 120px, 하단 120px');
       }
       
       // 구글맵 초기화 함수
