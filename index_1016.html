@@ -211,6 +211,22 @@
             margin: 0 0 10px 0;
             color: #1a1a1a;
             text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: all 0.2s ease;
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        #customMapMenu h2:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+            transform: scale(1.05);
+        }
+        #customMapMenu h2:active {
+            background: rgba(59, 130, 246, 0.2);
+            transform: scale(0.98);
         }
         .menu-group {
             margin-bottom: 2px;
@@ -2145,9 +2161,6 @@
         <button class="map-type-btn" onclick="document.getElementById('kmlFileInput').click()" style="background: rgba(99, 102, 241, 0.15); color: #4f46e5; border: 1px solid rgba(99, 102, 241, 0.3);">
           📂 KML/KMZ 불러오기
         </button>
-        <button class="map-type-btn" onclick="forceReload()" style="background: rgba(59, 130, 246, 0.15); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3);">
-          🔄 새로고침
-        </button>
         <button class="map-type-btn" onclick="showKmlSaveDialog()" id="saveKmlBtn" style="display: none; background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3);">
           📥 Firebase에 저장
         </button>
@@ -2185,7 +2198,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2>WMAP</h2>
+      <h2 onclick="forceReload()" title="새로고침 (캐시 무시)">WMAP</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="위치검색" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
