@@ -2198,7 +2198,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2 onclick="forceReload()" title="새로고침 (캐시 무시)">WMAP1256</h2>
+      <h2 onclick="forceReload()" title="새로고침 (캐시 무시)">WMAP0116</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="위치검색" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -4002,6 +4002,8 @@
         const LONG_PRESS_DURATION = 600; // 600ms 롱프레스
         const LONG_PRESS_MOVE_THRESHOLD = 10; // 10픽셀 이내 이동 허용
         let longPressStartPixel = null;
+        let pendingMarkerClick = null; // 마커 클릭 이벤트 지연 처리용
+        let pendingRouteClick = null; // 경로 클릭 이벤트 지연 처리용
         
         // 지도 mousedown/touchstart 이벤트 - 롱프레스 시작
         map.addListener('mousedown', function(event) {
@@ -4012,6 +4014,16 @@
           
           longPressTriggered = false;
           longPressStartLatLng = event.latLng;
+          
+          // 대기 중인 클릭 이벤트 취소
+          if (pendingMarkerClick) {
+            clearTimeout(pendingMarkerClick);
+            pendingMarkerClick = null;
+          }
+          if (pendingRouteClick) {
+            clearTimeout(pendingRouteClick);
+            pendingRouteClick = null;
+          }
           
           // 픽셀 좌표 저장 (이동 감지용)
           const projection = map.getProjection();
@@ -4029,6 +4041,15 @@
             }
           }, LONG_PRESS_DURATION);
         });
+        
+        // 터치 시작 시간 기록 (마커/경로에서도 롱프레스 감지용)
+        if (typeof google !== 'undefined' && google.maps && google.maps.event) {
+          // 전역 터치 시작 이벤트 리스너
+          document.addEventListener('touchstart', function(event) {
+            lastTouchStartTime = Date.now();
+            isProcessingClick = false;
+          }, { passive: true });
+        }
         
         // 지도 mousemove/touchmove 이벤트 - 이동 시 롱프레스 취소
         map.addListener('mousemove', function(event) {
@@ -8212,30 +8233,116 @@
                   }
                 };
                 
-                // 마커 클릭 시 정보 표시 및 줌 15로 중심 이동
-                marker.addListener('click', function() {
-                  // 롱프레스가 발생했으면 롱프레스 정보창 표시 (기존 마커 정보창 대신)
-                  if (longPressTriggered) {
-                    longPressTriggered = false;
-                    showLongPressInfoWindow(marker.getPosition());
+                // 마커 롱프레스 감지를 위한 변수들 (마커별로 독립적)
+                let markerLongPressTimer = null;
+                let markerClickDelayedHandler = null;
+                
+                // 마커 롱프레스 시작 함수 (공통)
+                function startMarkerLongPress() {
+                  if (isMarkerMode || isRouteMode) {
                     return;
                   }
                   
-                  // 메뉴창 닫기
-                  const customMapMenu = getElement('customMapMenu');
-                  const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
-                  
-                  if (!customMapMenu.classList.contains('hide')) {
-                    hideMenu();
+                  // 기존 타이머 및 클릭 핸들러 취소
+                  if (markerLongPressTimer) {
+                    clearTimeout(markerLongPressTimer);
                   }
-                  if (rightPanelOpen) {
-                    hideRightMenu();
+                  if (markerClickDelayedHandler) {
+                    clearTimeout(markerClickDelayedHandler);
+                    markerClickDelayedHandler = null;
                   }
                   
-                  if (isMarkerMode) { addCustomMarker(marker.getPosition()); return; }
-                  if (isRouteMode) { addUserRoutePoint(marker.getPosition()); return; }
+                  const markerPosition = marker.getPosition();
                   
-                  showMarkerInfo(markerGroup, markerData, index);
+                  // 롱프레스 타이머 시작
+                  markerLongPressTimer = setTimeout(function() {
+                    markerLongPressTimer = null;
+                    
+                    // 대기 중인 클릭 이벤트 취소
+                    if (markerClickDelayedHandler) {
+                      clearTimeout(markerClickDelayedHandler);
+                      markerClickDelayedHandler = null;
+                    }
+                    
+                    // 롱프레스 발생 - 롱프레스 정보창 표시
+                    showLongPressInfoWindow(markerPosition);
+                  }, LONG_PRESS_DURATION);
+                }
+                
+                // 마커 롱프레스 취소 함수 (공통)
+                function cancelMarkerLongPress() {
+                  if (markerLongPressTimer) {
+                    clearTimeout(markerLongPressTimer);
+                    markerLongPressTimer = null;
+                  }
+                }
+                
+                // 마커 mousedown 이벤트 - 롱프레스 감지 시작
+                marker.addListener('mousedown', startMarkerLongPress);
+                
+                // 마커 mouseup 이벤트 - 롱프레스 타이머 취소
+                marker.addListener('mouseup', cancelMarkerLongPress);
+                
+                // 마커 클릭 시 정보 표시 및 줌 15로 중심 이동
+                marker.addListener('click', function() {
+                  // 롱프레스 타이머가 실행 중이고, 롱프레스가 발생하지 않았으면 클릭 처리
+                  // 롱프레스가 발생했으면 (롱프레스 정보창이 이미 표시됨) 클릭 처리 안 함
+                  
+                  // 기존 클릭 핸들러 취소 (있으면)
+                  if (markerClickDelayedHandler) {
+                    clearTimeout(markerClickDelayedHandler);
+                    markerClickDelayedHandler = null;
+                  }
+                  
+                  // 롱프레스 타이머가 실행 중이면 짧은 지연 후 클릭 처리 (롱프레스 여부 확인)
+                  if (markerLongPressTimer) {
+                    markerClickDelayedHandler = setTimeout(function() {
+                      markerClickDelayedHandler = null;
+                      
+                      // 롱프레스가 발생했으면 처리하지 않음
+                      if (!markerLongPressTimer) {
+                        return;
+                      }
+                      
+                      // 롱프레스 타이머 취소
+                      clearTimeout(markerLongPressTimer);
+                      markerLongPressTimer = null;
+                      
+                      // 일반 클릭 처리
+                      // 메뉴창 닫기
+                      const customMapMenu = getElement('customMapMenu');
+                      const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+                      
+                      if (!customMapMenu.classList.contains('hide')) {
+                        hideMenu();
+                      }
+                      if (rightPanelOpen) {
+                        hideRightMenu();
+                      }
+                      
+                      if (isMarkerMode) { addCustomMarker(marker.getPosition()); return; }
+                      if (isRouteMode) { addUserRoutePoint(marker.getPosition()); return; }
+                      
+                      showMarkerInfo(markerGroup, markerData, index);
+                    }, 150); // 짧은 지연 (롱프레스 여부 빠르게 확인)
+                  } else {
+                    // 롱프레스 타이머가 없는 경우 즉시 일반 클릭 처리
+                    // 메뉴창 닫기
+                    const customMapMenu = getElement('customMapMenu');
+                    const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+                    
+                    if (!customMapMenu.classList.contains('hide')) {
+                      hideMenu();
+                    }
+                    if (rightPanelOpen) {
+                      hideRightMenu();
+                    }
+                    
+                    if (isMarkerMode) { addCustomMarker(marker.getPosition()); return; }
+                    if (isRouteMode) { addUserRoutePoint(marker.getPosition()); return; }
+                    
+                    showMarkerInfo(markerGroup, markerData, index);
+                  }
                 });
                 
                 markerGroup.markerElements.push(marker);
@@ -10066,6 +10173,10 @@
             // solid면 진하게, dotted면 투명하게
             const strokeOpacity = lineStyle === 'solid' ? (isKmlRoute ? (routeInfo.strokeOpacity || 0.8) : 0.8) : 0;
             
+            // 경로 롱프레스 감지를 위한 변수들 (경로별로 독립적)
+            let routeLongPressTimer = null;
+            let routeClickDelayedHandler = null;
+            
             // 메인 경로
             route.pathElement = new google.maps.Polyline({
               path: path,
@@ -10077,30 +10188,108 @@
             });
             route.pathElement.setMap(map);
             
-            // 경로 클릭 이벤트 추가
-            route.pathElement.addListener('click', function(event) {
-              // 롱프레스가 발생했으면 롱프레스 정보창 표시 (기존 경로 정보창 대신)
-              if (longPressTriggered) {
-                longPressTriggered = false;
-                showLongPressInfoWindow(event.latLng);
+            // 경로 mousedown 이벤트 - 롱프레스 감지 시작
+            route.pathElement.addListener('mousedown', function(event) {
+              if (isMarkerMode || isRouteMode) {
                 return;
               }
               
-              // 메뉴창 닫기
-              const customMapMenu = getElement('customMapMenu');
-              const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
-              
-              if (!customMapMenu.classList.contains('hide')) {
-                hideMenu();
+              // 기존 타이머 및 클릭 핸들러 취소
+              if (routeLongPressTimer) {
+                clearTimeout(routeLongPressTimer);
               }
-              if (rightPanelOpen) {
-                hideRightMenu();
+              if (routeClickDelayedHandler) {
+                clearTimeout(routeClickDelayedHandler);
+                routeClickDelayedHandler = null;
               }
               
-              if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
-              if (isMarkerMode) { addCustomMarker(event.latLng); return; }
-              showRouteInfo(route, event.latLng);
-            });
+              const routePosition = event.latLng;
+              
+              // 롱프레스 타이머 시작
+              routeLongPressTimer = setTimeout(function() {
+                routeLongPressTimer = null;
+                
+                // 대기 중인 클릭 이벤트 취소
+                if (routeClickDelayedHandler) {
+                  clearTimeout(routeClickDelayedHandler);
+                  routeClickDelayedHandler = null;
+                }
+                
+                  // 롱프레스 발생 - 롱프레스 정보창 표시
+                  showLongPressInfoWindow(routePosition);
+                  
+                  // 대기 중인 클릭 이벤트 취소
+                  if (routeClickDelayedHandler) {
+                    clearTimeout(routeClickDelayedHandler);
+                    routeClickDelayedHandler = null;
+                  }
+                }, LONG_PRESS_DURATION);
+              });
+              
+              // 경로 mouseup 이벤트 - 롱프레스 타이머 취소
+              route.pathElement.addListener('mouseup', function() {
+                if (routeLongPressTimer) {
+                  clearTimeout(routeLongPressTimer);
+                  routeLongPressTimer = null;
+                }
+              });
+              
+              // 경로 클릭 이벤트 추가
+              route.pathElement.addListener('click', function(event) {
+                // 기존 클릭 핸들러 취소 (있으면)
+                if (routeClickDelayedHandler) {
+                  clearTimeout(routeClickDelayedHandler);
+                  routeClickDelayedHandler = null;
+                }
+                
+                // 롱프레스 타이머가 실행 중이면 짧은 지연 후 클릭 처리 (롱프레스 여부 확인)
+                if (routeLongPressTimer) {
+                  routeClickDelayedHandler = setTimeout(function() {
+                    routeClickDelayedHandler = null;
+                    
+                    // 롱프레스가 발생했으면 처리하지 않음
+                    if (!routeLongPressTimer) {
+                      return;
+                    }
+                    
+                    // 롱프레스 타이머 취소
+                    clearTimeout(routeLongPressTimer);
+                    routeLongPressTimer = null;
+                    
+                    // 일반 클릭 처리
+                    // 메뉴창 닫기
+                    const customMapMenu = getElement('customMapMenu');
+                    const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+                    
+                    if (!customMapMenu.classList.contains('hide')) {
+                      hideMenu();
+                    }
+                    if (rightPanelOpen) {
+                      hideRightMenu();
+                    }
+                    
+                    if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
+                    if (isMarkerMode) { addCustomMarker(event.latLng); return; }
+                    showRouteInfo(route, event.latLng);
+                  }, 150); // 짧은 지연 (롱프레스 여부 빠르게 확인)
+                } else {
+                  // 롱프레스 타이머가 없는 경우 즉시 일반 클릭 처리
+                  // 메뉴창 닫기
+                  const customMapMenu = getElement('customMapMenu');
+                  const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+                  
+                  if (!customMapMenu.classList.contains('hide')) {
+                    hideMenu();
+                  }
+                  if (rightPanelOpen) {
+                    hideRightMenu();
+                  }
+                  
+                  if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
+                  if (isMarkerMode) { addCustomMarker(event.latLng); return; }
+                  showRouteInfo(route, event.latLng);
+                }
+              });
             
             // lineStyle이 'dotted'인 경우에만 점선 효과 추가
             if (lineStyle === 'dotted') {
@@ -10126,29 +10315,64 @@
               });
               route.dottedPathElement.setMap(map);
               
+              // 점선 경로 mousedown 이벤트 - 롱프레스 감지 시작 (메인 경로와 같은 타이머 공유)
+              route.dottedPathElement.addListener('mousedown', startRouteLongPress);
+              
               // 점선 경로에도 클릭 이벤트 추가
               route.dottedPathElement.addListener('click', function(event) {
-                // 롱프레스가 발생했으면 롱프레스 정보창 표시 (기존 경로 정보창 대신)
-                if (longPressTriggered) {
-                  longPressTriggered = false;
-                  showLongPressInfoWindow(event.latLng);
-                  return;
+                // 기존 클릭 핸들러 취소 (있으면)
+                if (routeClickDelayedHandler) {
+                  clearTimeout(routeClickDelayedHandler);
+                  routeClickDelayedHandler = null;
                 }
                 
-                // 메뉴창 닫기
-                const customMapMenu = getElement('customMapMenu');
-                const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
-                
-                if (!customMapMenu.classList.contains('hide')) {
-                  hideMenu();
+                // 롱프레스 타이머가 실행 중이면 짧은 지연 후 클릭 처리 (롱프레스 여부 확인)
+                if (routeLongPressTimer) {
+                  routeClickDelayedHandler = setTimeout(function() {
+                    routeClickDelayedHandler = null;
+                    
+                    // 롱프레스가 발생했으면 처리하지 않음
+                    if (!routeLongPressTimer) {
+                      return;
+                    }
+                    
+                    // 롱프레스 타이머 취소
+                    clearTimeout(routeLongPressTimer);
+                    routeLongPressTimer = null;
+                    
+                    // 일반 클릭 처리
+                    // 메뉴창 닫기
+                    const customMapMenu = getElement('customMapMenu');
+                    const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+                    
+                    if (!customMapMenu.classList.contains('hide')) {
+                      hideMenu();
+                    }
+                    if (rightPanelOpen) {
+                      hideRightMenu();
+                    }
+                    
+                    if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
+                    if (isMarkerMode) { addCustomMarker(event.latLng); return; }
+                    showRouteInfo(route, event.latLng);
+                  }, 150); // 짧은 지연 (롱프레스 여부 빠르게 확인)
+                } else {
+                  // 롱프레스 타이머가 없는 경우 즉시 일반 클릭 처리
+                  // 메뉴창 닫기
+                  const customMapMenu = getElement('customMapMenu');
+                  const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+                  
+                  if (!customMapMenu.classList.contains('hide')) {
+                    hideMenu();
+                  }
+                  if (rightPanelOpen) {
+                    hideRightMenu();
+                  }
+                  
+                  if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
+                  if (isMarkerMode) { addCustomMarker(event.latLng); return; }
+                  showRouteInfo(route, event.latLng);
                 }
-                if (rightPanelOpen) {
-                  hideRightMenu();
-                }
-                
-                if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
-                if (isMarkerMode) { addCustomMarker(event.latLng); return; }
-                showRouteInfo(route, event.latLng);
               });
             }
           } catch (error) {
