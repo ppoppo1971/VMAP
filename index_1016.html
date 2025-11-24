@@ -4538,9 +4538,21 @@
         async function compressImageToOneThird(file) {
           return new Promise((resolve, reject) => {
             const originalSize = file.size; // 원본 파일 크기 (bytes)
-            const targetSizeBytes = originalSize / 3; // 목표 크기: 원본의 1/3
-            // Base64는 원본의 약 1.37배이므로 Base64 문자열 길이 목표 계산
-            const targetBase64Length = Math.floor(targetSizeBytes * 1.37);
+            const targetSizeBytes = originalSize / 3; // 목표 크기: 원본의 1/3 (바이너리)
+            const prefix = 'data:image/jpeg;base64,';
+            const prefixLength = prefix.length; // 약 23자
+            
+            // Base64 인코딩: 바이너리 크기 × 4/3 + 접두사
+            // 목표 Base64 문자열 길이 = (목표 바이너리 크기 × 4/3) + 접두사 길이
+            const targetBase64Length = Math.floor((targetSizeBytes * 4 / 3) + prefixLength);
+            
+            // Base64 문자열에서 실제 바이너리 크기를 계산하는 함수
+            function getBinarySizeFromBase64(base64String) {
+              const base64Data = base64String.startsWith(prefix) 
+                ? base64String.slice(prefixLength) 
+                : base64String;
+              return Math.floor((base64Data.length * 3) / 4);
+            }
             
             console.log(`원본 크기: ${(originalSize / 1024 / 1024).toFixed(2)}MB, 목표 크기: ${(targetSizeBytes / 1024).toFixed(2)}KB`);
             
@@ -4556,7 +4568,7 @@
                 const originalWidth = width;
                 const originalHeight = height;
                 
-                // 초기 해상도는 원본 유지 (너무 작게 시작하지 않음)
+                // 초기 해상도는 원본 유지
                 canvas.width = width;
                 canvas.height = height;
                 
@@ -4566,30 +4578,38 @@
                 // 품질을 조정하며 목표 크기에 맞춤
                 let quality = 0.9;
                 let compressed = canvas.toDataURL('image/jpeg', quality);
+                let currentBinarySize = getBinarySizeFromBase64(compressed);
                 
-                // 목표 크기에 맞추기 위해 품질 조정
-                while (compressed.length > targetBase64Length && quality > 0.1) {
+                // 목표 바이너리 크기에 맞추기 위해 품질 조정
+                while (currentBinarySize > targetSizeBytes && quality > 0.1) {
                   quality -= 0.05;
                   compressed = canvas.toDataURL('image/jpeg', quality);
+                  currentBinarySize = getBinarySizeFromBase64(compressed);
                 }
                 
                 // 품질만으로 목표에 도달하지 못하면 크기를 점진적으로 줄임
-                if (compressed.length > targetBase64Length) {
+                if (currentBinarySize > targetSizeBytes) {
                   let scale = 0.9;
-                  while (compressed.length > targetBase64Length && scale > 0.3) {
+                  let lastQuality = quality;
+                  while (currentBinarySize > targetSizeBytes && scale > 0.3) {
                     width = Math.floor(originalWidth * scale);
                     height = Math.floor(originalHeight * scale);
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
-                    compressed = canvas.toDataURL('image/jpeg', 0.8);
+                    
+                    // 크기 축소 시 품질도 함께 조정
+                    lastQuality = Math.max(0.5, lastQuality - 0.1);
+                    compressed = canvas.toDataURL('image/jpeg', lastQuality);
+                    currentBinarySize = getBinarySizeFromBase64(compressed);
                     scale -= 0.1;
                   }
                 }
                 
-                const finalSizeKB = (compressed.length / 1024).toFixed(2);
-                const finalSizeMB = (compressed.length / 1024 / 1024).toFixed(2);
-                const compressionRatio = ((1 - compressed.length / (originalSize * 1.37)) * 100).toFixed(1);
+                const finalBinarySize = currentBinarySize;
+                const finalSizeKB = (finalBinarySize / 1024).toFixed(2);
+                const finalSizeMB = (finalBinarySize / 1024 / 1024).toFixed(2);
+                const compressionRatio = ((1 - finalBinarySize / originalSize) * 100).toFixed(1);
                 
                 console.log(`이미지 압축 완료: ${finalSizeKB}KB (${finalSizeMB}MB), 원본 대비 ${compressionRatio}% 축소, 품질: ${(quality * 100).toFixed(0)}%, 해상도: ${width}x${height}`);
                 resolve(compressed);
@@ -4858,6 +4878,17 @@
             existingDialog.remove();
           }
           
+          // imageData를 전역 변수에 임시 저장 (Base64 문자열이 너무 길어서 HTML 속성에 직접 넣을 수 없음)
+          if (!window.tempPhotoData) {
+            window.tempPhotoData = {};
+          }
+          const tempPhotoId = 'temp_photo_' + Date.now();
+          window.tempPhotoData[tempPhotoId] = {
+            lat: lat,
+            lng: lng,
+            imageData: imageData
+          };
+          
           // Firebase에서 현장 목록 가져오기
           const customSchedules = window.db ? [] : [];
           
@@ -4899,7 +4930,7 @@
               addedTitles.add(scheduleTitle);
               
               locationButtonsHtml += `
-                <button onclick="savePhotoWithLocation('${lat}', '${lng}', '${imageData.replace(/'/g, "\\'")}', '${scheduleTitle}')" 
+                <button onclick="savePhotoWithLocationFromTemp('${tempPhotoId}', '${scheduleTitle.replace(/'/g, "\\'")}')" 
                         style="width: 100%; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);"
                         onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'"
                         onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
@@ -4933,6 +4964,20 @@
             dialog.remove();
           }
           
+          // 임시 사진 데이터 정리 (오래된 데이터는 자동 삭제)
+          if (window.tempPhotoData) {
+            const now = Date.now();
+            Object.keys(window.tempPhotoData).forEach(key => {
+              if (key.startsWith('temp_photo_')) {
+                const timestamp = parseInt(key.split('_')[2]);
+                // 5분 이상 된 임시 데이터 삭제
+                if (now - timestamp > 5 * 60 * 1000) {
+                  delete window.tempPhotoData[key];
+                }
+              }
+            });
+          }
+          
           // 롱프레스 마커 제거
           if (longPressMarker) {
             longPressMarker.setMap(null);
@@ -4946,7 +4991,48 @@
           }
         };
         
-        // 선택한 현장에 사진 저장
+        // 임시 저장된 사진 데이터로 저장 (Base64 문자열이 너무 길어서 사용)
+        window.savePhotoWithLocationFromTemp = async function(tempPhotoId, location) {
+          try {
+            if (!window.tempPhotoData || !window.tempPhotoData[tempPhotoId]) {
+              alert('사진 데이터를 찾을 수 없습니다.');
+              return;
+            }
+            
+            const tempData = window.tempPhotoData[tempPhotoId];
+            const lat = tempData.lat;
+            const lng = tempData.lng;
+            const imageData = tempData.imageData;
+            
+            // 임시 데이터 삭제
+            delete window.tempPhotoData[tempPhotoId];
+            
+            // 다이얼로그 닫기
+            closePhotoLocationDialog();
+            
+            // 사진 마커 생성 (롱프레스 마커를 사진 마커로 대체)
+            await createPhotoMarker(parseFloat(lat), parseFloat(lng), imageData, location);
+            
+            // 롱프레스 마커 제거
+            if (longPressMarker) {
+              longPressMarker.setMap(null);
+              longPressMarker = null;
+            }
+            
+            alert('사진이 지도에 저장되었습니다!');
+            
+          } catch (error) {
+            console.error('사진 저장 실패:', error);
+            alert('사진 저장에 실패했습니다: ' + error.message);
+            
+            // 에러 발생 시 임시 데이터 정리
+            if (window.tempPhotoData && window.tempPhotoData[tempPhotoId]) {
+              delete window.tempPhotoData[tempPhotoId];
+            }
+          }
+        };
+        
+        // 선택한 현장에 사진 저장 (기존 함수 유지 - 호환성)
         window.savePhotoWithLocation = async function(lat, lng, imageData, location) {
           try {
             // 다이얼로그 닫기
