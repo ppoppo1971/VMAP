@@ -7571,7 +7571,7 @@
       
       // 마커 타이틀 표시/숨김 토글 함수
       function toggleMarkerTitleVisibility(zoomLevel) {
-        const shouldShow = zoomLevel >= 18;
+        const shouldShow = zoomLevel >= 16;
         
         // 사용자 생성 마커들의 타이틀 표시/숨김
         customMarkers.forEach(marker => {
@@ -8316,7 +8316,7 @@
                 }
                 const marker = new google.maps.Marker(markerOptions);
                 
-                // 마커 타이틀 라벨 생성 (줌 레벨 18 이상일 때만 표시)
+                // 마커 타이틀 라벨 생성 (줌 레벨 16 이상일 때만 표시)
                 const titleLabel = new google.maps.Marker({
                   position: new google.maps.LatLng(
                     markerData.lat + 0.0001, // 마커 위에 표시
