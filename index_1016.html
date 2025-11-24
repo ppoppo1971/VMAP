@@ -2578,10 +2578,22 @@
           }
           
           const docRef = window.firestore.doc(window.db, 'users', 'currentUser');
-          await window.firestore.updateDoc(docRef, {
-            ...data,
-            lastUpdated: window.firestore.serverTimestamp()
-          });
+          
+          // 문서 존재 여부 확인
+          const docSnap = await window.firestore.getDoc(docRef);
+          
+          // 문서가 없으면 setDoc with merge, 있으면 updateDoc 사용
+          if (docSnap.exists()) {
+            await window.firestore.updateDoc(docRef, {
+              ...data,
+              lastUpdated: window.firestore.serverTimestamp()
+            });
+          } else {
+            await window.firestore.setDoc(docRef, {
+              ...data,
+              lastUpdated: window.firestore.serverTimestamp()
+            }, { merge: true });
+          }
           
           if (showSuccess && typeof onFirebaseUploadSuccess === 'function') {
             onFirebaseUploadSuccess(successMessage);
@@ -2590,8 +2602,22 @@
           return true;
         } catch (error) {
           console.error('Firebase 업데이트 실패:', error);
+          console.error('에러 상세:', {
+            code: error.code,
+            message: error.message,
+            stack: error.stack
+          });
+          
           if (typeof updateSyncStatus === 'function') {
-            updateSyncStatus('저장 실패', 'error');
+            let errorMessage = '저장 실패';
+            if (error.code === 'permission-denied') {
+              errorMessage = '권한이 없습니다. 로그인 상태를 확인해주세요.';
+            } else if (error.code === 'unavailable') {
+              errorMessage = '네트워크 연결을 확인해주세요.';
+            } else if (error.message && error.message.includes('size')) {
+              errorMessage = '데이터가 너무 큽니다. 일부 데이터를 삭제하고 다시 시도해주세요.';
+            }
+            updateSyncStatus(errorMessage, 'error');
           }
           throw error;
         }
@@ -5004,8 +5030,27 @@
             const lng = tempData.lng;
             const imageData = tempData.imageData;
             
-            // 임시 데이터 삭제
-            delete window.tempPhotoData[tempPhotoId];
+            // 로딩 표시
+            const loadingMessage = document.createElement('div');
+            loadingMessage.id = 'photoUploadLoadingMessage';
+            loadingMessage.style.cssText = `
+              position: fixed;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              background: rgba(0, 0, 0, 0.8);
+              color: white;
+              padding: 20px 30px;
+              border-radius: 12px;
+              z-index: 10001;
+              font-size: 16px;
+              text-align: center;
+            `;
+            loadingMessage.textContent = '사진 업로드 중...';
+            document.body.appendChild(loadingMessage);
+            
+            // 임시 데이터 삭제 (에러 발생 시 복구 불가능하므로 저장 성공 후 삭제)
+            // delete window.tempPhotoData[tempPhotoId];
             
             // 다이얼로그 닫기
             closePhotoLocationDialog();
@@ -5013,17 +5058,44 @@
             // 사진 마커 생성 (롱프레스 마커를 사진 마커로 대체)
             await createPhotoMarker(parseFloat(lat), parseFloat(lng), imageData, location);
             
+            // 임시 데이터 삭제 (성공 후)
+            delete window.tempPhotoData[tempPhotoId];
+            
+            // 로딩 메시지 제거
+            loadingMessage.remove();
+            
             // 롱프레스 마커 제거
             if (longPressMarker) {
               longPressMarker.setMap(null);
               longPressMarker = null;
             }
             
-            alert('사진이 지도에 저장되었습니다!');
+            // 성공 메시지는 savePhotoToFirebase에서 처리
             
           } catch (error) {
             console.error('사진 저장 실패:', error);
-            alert('사진 저장에 실패했습니다: ' + error.message);
+            console.error('에러 상세:', {
+              code: error.code,
+              message: error.message,
+              name: error.name
+            });
+            
+            // 로딩 메시지 제거
+            const loadingMsg = document.getElementById('photoUploadLoadingMessage');
+            if (loadingMsg) loadingMsg.remove();
+            
+            let errorMessage = '사진 저장에 실패했습니다.';
+            if (error.code === 'permission-denied') {
+              errorMessage = '권한이 없습니다. 로그인 상태를 확인해주세요.';
+            } else if (error.code === 'unavailable') {
+              errorMessage = '네트워크 연결을 확인해주세요.';
+            } else if (error.message && error.message.includes('size')) {
+              errorMessage = '사진이 너무 큽니다. 다른 사진을 삭제하고 다시 시도해주세요.';
+            } else if (error.message) {
+              errorMessage = `사진 저장 실패: ${error.message}`;
+            }
+            
+            alert(errorMessage);
             
             // 에러 발생 시 임시 데이터 정리
             if (window.tempPhotoData && window.tempPhotoData[tempPhotoId]) {
@@ -5333,11 +5405,37 @@
           }
         };
         
+        // Firebase 초기화 대기 함수
+        async function waitForFirebaseInit(maxWait = 10000) {
+          const startTime = Date.now();
+          while (!window.db || !window.firestore) {
+            if (Date.now() - startTime > maxWait) {
+              throw new Error('Firebase 초기화 시간 초과');
+            }
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          return true;
+        }
+        
         // Firebase에 사진 저장
         async function savePhotoToFirebase(lat, lng, imageData, marker, location) {
           try {
+            // Firebase 초기화 대기
+            await waitForFirebaseInit();
+            
             if (!window.db || !window.firestore) {
               throw new Error('Firebase가 초기화되지 않았습니다.');
+            }
+            
+            // 이미지 데이터 크기 확인 (Base64 문자열 크기)
+            const imageDataSize = new Blob([imageData]).size;
+            const imageDataSizeKB = (imageDataSize / 1024).toFixed(2);
+            console.log(`사진 데이터 크기: ${imageDataSizeKB}KB`);
+            
+            // Firestore 문서 크기 제한 체크 (1MB = 1,048,576 bytes)
+            // Base64 문자열은 실제 바이너리보다 약 1.37배 크므로 여유있게 체크
+            if (imageDataSize > 800000) { // 약 800KB 이상이면 경고
+              console.warn('사진 데이터가 큽니다. 업로드에 시간이 걸릴 수 있습니다.');
             }
             
             const photoData = {
@@ -5359,8 +5457,19 @@
               ? docSnap.data().savedPhotos 
               : [];
             
+            // 전체 문서 크기 예상 (기존 사진들 + 새 사진)
+            const existingPhotosSize = savedPhotos.reduce((total, photo) => {
+              return total + (photo.imageData ? new Blob([photo.imageData]).size : 0);
+            }, 0);
+            const totalSize = existingPhotosSize + imageDataSize;
+            
+            if (totalSize > 900000) { // 약 900KB 이상이면 경고
+              console.warn(`전체 사진 데이터 크기: ${(totalSize / 1024).toFixed(2)}KB - Firestore 제한에 근접할 수 있습니다.`);
+            }
+            
             const updatedPhotos = [photoData, ...savedPhotos];
             
+            console.log('Firebase에 사진 저장 시도 중...');
             await updateFirebaseDoc({
               savedPhotos: updatedPhotos
             }, true, '사진 저장 완료');
@@ -5377,7 +5486,49 @@
             
           } catch (error) {
             console.error('사진 Firebase 저장 실패:', error);
-            alert('사진 저장에 실패했습니다. 네트워크를 확인해주세요.');
+            console.error('에러 상세:', {
+              code: error.code,
+              message: error.message,
+              name: error.name
+            });
+            
+            // 오프라인이거나 네트워크 오류인 경우 대기 작업으로 저장
+            if (error.code === 'unavailable' || !navigator.onLine) {
+              console.log('오프라인 상태 - 사진 저장을 대기 작업으로 추가');
+              
+              // 대기 작업 추가
+              if (typeof addPendingOperation === 'function') {
+                addPendingOperation({
+                  type: OPERATION_TYPES.PHOTO_SAVE,
+                  data: photoData,
+                  timestamp: Date.now()
+                });
+                
+                // 전역 변수에 마커 저장 (복원용) - 오프라인에서도 마커는 표시
+                if (!window.savedPhotoMarkers) {
+                  window.savedPhotoMarkers = [];
+                }
+                photoData.markerElement = marker;
+                window.savedPhotoMarkers.push(photoData);
+                
+                alert('오프라인 상태입니다. 네트워크 연결 시 자동으로 저장됩니다.');
+                return; // 에러를 throw하지 않고 종료
+              }
+            }
+            
+            let errorMessage = '사진 저장에 실패했습니다.';
+            if (error.code === 'permission-denied') {
+              errorMessage = '권한이 없습니다. 로그인 상태를 확인해주세요.';
+            } else if (error.code === 'unavailable') {
+              errorMessage = '네트워크 연결을 확인해주세요.';
+            } else if (error.message && error.message.includes('size')) {
+              errorMessage = '사진이 너무 큽니다. 다른 사진을 삭제하고 다시 시도해주세요.';
+            } else if (error.message) {
+              errorMessage = `사진 저장 실패: ${error.message}`;
+            }
+            
+            alert(errorMessage);
+            throw error; // 상위 함수에서도 에러 처리할 수 있도록
           }
         }
         
@@ -12138,7 +12289,8 @@
         SCHEDULE_ADD: 'scheduleAdd',
         SCHEDULE_UPDATE: 'scheduleUpdate',
         SCHEDULE_DELETE: 'scheduleDelete',
-        SCHEDULE_ORDER: 'scheduleOrder'
+        SCHEDULE_ORDER: 'scheduleOrder',
+        PHOTO_SAVE: 'photoSave'
       };
       
       // 동시 수정 방지를 위한 락 맵
@@ -12405,6 +12557,29 @@
               lastUpdated: window.firestore.serverTimestamp()
             });
             console.log('일정 순서 대기 작업 완료:', operation.id);
+            break;
+            
+          case OPERATION_TYPES.PHOTO_SAVE:
+            // 기존 사진들을 가져와서 맨 앞에 추가
+            const docSnap = await window.firestore.getDoc(userDocRef);
+            const savedPhotos = docSnap.exists() && docSnap.data().savedPhotos 
+              ? docSnap.data().savedPhotos 
+              : [];
+            const updatedPhotos = [operation.data, ...savedPhotos];
+            
+            // 문서 존재 여부 확인 후 저장
+            if (docSnap.exists()) {
+              await window.firestore.updateDoc(userDocRef, {
+                savedPhotos: updatedPhotos,
+                lastUpdated: window.firestore.serverTimestamp()
+              });
+            } else {
+              await window.firestore.setDoc(userDocRef, {
+                savedPhotos: updatedPhotos,
+                lastUpdated: window.firestore.serverTimestamp()
+              }, { merge: true });
+            }
+            console.log('사진 저장 대기 작업 완료:', operation.id);
             break;
             
           default:
