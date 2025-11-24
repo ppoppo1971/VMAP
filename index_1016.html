@@ -4674,9 +4674,26 @@
                 </div>
               </div>
               <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <button onclick="downloadPhoto('${photoId}', '${imageData.replace(/'/g, "\\'")}')" 
+                        style="
+                          flex: 1;
+                          background: rgba(59, 130, 246, 0.12);
+                          color: #2563eb;
+                          border: 1px solid rgba(59, 130, 246, 0.3);
+                          border-radius: 8px;
+                          padding: 8px 16px;
+                          font-size: 13px;
+                          font-weight: 500;
+                          cursor: pointer;
+                          transition: all 0.2s ease;
+                        "
+                        onmouseover="this.style.background='rgba(59, 130, 246, 0.2)';"
+                        onmouseout="this.style.background='rgba(59, 130, 246, 0.12)';">
+                  💾 다운로드
+                </button>
                 <button onclick="deletePhoto('${photoId}')" 
                         style="
-                          width: 100%;
+                          flex: 1;
                           background: rgba(239, 68, 68, 0.12);
                           color: #dc2626;
                           border: 1px solid rgba(239, 68, 68, 0.3);
@@ -4689,7 +4706,7 @@
                         "
                         onmouseover="this.style.background='rgba(239, 68, 68, 0.2)';"
                         onmouseout="this.style.background='rgba(239, 68, 68, 0.12)';">
-                  🗑️ 사진 삭제
+                  🗑️ 삭제
                 </button>
               </div>
             </div>
@@ -4779,6 +4796,28 @@
                     "
                     onmouseover="this.style.background='rgba(255, 255, 255, 0.3)';"
                     onmouseout="this.style.background='rgba(255, 255, 255, 0.2)';">×</button>
+            <button onclick="downloadPhoto('${photoId || ''}', '${imageData.replace(/'/g, "\\'")}'); closePhotoViewer();" 
+                    style="
+                      position: absolute;
+                      bottom: 20px;
+                      left: 50%;
+                      transform: translateX(-50%);
+                      background: rgba(59, 130, 246, 0.9);
+                      color: white;
+                      border: none;
+                      border-radius: 12px;
+                      padding: 12px 24px;
+                      font-size: 16px;
+                      font-weight: 600;
+                      cursor: pointer;
+                      z-index: 10001;
+                      transition: all 0.2s ease;
+                      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                    "
+                    onmouseover="this.style.background='rgba(59, 130, 246, 1)'; this.style.transform='translateX(-50%) scale(1.05)';"
+                    onmouseout="this.style.background='rgba(59, 130, 246, 0.9)'; this.style.transform='translateX(-50%) scale(1)';">
+              💾 사진 다운로드
+            </button>
             <img src="${imageData}" 
                  style="
                    max-width: 95vw;
@@ -5037,6 +5076,62 @@
         };
         
         // 사진 메모 저장
+        // 사진 다운로드 함수
+        window.downloadPhoto = function(photoId, imageData) {
+          try {
+            // photoId로 사진 정보 찾기 (파일명에 사용)
+            const photoData = window.savedPhotoMarkers.find(p => p.id === photoId);
+            let fileName = 'photo';
+            
+            if (photoData) {
+              // 타임스탬프에서 파일명 생성
+              if (photoData.timestamp) {
+                const date = new Date(photoData.timestamp);
+                const dateStr = date.toISOString().replace(/[:.]/g, '-').slice(0, -5);
+                fileName = `WMAP_${dateStr}`;
+              } else {
+                fileName = `WMAP_${photoId}`;
+              }
+              
+              // 위치 정보가 있으면 파일명에 추가
+              if (photoData.location && photoData.location !== '기본') {
+                fileName = `${photoData.location}_${fileName}`;
+              }
+            } else {
+              fileName = `WMAP_${photoId}`;
+            }
+            
+            // Base64 데이터를 Blob으로 변환
+            const base64Data = imageData.split(',')[1] || imageData;
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'image/jpeg' });
+            
+            // 다운로드 링크 생성
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${fileName}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // 메모리 해제
+            setTimeout(() => {
+              URL.revokeObjectURL(url);
+            }, 100);
+            
+            console.log(`사진 다운로드 완료: ${fileName}.jpg`);
+          } catch (error) {
+            console.error('사진 다운로드 실패:', error);
+            alert('사진 다운로드에 실패했습니다.');
+          }
+        };
+        
         window.savePhotoMemo = async function(photoId) {
           const textarea = document.getElementById('photoMemoInput');
           if (!textarea) return;
