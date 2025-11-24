@@ -3512,17 +3512,53 @@
         document.addEventListener('click', handleClick, { passive: false });
       }
       
-      // 터치 시작 이벤트 핸들러
-      function handleTouchStart(event) {
-        const target = event.target;
+      // 다이얼로그/모달 내부 요소인지 확인하는 헬퍼 함수
+      function isInsideDialog(target) {
+        if (!target) return false;
         
-        // 정보창 스와이프 편집 버튼은 자체 이벤트 핸들러 사용 (충돌 방지)
+        // 다이얼로그 ID 목록
+        const dialogIds = [
+          'routeEditDialog',
+          'markerEditDialog',
+          'routeSaveDialog',
+          'markerSaveDialog',
+          'kmlSaveDialog',
+          'addScheduleDialog',
+          'editScheduleDialog',
+          'photoLocationDialog',
+          'photoMemoDialog',
+          'addressSelectDialog',
+          'pendingOpsDialog',
+          'dialogOverlay'
+        ];
+        
+        // 다이얼로그 내부인지 확인
+        for (const dialogId of dialogIds) {
+          const dialog = document.getElementById(dialogId);
+          if (dialog && (dialog.contains(target) || dialog === target)) {
+            return true;
+          }
+        }
+        
+        // 정보창 관련 요소도 제외
         if (target.closest('.marker-swipe-edit-btn') || 
             target.closest('.route-swipe-edit-btn') ||
             target.closest('.marker-info-container') ||
             target.closest('.route-info-container') ||
             target.closest('.gm-style-iw-c')) {
-          return; // 정보창 관련 요소는 전역 핸들러에서 제외
+          return true;
+        }
+        
+        return false;
+      }
+      
+      // 터치 시작 이벤트 핸들러
+      function handleTouchStart(event) {
+        const target = event.target;
+        
+        // 다이얼로그/모달 내부 요소는 전역 핸들러에서 제외
+        if (isInsideDialog(target)) {
+          return;
         }
         
         // 버튼 터치 피드백
@@ -3541,10 +3577,8 @@
       function handleTouchMove(event) {
         const target = event.target;
         
-        // 정보창 관련 요소는 전역 핸들러에서 제외
-        if (target.closest('.marker-info-container') ||
-            target.closest('.route-info-container') ||
-            target.closest('.gm-style-iw-c')) {
+        // 다이얼로그/모달 내부 요소는 전역 핸들러에서 제외
+        if (isInsideDialog(target)) {
           return;
         }
         
@@ -3558,12 +3592,8 @@
       function handleTouchEnd(event) {
         const target = event.target;
         
-        // 정보창 관련 요소는 전역 핸들러에서 제외
-        if (target.closest('.marker-swipe-edit-btn') || 
-            target.closest('.route-swipe-edit-btn') ||
-            target.closest('.marker-info-container') ||
-            target.closest('.route-info-container') ||
-            target.closest('.gm-style-iw-c')) {
+        // 다이얼로그/모달 내부 요소는 전역 핸들러에서 제외
+        if (isInsideDialog(target)) {
           return;
         }
         
@@ -3577,12 +3607,8 @@
       function handleClick(event) {
         const target = event.target;
         
-        // 정보창 관련 요소는 전역 핸들러에서 제외
-        if (target.closest('.marker-swipe-edit-btn') || 
-            target.closest('.route-swipe-edit-btn') ||
-            target.closest('.marker-info-container') ||
-            target.closest('.route-info-container') ||
-            target.closest('.gm-style-iw-c')) {
+        // 다이얼로그/모달 내부 요소는 전역 핸들러에서 제외
+        if (isInsideDialog(target)) {
           return;
         }
         
@@ -3953,6 +3979,12 @@
         mapElement.addEventListener('touchstart', function(event) {
           // 정보창 내부 요소를 터치한 경우 무시 (정보창 이벤트와 충돌 방지)
           const target = event.target;
+          
+          // 다이얼로그/모달 내부 요소는 제외
+          if (isInsideDialog(target)) {
+            return;
+          }
+          
           if (target.closest('.gm-style-iw-c') || 
               target.closest('.gm-style-iw') ||
               target.closest('.marker-info-container') ||
@@ -3997,6 +4029,12 @@
         mapElement.addEventListener('touchmove', function(event) {
           // 정보창 내부 요소를 터치한 경우 무시 (정보창 이벤트와 충돌 방지)
           const target = event.target;
+          
+          // 다이얼로그/모달 내부 요소는 제외
+          if (isInsideDialog(target)) {
+            return;
+          }
+          
           if (target.closest('.gm-style-iw-c') || 
               target.closest('.gm-style-iw') ||
               target.closest('.marker-info-container') ||
@@ -4024,6 +4062,12 @@
         
         // 터치 종료 시 한 손가락 더블탭 차단 강화
         mapElement.addEventListener('touchend', function(event) {
+          // 다이얼로그/모달 내부 요소는 제외
+          const target = event.target;
+          if (isInsideDialog(target)) {
+            return;
+          }
+          
           // 한 손가락 더블탭 추가 차단
           if (event.touches.length === 0 && lastOneTapTime !== 0) {
             const currentTime = Date.now();
