@@ -2198,7 +2198,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2 onclick="forceReload()" title="새로고침 (캐시 무시)">WMAP1213</h2>
+      <h2 onclick="forceReload()" title="새로고침 (캐시 무시)">WMAP1237</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="위치검색" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -2253,6 +2253,59 @@
       // 📷 사진 관련 전역 변수
       let savedPhotoMarkers = []; // 저장된 사진 마커들
       
+      // 🎯 통합 상태 관리 객체 (네임스페이스 패턴) - 기존 변수와 동기화
+      // 기존 코드 호환성을 위해 기존 변수는 유지하고, AppState는 추가 네임스페이스로 제공
+      const AppState = {
+        // 🗺️ 지도 관련
+        get map() { return map; },
+        set map(value) { map = value; },
+        get isMobile() { return isMobile; },
+        get currentLocationMarker() { return currentLocationMarker; },
+        set currentLocationMarker(value) { currentLocationMarker = value; },
+        get geocoder() { return geocoder; },
+        set geocoder(value) { geocoder = value; },
+        get currentInfoWindow() { return currentInfoWindow; },
+        set currentInfoWindow(value) { currentInfoWindow = value; },
+        get kmlLayerActive() { return kmlLayerActive; },
+        set kmlLayerActive(value) { kmlLayerActive = value; },
+        get kmlFeatures() { return kmlFeatures; },
+        set kmlFeatures(value) { kmlFeatures = value; },
+        
+        // 🔍 주소 검색 관련
+        get addressMarker() { return addressMarker; },
+        set addressMarker(value) { addressMarker = value; },
+        get addressMarkers() { return addressMarkers; },
+        set addressMarkers(value) { addressMarkers = value; },
+        get addressSearchCandidates() { return addressSearchCandidates; },
+        set addressSearchCandidates(value) { addressSearchCandidates = value; },
+        
+        // 🛣️ 경로 관련
+        get userRouteMarkers() { return userRouteMarkers; },
+        set userRouteMarkers(value) { userRouteMarkers = value; },
+        get userRoutePath() { return userRoutePath; },
+        set userRoutePath(value) { userRoutePath = value; },
+        get userRouteDottedPath() { return userRouteDottedPath; },
+        set userRouteDottedPath(value) { userRouteDottedPath = value; },
+        get isRouteMode() { return isRouteMode; },
+        set isRouteMode(value) { isRouteMode = value; },
+        get savedUserRoutes() { return savedUserRoutes; },
+        set savedUserRoutes(value) { savedUserRoutes = value; },
+        get routeInfoData() { return routeInfoData; },
+        set routeInfoData(value) { routeInfoData = value; },
+        
+        // 📍 마커 관련
+        get isMarkerMode() { return isMarkerMode; },
+        set isMarkerMode(value) { isMarkerMode = value; },
+        get customMarkers() { return customMarkers; },
+        set customMarkers(value) { customMarkers = value; },
+        get markerInfoData() { return markerInfoData; },
+        set markerInfoData(value) { markerInfoData = value; },
+        
+        // 📷 사진 관련
+        get savedPhotoMarkers() { return savedPhotoMarkers; },
+        set savedPhotoMarkers(value) { savedPhotoMarkers = value; }
+      };
+      
       // ============================================================================
       // ⚙️ CONFIGURATION - 설정 및 상수
       // ============================================================================
@@ -2291,6 +2344,20 @@
       let markerVisibilityObserver = null;
       let cachedElements = {};
       
+      // AppState에 성능 최적화 변수 추가
+      Object.defineProperty(AppState, 'visibleMarkers', {
+        get: () => visibleMarkers,
+        set: (value) => { visibleMarkers = value; }
+      });
+      Object.defineProperty(AppState, 'markerVisibilityObserver', {
+        get: () => markerVisibilityObserver,
+        set: (value) => { markerVisibilityObserver = value; }
+      });
+      Object.defineProperty(AppState, 'cachedElements', {
+        get: () => cachedElements,
+        set: (value) => { cachedElements = value; }
+      });
+      
       // ============================================================================
       // 🛠️ UTILITY FUNCTIONS - 유틸리티 함수
       // ============================================================================
@@ -2328,6 +2395,175 @@
       // 여러 요소 한 번에 제거
       function removeElements(...ids) {
         ids.forEach(id => removeElement(id));
+      }
+      
+      // ─────────────────────────────────────────────────────────────────────────
+      // 스타일 유틸리티 함수 (중복 코드 제거)
+      // ─────────────────────────────────────────────────────────────────────────
+      
+      // 공통 다이얼로그 스타일 생성
+      function getDialogStyle(options = {}) {
+        const {
+          position = 'fixed',
+          top = '50%',
+          left = '50%',
+          transform = 'translate(-50%, -50%)',
+          zIndex = 1000,
+          width = '400px',
+          maxWidth = '90vw',
+          background = 'rgba(255, 255, 255, 0.2)',
+          border = '1px solid rgba(255, 255, 255, 0.12)',
+          borderRadius = '20px',
+          boxShadow = '0 8px 32px rgba(0,0,0,0.12)',
+          backdropFilter = 'blur(24px)',
+          padding = '28px 24px 24px 24px'
+        } = options;
+        
+        return `
+          position: ${position};
+          top: ${top};
+          left: ${left};
+          transform: ${transform};
+          z-index: ${zIndex};
+          width: ${width};
+          max-width: ${maxWidth};
+          background: ${background};
+          border: ${border};
+          border-radius: ${borderRadius};
+          box-shadow: ${boxShadow};
+          backdrop-filter: ${backdropFilter};
+          -webkit-backdrop-filter: ${backdropFilter};
+          padding: ${padding};
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          box-sizing: border-box;
+        `.replace(/\s+/g, ' ').trim();
+      }
+      
+      // 공통 입력 필드 스타일 생성
+      function getInputStyle(options = {}) {
+        const {
+          width = '100%',
+          padding = '16px 18px',
+          borderRadius = '12px',
+          fontSize = '15px',
+          background = 'rgba(255, 255, 255, 0.12)',
+          backgroundFocus = 'rgba(255, 255, 255, 0.18)',
+          color = '#000',
+          border = 'none'
+        } = options;
+        
+        const baseStyle = `
+          width: ${width};
+          padding: ${padding};
+          border: ${border};
+          border-radius: ${borderRadius};
+          font-size: ${fontSize};
+          background: ${background};
+          color: ${color};
+          box-sizing: border-box;
+          outline: none;
+          transition: all 0.2s ease;
+          backdrop-filter: blur(10px);
+        `.replace(/\s+/g, ' ').trim();
+        
+        return {
+          style: baseStyle,
+          onFocus: `this.style.background='${backgroundFocus}'`,
+          onBlur: `this.style.background='${background}'`
+        };
+      }
+      
+      // 공통 버튼 스타일 생성
+      function getButtonStyle(options = {}) {
+        const {
+          width = '100%',
+          padding = '14px 16px',
+          borderRadius = '12px',
+          fontSize = '15px',
+          fontWeight = '500',
+          background = 'rgba(255, 255, 255, 0.12)',
+          backgroundHover = 'rgba(255, 255, 255, 0.18)',
+          color = '#000',
+          border = 'none',
+          cursor = 'pointer'
+        } = options;
+        
+        const baseStyle = `
+          width: ${width};
+          padding: ${padding};
+          border: ${border};
+          border-radius: ${borderRadius};
+          font-size: ${fontSize};
+          font-weight: ${fontWeight};
+          background: ${background};
+          color: ${color};
+          cursor: ${cursor};
+          transition: all 0.2s ease;
+          backdrop-filter: blur(10px);
+        `.replace(/\s+/g, ' ').trim();
+        
+        return {
+          style: baseStyle,
+          onMouseOver: `this.style.background='${backgroundHover}'`,
+          onMouseOut: `this.style.background='${background}'`
+        };
+      }
+      
+      // 다이얼로그 생성 헬퍼 함수
+      function createDialog(id, content, options = {}) {
+        // 기존 다이얼로그가 있으면 제거
+        const existing = document.getElementById(id);
+        if (existing) {
+          existing.remove();
+        }
+        
+        const dialog = document.createElement('div');
+        dialog.id = id;
+        dialog.style.cssText = getDialogStyle(options);
+        dialog.innerHTML = content;
+        
+        // 오버레이 생성 (옵션)
+        if (options.overlay !== false) {
+          const overlayId = options.overlayId || 'dialogOverlay';
+          let overlay = document.getElementById(overlayId);
+          if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = overlayId;
+            overlay.style.cssText = `
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background: rgba(0, 0, 0, 0.3);
+              z-index: ${(options.zIndex || 1000) - 1};
+              backdrop-filter: blur(4px);
+            `;
+            document.body.appendChild(overlay);
+            
+            // 오버레이 클릭 시 닫기
+            overlay.onclick = (e) => {
+              if (e.target === overlay && options.closeOnOverlayClick !== false) {
+                removeElements(id, overlayId);
+              }
+            };
+          }
+        }
+        
+        document.body.appendChild(dialog);
+        
+        // ESC 키로 닫기 (옵션)
+        if (options.closeOnEsc !== false) {
+          const handleEsc = (e) => {
+            if (e.key === 'Escape') {
+              removeElements(id, options.overlayId || 'dialogOverlay');
+              document.removeEventListener('keydown', handleEsc);
+            }
+          };
+          document.addEventListener('keydown', handleEsc);
+        }
+        
+        return dialog;
       }
       
       // ─────────────────────────────────────────────────────────────────────────
@@ -2769,10 +3005,8 @@
           `;
         });
         
-        // 다이얼로그 생성
-        const dialogDiv = document.createElement('div');
-        dialogDiv.id = 'kmlSaveDialog';
-        dialogDiv.innerHTML = `
+        // 다이얼로그 생성 (createDialog 함수 사용)
+        const dialogContent = `
           <div style="padding: 28px 24px 24px 24px;">
             <div style="text-align: center; margin-bottom: 24px;">
               <h3 style="color: #000; margin: 0 0 12px 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em;">
@@ -2825,8 +3059,10 @@
           </div>
         `;
         
-        // 다이얼로그를 body에 추가
-        document.body.appendChild(dialogDiv);
+        const dialogDiv = createDialog('kmlSaveDialog', dialogContent, {
+          overlay: false,
+          closeOnEsc: true
+        });
         
         // 다이얼로그 포커스
         setTimeout(() => {
@@ -2967,10 +3203,7 @@
               updateData.savedUserMarkers = window.firestore.arrayUnion(...markersToAdd);
             }
             
-            await window.firestore.updateDoc(
-              window.firestore.doc(window.db, 'users', 'currentUser'),
-              updateData
-            );
+            await updateFirebaseDoc(updateData, true, `KML 데이터 저장 완료 (마커 ${savedMarkerCount}개, 경로 ${savedRouteCount}개)`);
             
             // 전역 변수 업데이트
             window.routeInfoData = newRouteInfoData;
@@ -3106,6 +3339,133 @@
       }
       
       // 통합 이벤트 핸들러 (이벤트 위임 패턴)
+      // ─────────────────────────────────────────────────────────────────────────
+      // 이벤트 리스너 설정 (인라인 핸들러를 이벤트 리스너로 변경)
+      // ─────────────────────────────────────────────────────────────────────────
+      function setupEventListeners() {
+        // 모든 함수를 window 객체에 등록 (인라인 핸들러 호환성 유지)
+        // 이미 전역 스코프에 있으므로 추가 등록 불필요하지만, 명시적으로 등록
+        
+        // 메뉴 토글 버튼
+        const menuToggleBtn = getElement('menuToggleBtn');
+        if (menuToggleBtn) {
+          menuToggleBtn.addEventListener('click', showMenu);
+        }
+        
+        // 오른쪽 메뉴 토글 버튼
+        const rightMenuToggleBtn = getElement('rightMenuToggleBtn');
+        if (rightMenuToggleBtn) {
+          rightMenuToggleBtn.addEventListener('click', toggleRightMenu);
+        }
+        
+        // GPS 위치 버튼
+        const locationBtn = getElement('locationBtn');
+        if (locationBtn) {
+          locationBtn.addEventListener('click', getCurrentLocation);
+        }
+        
+        // 줌 컨트롤 버튼
+        const zoomInBtn = getElement('zoomInBtn');
+        if (zoomInBtn) {
+          zoomInBtn.addEventListener('click', zoomIn);
+        }
+        
+        const zoomOutBtn = getElement('zoomOutBtn');
+        if (zoomOutBtn) {
+          zoomOutBtn.addEventListener('click', zoomOut);
+        }
+        
+        const fullscreenBtn = getElement('fullscreenBtn');
+        if (fullscreenBtn) {
+          fullscreenBtn.addEventListener('click', toggleFullscreen);
+        }
+        
+        // 주소 검색 입력
+        const addressInput = getElement('addressInput');
+        if (addressInput) {
+          addressInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              searchAddress();
+            }
+          });
+        }
+        
+        // KML 파일 입력
+        const kmlFileInput = getElement('kmlFileInput');
+        if (kmlFileInput) {
+          kmlFileInput.addEventListener('change', loadKmlFile);
+        }
+        
+        // 지도 타입 버튼들 (동적으로 생성되는 버튼은 이벤트 위임 사용)
+        document.addEventListener('click', (e) => {
+          const target = e.target;
+          
+          // KML 불러오기 버튼
+          if (target.matches('.map-type-btn') && target.textContent.includes('KML/KMZ 불러오기')) {
+            const kmlInput = getElement('kmlFileInput');
+            if (kmlInput) kmlInput.click();
+          }
+          
+          // KML 저장 버튼
+          if (target.id === 'saveKmlBtn' || (target.matches('.map-type-btn') && target.textContent.includes('Firebase에 저장'))) {
+            showKmlSaveDialog();
+          }
+          
+          // KML 레이어 제거 버튼
+          if (target.id === 'clearKmlBtn' || (target.matches('.map-type-btn') && target.textContent.includes('KML 레이어 제거'))) {
+            clearKmlLayer();
+          }
+          
+          // 마커생성 버튼
+          if (target.id === 'topMarkerBtn' || (target.matches('.map-type-btn') && target.textContent.includes('마커생성'))) {
+            toggleMarkerMode();
+          }
+          
+          // 경로생성 버튼
+          if (target.id === 'topRouteBtn' || (target.matches('.map-type-btn') && target.textContent.includes('경로생성'))) {
+            toggleRouteMode();
+          }
+          
+          // 지도 타입 버튼들
+          if (target.id === 'topRoadmapBtn') {
+            toggleRoadmapSubmenu();
+          }
+          if (target.id === 'topSatelliteBtn') {
+            toggleSatelliteSubmenu();
+          }
+          if (target.id === 'topGoogleRoadmapBtn') {
+            setMapTypeFromTop('roadmap');
+          }
+          if (target.id === 'topVworldRoadmapBtn') {
+            setMapTypeFromTop('브이월드일반');
+          }
+          if (target.id === 'topHybridBtn') {
+            toggleHybridLabel();
+          }
+          if (target.id === 'topGoogleSatelliteBtn') {
+            setMapTypeFromTop('satellite');
+          }
+          if (target.id === 'topVworldSatelliteBtn') {
+            setMapTypeFromTop('브이월드영상');
+          }
+          
+          // 경로 초기화 버튼
+          if (target.id === 'clearRouteBtn') {
+            clearUserRoute();
+          }
+          
+          // 현장 추가 버튼
+          if (target.id === 'addScheduleBtn') {
+            showAddScheduleDialog();
+          }
+          
+          // 새로고침 버튼 (h2)
+          if (target.matches('#customMapMenu h2')) {
+            forceReload();
+          }
+        });
+      }
+      
       function setupEventDelegation() {
         // 문서 레벨에서 이벤트 위임
         document.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -4649,13 +5009,9 @@
                 savedPhotos[photoIndex].memo = newMemo;
                 
                 // Firebase에 저장
-                await window.firestore.updateDoc(
-                  window.firestore.doc(window.db, 'users', 'currentUser'),
-                  {
-                    savedPhotos: savedPhotos,
-                    lastUpdated: window.firestore.serverTimestamp()
-                  }
-                );
+                await updateFirebaseDoc({
+                  savedPhotos: savedPhotos
+                }, true, '사진 메모 저장 완료');
                 
                 // 로컬 변수 업데이트
                 const localPhoto = window.savedPhotoMarkers.find(p => p.id === photoId);
@@ -4720,13 +5076,9 @@
               const updatedPhotos = savedPhotos.filter(p => p.id !== photoId);
               
               // Firebase에 업데이트
-              await window.firestore.updateDoc(
-                window.firestore.doc(window.db, 'users', 'currentUser'),
-                {
-                  savedPhotos: updatedPhotos,
-                  lastUpdated: window.firestore.serverTimestamp()
-                }
-              );
+              await updateFirebaseDoc({
+                savedPhotos: updatedPhotos
+              }, true, '사진 삭제');
               
               // 지도에서 마커 제거
               const photoData = window.savedPhotoMarkers.find(p => p.id === photoId);
@@ -4780,13 +5132,9 @@
             
             const updatedPhotos = [photoData, ...savedPhotos];
             
-            await window.firestore.updateDoc(
-              window.firestore.doc(window.db, 'users', 'currentUser'),
-              {
-                savedPhotos: updatedPhotos,
-                lastUpdated: window.firestore.serverTimestamp()
-              }
-            );
+            await updateFirebaseDoc({
+              savedPhotos: updatedPhotos
+            }, true, '사진 저장 완료');
             
             // 전역 변수에 마커 저장 (복원용)
             if (!window.savedPhotoMarkers) {
@@ -4896,6 +5244,11 @@
         // 초기 줌 레벨 표시
         const initialZoom = map.getZoom();
         toggleMarkerTitleVisibility(initialZoom); // 초기 줌 레벨에 따라 마커 타이틀 표시/숨김
+        
+        // ─────────────────────────────────────────────────────────────────────────
+        // 이벤트 리스너 설정 (인라인 핸들러 대체용 - 기존 호환성 유지)
+        // ─────────────────────────────────────────────────────────────────────────
+        setupEventListeners();
         
         // Firebase 초기화 완료 후 동기화 시작
         waitForFirebaseAndStartSync();
@@ -6065,10 +6418,9 @@
           if (docSnap.exists() && docSnap.data().preparationCheckboxes) {
             const currentCheckboxStates = { ...docSnap.data().preparationCheckboxes };
             delete currentCheckboxStates[itemId];
-            await window.firestore.updateDoc(window.firestore.doc(window.db, 'users', 'currentUser'), {
-              preparationCheckboxes: currentCheckboxStates,
-              lastUpdated: window.firestore.serverTimestamp()
-            });
+            await updateFirebaseDoc({
+              preparationCheckboxes: currentCheckboxStates
+            }, true, '체크박스 상태 업데이트');
           }
           
           // 전역 변수 업데이트
@@ -12704,74 +13056,7 @@
       
       // 일정 추가 다이얼로그 표시 함수
       function showAddScheduleDialog() {
-        // 기존 다이얼로그가 있으면 제거
-        const existingDialog = document.getElementById('addScheduleDialog');
-        const existingOverlay = document.getElementById('dialogOverlay');
-        if (existingDialog) {
-          existingDialog.remove();
-        }
-        if (existingOverlay) {
-          existingOverlay.remove();
-        }
-        
-        // 배경 오버레이 생성
-        const overlay = document.createElement('div');
-        overlay.id = 'dialogOverlay';
-        overlay.style.cssText = `
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          z-index: 999;
-          background: transparent;
-        `;
-        overlay.onclick = function() {
-          closeAddScheduleDialog();
-        };
-        overlay.ontouchstart = function(e) {
-          e.preventDefault();
-          closeAddScheduleDialog();
-        };
-        overlay.ontouchend = function(e) {
-          e.preventDefault();
-          closeAddScheduleDialog();
-        };
-        
-        // 다이얼로그 생성
-        const dialog = document.createElement('div');
-        dialog.id = 'addScheduleDialog';
-        dialog.style.cssText = `
-          position: fixed;
-          top: 120px;
-          left: 50%;
-          transform: translateX(-50%);
-          z-index: 1000;
-          width: 380px;
-          max-width: 90vw;
-          background: rgba(255, 255, 255, 0.2);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 20px;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-          backdrop-filter: blur(24px);
-          -webkit-backdrop-filter: blur(24px);
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          overflow: hidden;
-          transition: all 0.3s ease;
-        `;
-        
-        // 다이얼로그 내부 클릭/터치 시 이벤트 버블링 방지
-        dialog.onclick = function(e) {
-          e.stopPropagation();
-        };
-        dialog.ontouchstart = function(e) {
-          e.stopPropagation();
-        };
-        dialog.ontouchend = function(e) {
-          e.stopPropagation();
-        };
-        
-        dialog.innerHTML = `
+        const dialogContent = `
           <style>
             #scheduleTitle::placeholder {
               color: rgba(0, 0, 0, 0.5);
@@ -12798,12 +13083,32 @@
           </div>
         `;
         
-        document.body.appendChild(overlay);
-        document.body.appendChild(dialog);
+        const dialog = createDialog('addScheduleDialog', dialogContent, {
+          top: '120px',
+          transform: 'translateX(-50%)',
+          width: '380px',
+          overlayId: 'dialogOverlay',
+          closeOnOverlayClick: true,
+          closeOnEsc: true
+        });
+        
+        // 다이얼로그 내부 클릭/터치 시 이벤트 버블링 방지
+        dialog.onclick = function(e) {
+          e.stopPropagation();
+        };
+        dialog.ontouchstart = function(e) {
+          e.stopPropagation();
+        };
+        dialog.ontouchend = function(e) {
+          e.stopPropagation();
+        };
         
         // 제목 입력란에 포커스
         setTimeout(() => {
-          document.getElementById('scheduleTitle').focus();
+          const titleInput = document.getElementById('scheduleTitle');
+          if (titleInput) {
+            titleInput.focus();
+          }
         }, 100);
       }
       
