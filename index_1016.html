@@ -2145,6 +2145,9 @@
         <button class="map-type-btn" onclick="document.getElementById('kmlFileInput').click()" style="background: rgba(99, 102, 241, 0.15); color: #4f46e5; border: 1px solid rgba(99, 102, 241, 0.3);">
           📂 KML/KMZ 불러오기
         </button>
+        <button class="map-type-btn" onclick="forceReload()" style="background: rgba(59, 130, 246, 0.15); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3);">
+          🔄 새로고침
+        </button>
         <button class="map-type-btn" onclick="showKmlSaveDialog()" id="saveKmlBtn" style="display: none; background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3);">
           📥 Firebase에 저장
         </button>
@@ -2586,6 +2589,22 @@
         } catch (error) {
           console.error('KML 파싱 오류:', error);
           alert('KML 파일을 표시하는데 실패했습니다.\n오류: ' + error.message);
+        }
+      }
+      
+      // 강제 새로고침 함수 (캐시 무시하고 서버에서 최신 코드 로드)
+      function forceReload() {
+        // 사용자 확인
+        if (confirm('페이지를 새로고침하시겠습니까?\n\n모든 변경사항이 저장되었는지 확인해주세요.')) {
+          // URL에 타임스탬프 쿼리 파라미터를 추가하여 캐시 무시
+          const url = new URL(window.location.href);
+          url.searchParams.set('_nocache', Date.now());
+          // 해시가 있으면 유지
+          if (window.location.hash) {
+            url.hash = window.location.hash;
+          }
+          // 강제로 서버에서 다시 로드
+          window.location.href = url.toString();
         }
       }
       
