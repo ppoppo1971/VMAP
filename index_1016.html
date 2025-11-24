@@ -2198,7 +2198,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2 onclick="forceReload()" title="새로고침 (캐시 무시)">WMAP1122</h2>
+      <h2 onclick="forceReload()" title="새로고침 (캐시 무시)">WMAP1141</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="위치검색" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -3682,6 +3682,12 @@
             clearTimeout(longPressTimer);
             longPressTimer = null;
           }
+          longPressTriggered = false;
+        }
+        
+        // 롱프레스가 실행 중인지 확인하는 함수
+        function isLongPressActive() {
+          return longPressTimer !== null;
         }
         
         // 지도 mousedown/touchstart 이벤트 - 롱프레스 시작
@@ -4237,17 +4243,29 @@
           await savePhotoToFirebase(lat, lng, imageData, photoMarker, location);
           
           // 마커 롱프레스 감지 (mousedown)
+          let photoMarkerLongPressTimer = null;
           photoMarker.addListener('mousedown', function() {
             startLongPress(photoMarker.getPosition());
+            
+            // 짧은 클릭 감지를 위한 타이머
+            photoMarkerLongPressTimer = setTimeout(function() {
+              photoMarkerLongPressTimer = null;
+            }, LONG_PRESS_DURATION);
           });
           
           // 마커 클릭 시 사진 표시
           photoMarker.addListener('click', function() {
-            // 롱프레스였으면 클릭 이벤트 무시
+            // 롱프레스가 완료되었으면 클릭 이벤트 무시
             if (longPressTriggered) {
               longPressTriggered = false;
               cancelLongPress();
               return;
+            }
+            
+            // 롱프레스 타이머가 실행 중이면 짧은 클릭으로 간주하고 취소
+            if (isLongPressActive()) {
+              cancelLongPress();
+              // 짧은 클릭이므로 정상 처리 계속
             }
             
             // savedPhotoMarkers에서 photoId와 memo 찾기
@@ -4259,7 +4277,12 @@
           
           // 마커 mouseup 시 롱프레스 취소
           photoMarker.addListener('mouseup', function() {
-            cancelLongPress();
+            // 짧은 클릭이면 롱프레스 취소
+            if (photoMarkerLongPressTimer) {
+              clearTimeout(photoMarkerLongPressTimer);
+              photoMarkerLongPressTimer = null;
+              cancelLongPress();
+            }
           });
           
           return photoMarker;
@@ -4868,17 +4891,29 @@
                 });
                 
                 // 마커 롱프레스 감지 (mousedown)
+                let restoredPhotoMarkerLongPressTimer = null;
                 photoMarker.addListener('mousedown', function() {
                   startLongPress(photoMarker.getPosition());
+                  
+                  // 짧은 클릭 감지를 위한 타이머
+                  restoredPhotoMarkerLongPressTimer = setTimeout(function() {
+                    restoredPhotoMarkerLongPressTimer = null;
+                  }, LONG_PRESS_DURATION);
                 });
                 
                 // 마커 클릭 시 사진 표시 (memo 포함)
                 photoMarker.addListener('click', function() {
-                  // 롱프레스였으면 클릭 이벤트 무시
+                  // 롱프레스가 완료되었으면 클릭 이벤트 무시
                   if (longPressTriggered) {
                     longPressTriggered = false;
                     cancelLongPress();
                     return;
+                  }
+                  
+                  // 롱프레스 타이머가 실행 중이면 짧은 클릭으로 간주하고 취소
+                  if (isLongPressActive()) {
+                    cancelLongPress();
+                    // 짧은 클릭이므로 정상 처리 계속
                   }
                   
                   showPhotoInfoWindow(photoMarker, photo.imageData, photo.lat, photo.lng, photo.id, photo.memo || '');
@@ -4886,7 +4921,12 @@
                 
                 // 마커 mouseup 시 롱프레스 취소
                 photoMarker.addListener('mouseup', function() {
-                  cancelLongPress();
+                  // 짧은 클릭이면 롱프레스 취소
+                  if (restoredPhotoMarkerLongPressTimer) {
+                    clearTimeout(restoredPhotoMarkerLongPressTimer);
+                    restoredPhotoMarkerLongPressTimer = null;
+                    cancelLongPress();
+                  }
                 });
                 
                 // 전역 변수에 저장
@@ -6589,17 +6629,29 @@
               });
 
               // 현재 위치 마커 롱프레스 감지 (mousedown)
+              let currentLocationMarkerLongPressTimer = null;
               currentLocationMarker.addListener('mousedown', function() {
                 startLongPress(currentLocationMarker.getPosition());
+                
+                // 짧은 클릭 감지를 위한 타이머
+                currentLocationMarkerLongPressTimer = setTimeout(function() {
+                  currentLocationMarkerLongPressTimer = null;
+                }, LONG_PRESS_DURATION);
               });
               
               // 현재 위치 마커 클릭 시 정보창 표시 및 줌 레벨 15로 조정
               currentLocationMarker.addListener('click', function() {
-                // 롱프레스였으면 클릭 이벤트 무시
+                // 롱프레스가 완료되었으면 클릭 이벤트 무시
                 if (longPressTriggered) {
                   longPressTriggered = false;
                   cancelLongPress();
                   return;
+                }
+                
+                // 롱프레스 타이머가 실행 중이면 짧은 클릭으로 간주하고 취소
+                if (isLongPressActive()) {
+                  cancelLongPress();
+                  // 짧은 클릭이므로 정상 처리 계속
                 }
                 
                 // 메뉴창 닫기
@@ -6643,6 +6695,16 @@
                   map.setZoom(15);
                   map.panTo(currentLocation);
                 } catch (_) {}
+              });
+              
+              // 현재 위치 마커 mouseup 시 롱프레스 취소
+              currentLocationMarker.addListener('mouseup', function() {
+                // 짧은 클릭이면 롱프레스 취소
+                if (currentLocationMarkerLongPressTimer) {
+                  clearTimeout(currentLocationMarkerLongPressTimer);
+                  currentLocationMarkerLongPressTimer = null;
+                  cancelLongPress();
+                }
               });
 
               locationBtn.classList.remove('loading');
@@ -7025,17 +7087,29 @@
         };
         
         // 마커 롱프레스 감지 (mousedown)
+        let customMarkerLongPressTimer = null;
         marker.addListener('mousedown', function() {
           startLongPress(marker.getPosition());
+          
+          // 짧은 클릭 감지를 위한 타이머
+          customMarkerLongPressTimer = setTimeout(function() {
+            customMarkerLongPressTimer = null;
+          }, LONG_PRESS_DURATION);
         });
         
         // 마커 클릭 시 제거 기능
         marker.addListener('click', function() {
-          // 롱프레스였으면 클릭 이벤트 무시
+          // 롱프레스가 완료되었으면 클릭 이벤트 무시
           if (longPressTriggered) {
             longPressTriggered = false;
             cancelLongPress();
             return;
+          }
+          
+          // 롱프레스 타이머가 실행 중이면 짧은 클릭으로 간주하고 취소
+          if (isLongPressActive()) {
+            cancelLongPress();
+            // 짧은 클릭이므로 정상 처리 계속
           }
           
           // 메뉴창 닫기
@@ -7272,17 +7346,29 @@
         });
         
         // 마커 롱프레스 감지 (mousedown)
+        let routeMarkerLongPressTimer = null;
         marker.addListener('mousedown', function() {
           startLongPress(marker.getPosition());
+          
+          // 짧은 클릭 감지를 위한 타이머
+          routeMarkerLongPressTimer = setTimeout(function() {
+            routeMarkerLongPressTimer = null;
+          }, LONG_PRESS_DURATION);
         });
         
         // 마커 클릭 시 제거 기능
         marker.addListener('click', function() {
-          // 롱프레스였으면 클릭 이벤트 무시
+          // 롱프레스가 완료되었으면 클릭 이벤트 무시
           if (longPressTriggered) {
             longPressTriggered = false;
             cancelLongPress();
             return;
+          }
+          
+          // 롱프레스 타이머가 실행 중이면 짧은 클릭으로 간주하고 취소
+          if (isLongPressActive()) {
+            cancelLongPress();
+            // 짧은 클릭이므로 정상 처리 계속
           }
           
           if (confirm('이 위치를 경로에서 제거하시겠습니까?')) {
@@ -7292,7 +7378,12 @@
         
         // 마커 mouseup 시 롱프레스 취소
         marker.addListener('mouseup', function() {
-          cancelLongPress();
+          // 짧은 클릭이면 롱프레스 취소
+          if (routeMarkerLongPressTimer) {
+            clearTimeout(routeMarkerLongPressTimer);
+            routeMarkerLongPressTimer = null;
+            cancelLongPress();
+          }
         });
         
         userRouteMarkers.push(marker);
@@ -7930,17 +8021,30 @@
                 };
                 
                 // 마커 롱프레스 감지 (mousedown/touchstart)
+                let markerLongPressTimer = null;
                 marker.addListener('mousedown', function(event) {
-                  startLongPress(marker.getPosition());
+                  const position = marker.getPosition();
+                  startLongPress(position);
+                  
+                  // 짧은 클릭 감지를 위한 타이머
+                  markerLongPressTimer = setTimeout(function() {
+                    markerLongPressTimer = null;
+                  }, LONG_PRESS_DURATION);
                 });
                 
                 // 마커 클릭 시 정보 표시 및 줌 15로 중심 이동
                 marker.addListener('click', function() {
-                  // 롱프레스였으면 클릭 이벤트 무시
+                  // 롱프레스가 완료되었으면 클릭 이벤트 무시
                   if (longPressTriggered) {
                     longPressTriggered = false;
                     cancelLongPress();
                     return;
+                  }
+                  
+                  // 롱프레스 타이머가 실행 중이면 짧은 클릭으로 간주하고 취소
+                  if (isLongPressActive()) {
+                    cancelLongPress();
+                    // 짧은 클릭이므로 정상 처리 계속
                   }
                   
                   // 메뉴창 닫기
@@ -7962,7 +8066,12 @@
                 
                 // 마커 mouseup/touchend 시 롱프레스 취소
                 marker.addListener('mouseup', function() {
-                  cancelLongPress();
+                  // 짧은 클릭이면 롱프레스 취소
+                  if (markerLongPressTimer) {
+                    clearTimeout(markerLongPressTimer);
+                    markerLongPressTimer = null;
+                    cancelLongPress();
+                  }
                 });
                 
                 markerGroup.markerElements.push(marker);
@@ -9805,17 +9914,29 @@
             route.pathElement.setMap(map);
             
             // 경로 롱프레스 감지 (mousedown)
+            let routeLongPressTimer = null;
             route.pathElement.addListener('mousedown', function(event) {
               startLongPress(event.latLng);
+              
+              // 짧은 클릭 감지를 위한 타이머
+              routeLongPressTimer = setTimeout(function() {
+                routeLongPressTimer = null;
+              }, LONG_PRESS_DURATION);
             });
             
             // 경로 클릭 이벤트 추가
             route.pathElement.addListener('click', function(event) {
-              // 롱프레스였으면 클릭 이벤트 무시
+              // 롱프레스가 완료되었으면 클릭 이벤트 무시
               if (longPressTriggered) {
                 longPressTriggered = false;
                 cancelLongPress();
                 return;
+              }
+              
+              // 롱프레스 타이머가 실행 중이면 짧은 클릭으로 간주하고 취소
+              if (isLongPressActive()) {
+                cancelLongPress();
+                // 짧은 클릭이므로 정상 처리 계속
               }
               
               // 메뉴창 닫기
@@ -9836,7 +9957,12 @@
             
             // 경로 mouseup 시 롱프레스 취소
             route.pathElement.addListener('mouseup', function() {
-              cancelLongPress();
+              // 짧은 클릭이면 롱프레스 취소
+              if (routeLongPressTimer) {
+                clearTimeout(routeLongPressTimer);
+                routeLongPressTimer = null;
+                cancelLongPress();
+              }
             });
             
             // lineStyle이 'dotted'인 경우에만 점선 효과 추가
@@ -9864,17 +9990,29 @@
               route.dottedPathElement.setMap(map);
               
               // 점선 경로에도 롱프레스 감지 (mousedown)
+              let dottedRouteLongPressTimer = null;
               route.dottedPathElement.addListener('mousedown', function(event) {
                 startLongPress(event.latLng);
+                
+                // 짧은 클릭 감지를 위한 타이머
+                dottedRouteLongPressTimer = setTimeout(function() {
+                  dottedRouteLongPressTimer = null;
+                }, LONG_PRESS_DURATION);
               });
               
               // 점선 경로에도 클릭 이벤트 추가
               route.dottedPathElement.addListener('click', function(event) {
-                // 롱프레스였으면 클릭 이벤트 무시
+                // 롱프레스가 완료되었으면 클릭 이벤트 무시
                 if (longPressTriggered) {
                   longPressTriggered = false;
                   cancelLongPress();
                   return;
+                }
+                
+                // 롱프레스 타이머가 실행 중이면 짧은 클릭으로 간주하고 취소
+                if (isLongPressActive()) {
+                  cancelLongPress();
+                  // 짧은 클릭이므로 정상 처리 계속
                 }
                 
                 // 메뉴창 닫기
@@ -9895,7 +10033,12 @@
               
               // 점선 경로 mouseup 시 롱프레스 취소
               route.dottedPathElement.addListener('mouseup', function() {
-                cancelLongPress();
+                // 짧은 클릭이면 롱프레스 취소
+                if (dottedRouteLongPressTimer) {
+                  clearTimeout(dottedRouteLongPressTimer);
+                  dottedRouteLongPressTimer = null;
+                  cancelLongPress();
+                }
               });
             }
           } catch (error) {
@@ -10794,10 +10937,20 @@
              animation: google.maps.Animation.DROP,
              optimized: false,
              zIndex: 1000 - index // 관련성 높은 순으로 위에 표시
-           });
-           
-           // 마커 배열에 추가
-           addressMarkers.push(marker);
+          });
+          
+          // 마커 mouseup 시 롱프레스 취소
+          marker.addListener('mouseup', function() {
+            // 짧은 클릭이면 롱프레스 취소
+            if (addressMarkerLongPressTimer) {
+              clearTimeout(addressMarkerLongPressTimer);
+              addressMarkerLongPressTimer = null;
+              cancelLongPress();
+            }
+          });
+          
+          // 마커 배열에 추가
+          addressMarkers.push(marker);
            bounds.extend(location);
            markersCreated++;
            
@@ -10858,17 +11011,29 @@
            });
            
           // 마커 롱프레스 감지 (mousedown)
+          let addressMarkerLongPressTimer = null;
           marker.addListener('mousedown', function() {
             startLongPress(marker.getPosition());
+            
+            // 짧은 클릭 감지를 위한 타이머
+            addressMarkerLongPressTimer = setTimeout(function() {
+              addressMarkerLongPressTimer = null;
+            }, LONG_PRESS_DURATION);
           });
           
           // 마커 클릭 이벤트
           marker.addListener('click', function() {
-            // 롱프레스였으면 클릭 이벤트 무시
+            // 롱프레스가 완료되었으면 클릭 이벤트 무시
             if (longPressTriggered) {
               longPressTriggered = false;
               cancelLongPress();
               return;
+            }
+            
+            // 롱프레스 타이머가 실행 중이면 짧은 클릭으로 간주하고 취소
+            if (isLongPressActive()) {
+              cancelLongPress();
+              // 짧은 클릭이므로 정상 처리 계속
             }
             
             // 메뉴창 닫기
