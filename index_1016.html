@@ -2192,8 +2192,8 @@
         <button id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면">⛶</button>
     </div>
     
-    <!-- 카메라 입력 (숨김) - 즉시 카메라 촬영 -->
-    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+    <!-- 카메라 입력 (숨김) - iOS에서 네이티브 카메라 앱 사용을 위해 capture 속성 제거 -->
+    <input type="file" id="cameraInput" accept="image/*" style="display: none;">
 
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
@@ -4286,7 +4286,7 @@
                             "
                             onmouseover="this.style.background='rgba(59, 130, 246, 0.18)';"
                             onmouseout="this.style.background='rgba(59, 130, 246, 0.12)';">
-                      📷 사진촬영
+                      📷 사진가져오기
                     </button>
                   </div>
                 </div>
@@ -4393,7 +4393,7 @@
                             "
                             onmouseover="this.style.background='rgba(59, 130, 246, 0.18)';"
                             onmouseout="this.style.background='rgba(59, 130, 246, 0.12)';">
-                      📷 사진촬영
+                      📷 사진가져오기
                     </button>
                   </div>
                 </div>
@@ -4507,8 +4507,8 @@
             loadingMessage.textContent = '사진 처리 중...';
             document.body.appendChild(loadingMessage);
             
-            // 이미지 압축 (원본 크기의 1/3로 축소)
-            const compressedImageData = await compressImageToOneThird(file);
+            // 이미지 압축 (100kb 목표)
+            const compressedImageData = await compressImageTo100KB(file);
             
             // 롱프레스 마커 위치 가져오기
             const position = longPressMarker.getPosition();
@@ -4534,16 +4534,9 @@
           }
         });
         
-        // 이미지를 원본 크기의 1/3로 압축하는 함수
-        async function compressImageToOneThird(file) {
+        // 이미지를 100KB 이하로 압축하는 함수
+        async function compressImageTo100KB(file) {
           return new Promise((resolve, reject) => {
-            const originalSize = file.size; // 원본 파일 크기 (bytes)
-            const targetSizeBytes = originalSize / 3; // 목표 크기: 원본의 1/3
-            // Base64는 원본의 약 1.37배이므로 Base64 문자열 길이 목표 계산
-            const targetBase64Length = Math.floor(targetSizeBytes * 1.37);
-            
-            console.log(`원본 크기: ${(originalSize / 1024 / 1024).toFixed(2)}MB, 목표 크기: ${(targetSizeBytes / 1024).toFixed(2)}KB`);
-            
             const reader = new FileReader();
             
             reader.onload = function(e) {
@@ -4553,45 +4546,47 @@
                 const canvas = document.createElement('canvas');
                 let width = img.width;
                 let height = img.height;
-                const originalWidth = width;
-                const originalHeight = height;
                 
-                // 초기 해상도는 원본 유지 (너무 작게 시작하지 않음)
+                // 초기 크기 조정 (긴 변이 1024px 이하)
+                const maxDimension = 1024;
+                if (width > height && width > maxDimension) {
+                  height = (height * maxDimension) / width;
+                  width = maxDimension;
+                } else if (height > maxDimension) {
+                  width = (width * maxDimension) / height;
+                  height = maxDimension;
+                }
+                
                 canvas.width = width;
                 canvas.height = height;
                 
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
                 
-                // 품질을 조정하며 목표 크기에 맞춤
+                // 품질을 조정하며 100KB 이하로 압축
                 let quality = 0.9;
                 let compressed = canvas.toDataURL('image/jpeg', quality);
                 
-                // 목표 크기에 맞추기 위해 품질 조정
-                while (compressed.length > targetBase64Length && quality > 0.1) {
-                  quality -= 0.05;
+                // 100KB = 102400 bytes
+                // Base64는 원본의 약 1.37배이므로 140000자 이하 목표
+                const targetSize = 140000;
+                
+                while (compressed.length > targetSize && quality > 0.1) {
+                  quality -= 0.1;
                   compressed = canvas.toDataURL('image/jpeg', quality);
                 }
                 
-                // 품질만으로 목표에 도달하지 못하면 크기를 점진적으로 줄임
-                if (compressed.length > targetBase64Length) {
-                  let scale = 0.9;
-                  while (compressed.length > targetBase64Length && scale > 0.3) {
-                    width = Math.floor(originalWidth * scale);
-                    height = Math.floor(originalHeight * scale);
-                    canvas.width = width;
-                    canvas.height = height;
-                    ctx.drawImage(img, 0, 0, width, height);
-                    compressed = canvas.toDataURL('image/jpeg', 0.8);
-                    scale -= 0.1;
-                  }
+                // 여전히 크면 크기를 줄임
+                if (compressed.length > targetSize) {
+                  width = width * 0.7;
+                  height = height * 0.7;
+                  canvas.width = width;
+                  canvas.height = height;
+                  ctx.drawImage(img, 0, 0, width, height);
+                  compressed = canvas.toDataURL('image/jpeg', 0.7);
                 }
                 
-                const finalSizeKB = (compressed.length / 1024).toFixed(2);
-                const finalSizeMB = (compressed.length / 1024 / 1024).toFixed(2);
-                const compressionRatio = ((1 - compressed.length / (originalSize * 1.37)) * 100).toFixed(1);
-                
-                console.log(`이미지 압축 완료: ${finalSizeKB}KB (${finalSizeMB}MB), 원본 대비 ${compressionRatio}% 축소, 품질: ${(quality * 100).toFixed(0)}%, 해상도: ${width}x${height}`);
+                console.log(`이미지 압축 완료: ${(compressed.length / 1024).toFixed(2)}KB (품질: ${(quality * 100).toFixed(0)}%)`);
                 resolve(compressed);
               };
               
@@ -4674,26 +4669,9 @@
                 </div>
               </div>
               <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                <button onclick="downloadPhoto('${photoId}', '${imageData.replace(/'/g, "\\'")}')" 
-                        style="
-                          flex: 1;
-                          background: rgba(59, 130, 246, 0.12);
-                          color: #2563eb;
-                          border: 1px solid rgba(59, 130, 246, 0.3);
-                          border-radius: 8px;
-                          padding: 8px 16px;
-                          font-size: 13px;
-                          font-weight: 500;
-                          cursor: pointer;
-                          transition: all 0.2s ease;
-                        "
-                        onmouseover="this.style.background='rgba(59, 130, 246, 0.2)';"
-                        onmouseout="this.style.background='rgba(59, 130, 246, 0.12)';">
-                  💾 다운로드
-                </button>
                 <button onclick="deletePhoto('${photoId}')" 
                         style="
-                          flex: 1;
+                          width: 100%;
                           background: rgba(239, 68, 68, 0.12);
                           color: #dc2626;
                           border: 1px solid rgba(239, 68, 68, 0.3);
@@ -4706,7 +4684,7 @@
                         "
                         onmouseover="this.style.background='rgba(239, 68, 68, 0.2)';"
                         onmouseout="this.style.background='rgba(239, 68, 68, 0.12)';">
-                  🗑️ 삭제
+                  🗑️ 사진 삭제
                 </button>
               </div>
             </div>
@@ -4796,28 +4774,6 @@
                     "
                     onmouseover="this.style.background='rgba(255, 255, 255, 0.3)';"
                     onmouseout="this.style.background='rgba(255, 255, 255, 0.2)';">×</button>
-            <button onclick="downloadPhoto('${photoId || ''}', '${imageData.replace(/'/g, "\\'")}'); closePhotoViewer();" 
-                    style="
-                      position: absolute;
-                      bottom: 20px;
-                      left: 50%;
-                      transform: translateX(-50%);
-                      background: rgba(59, 130, 246, 0.9);
-                      color: white;
-                      border: none;
-                      border-radius: 12px;
-                      padding: 12px 24px;
-                      font-size: 16px;
-                      font-weight: 600;
-                      cursor: pointer;
-                      z-index: 10001;
-                      transition: all 0.2s ease;
-                      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-                    "
-                    onmouseover="this.style.background='rgba(59, 130, 246, 1)'; this.style.transform='translateX(-50%) scale(1.05)';"
-                    onmouseout="this.style.background='rgba(59, 130, 246, 0.9)'; this.style.transform='translateX(-50%) scale(1)';">
-              💾 사진 다운로드
-            </button>
             <img src="${imageData}" 
                  style="
                    max-width: 95vw;
@@ -5076,62 +5032,6 @@
         };
         
         // 사진 메모 저장
-        // 사진 다운로드 함수
-        window.downloadPhoto = function(photoId, imageData) {
-          try {
-            // photoId로 사진 정보 찾기 (파일명에 사용)
-            const photoData = window.savedPhotoMarkers.find(p => p.id === photoId);
-            let fileName = 'photo';
-            
-            if (photoData) {
-              // 타임스탬프에서 파일명 생성
-              if (photoData.timestamp) {
-                const date = new Date(photoData.timestamp);
-                const dateStr = date.toISOString().replace(/[:.]/g, '-').slice(0, -5);
-                fileName = `WMAP_${dateStr}`;
-              } else {
-                fileName = `WMAP_${photoId}`;
-              }
-              
-              // 위치 정보가 있으면 파일명에 추가
-              if (photoData.location && photoData.location !== '기본') {
-                fileName = `${photoData.location}_${fileName}`;
-              }
-            } else {
-              fileName = `WMAP_${photoId}`;
-            }
-            
-            // Base64 데이터를 Blob으로 변환
-            const base64Data = imageData.split(',')[1] || imageData;
-            const byteCharacters = atob(base64Data);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: 'image/jpeg' });
-            
-            // 다운로드 링크 생성
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${fileName}.jpg`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // 메모리 해제
-            setTimeout(() => {
-              URL.revokeObjectURL(url);
-            }, 100);
-            
-            console.log(`사진 다운로드 완료: ${fileName}.jpg`);
-          } catch (error) {
-            console.error('사진 다운로드 실패:', error);
-            alert('사진 다운로드에 실패했습니다.');
-          }
-        };
-        
         window.savePhotoMemo = async function(photoId) {
           const textarea = document.getElementById('photoMemoInput');
           if (!textarea) return;
