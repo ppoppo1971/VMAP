@@ -5438,6 +5438,7 @@
               console.warn('사진 데이터가 큽니다. 업로드에 시간이 걸릴 수 있습니다.');
             }
             
+            // Firebase에 저장할 사진 데이터 (순수 데이터만, DOM 객체 제외)
             const photoData = {
               id: 'photo_' + Date.now(),
               lat: lat,
@@ -5453,9 +5454,24 @@
             const docSnap = await window.firestore.getDoc(
               window.firestore.doc(window.db, 'users', 'currentUser')
             );
-            const savedPhotos = docSnap.exists() && docSnap.data().savedPhotos 
+            let savedPhotos = docSnap.exists() && docSnap.data().savedPhotos 
               ? docSnap.data().savedPhotos 
               : [];
+            
+            // 기존 사진 데이터 정리 (불필요한 속성 제거)
+            savedPhotos = savedPhotos.map(photo => {
+              const cleanPhoto = {
+                id: photo.id,
+                lat: photo.lat,
+                lng: photo.lng,
+                imageData: photo.imageData,
+                location: photo.location || '기본',
+                memo: photo.memo || '',
+                timestamp: photo.timestamp,
+                type: photo.type || 'photo'
+              };
+              return cleanPhoto;
+            });
             
             // 전체 문서 크기 예상 (기존 사진들 + 새 사진)
             const existingPhotosSize = savedPhotos.reduce((total, photo) => {
@@ -5467,6 +5483,11 @@
               console.warn(`전체 사진 데이터 크기: ${(totalSize / 1024).toFixed(2)}KB - Firestore 제한에 근접할 수 있습니다.`);
             }
             
+            // Base64 문자열 길이 체크 (Firestore 문자열 필드 제한: 1MB)
+            if (imageData.length > 1000000) {
+              throw new Error('사진 데이터가 너무 큽니다. Firestore 제한을 초과합니다.');
+            }
+            
             const updatedPhotos = [photoData, ...savedPhotos];
             
             console.log('Firebase에 사진 저장 시도 중...');
@@ -5474,12 +5495,13 @@
               savedPhotos: updatedPhotos
             }, true, '사진 저장 완료');
             
-            // 전역 변수에 마커 저장 (복원용)
+            // 전역 변수에 마커 저장 (복원용) - markerElement는 여기서만 추가
             if (!window.savedPhotoMarkers) {
               window.savedPhotoMarkers = [];
             }
-            photoData.markerElement = marker;
-            window.savedPhotoMarkers.push(photoData);
+            const photoDataWithMarker = { ...photoData };
+            photoDataWithMarker.markerElement = marker; // DOM 객체는 전역 변수에만 저장
+            window.savedPhotoMarkers.push(photoDataWithMarker);
             
             console.log('사진 Firebase 저장 완료');
             onFirebaseUploadSuccess('사진');
@@ -5496,11 +5518,23 @@
             if (error.code === 'unavailable' || !navigator.onLine) {
               console.log('오프라인 상태 - 사진 저장을 대기 작업으로 추가');
               
-              // 대기 작업 추가
+              // 대기 작업 추가 (순수 데이터만 저장, markerElement 제외)
               if (typeof addPendingOperation === 'function') {
+                // Firebase에 저장할 순수 데이터만 추출
+                const cleanPhotoData = {
+                  id: photoData.id,
+                  lat: photoData.lat,
+                  lng: photoData.lng,
+                  imageData: photoData.imageData,
+                  location: photoData.location || '기본',
+                  memo: photoData.memo || '',
+                  timestamp: photoData.timestamp,
+                  type: photoData.type || 'photo'
+                };
+                
                 addPendingOperation({
                   type: OPERATION_TYPES.PHOTO_SAVE,
-                  data: photoData,
+                  data: cleanPhotoData,
                   timestamp: Date.now()
                 });
                 
@@ -5508,8 +5542,9 @@
                 if (!window.savedPhotoMarkers) {
                   window.savedPhotoMarkers = [];
                 }
-                photoData.markerElement = marker;
-                window.savedPhotoMarkers.push(photoData);
+                const photoDataWithMarker = { ...photoData };
+                photoDataWithMarker.markerElement = marker; // DOM 객체는 전역 변수에만 저장
+                window.savedPhotoMarkers.push(photoDataWithMarker);
                 
                 alert('오프라인 상태입니다. 네트워크 연결 시 자동으로 저장됩니다.');
                 return; // 에러를 throw하지 않고 종료
@@ -12562,10 +12597,43 @@
           case OPERATION_TYPES.PHOTO_SAVE:
             // 기존 사진들을 가져와서 맨 앞에 추가
             const docSnap = await window.firestore.getDoc(userDocRef);
-            const savedPhotos = docSnap.exists() && docSnap.data().savedPhotos 
+            let savedPhotos = docSnap.exists() && docSnap.data().savedPhotos 
               ? docSnap.data().savedPhotos 
               : [];
-            const updatedPhotos = [operation.data, ...savedPhotos];
+            
+            // 기존 사진 데이터 정리 (불필요한 속성 제거)
+            savedPhotos = savedPhotos.map(photo => {
+              const cleanPhoto = {
+                id: photo.id,
+                lat: photo.lat,
+                lng: photo.lng,
+                imageData: photo.imageData,
+                location: photo.location || '기본',
+                memo: photo.memo || '',
+                timestamp: photo.timestamp,
+                type: photo.type || 'photo'
+              };
+              return cleanPhoto;
+            });
+            
+            // 새 사진 데이터 정리 (operation.data에서 불필요한 속성 제거)
+            const cleanPhotoData = {
+              id: operation.data.id,
+              lat: operation.data.lat,
+              lng: operation.data.lng,
+              imageData: operation.data.imageData,
+              location: operation.data.location || '기본',
+              memo: operation.data.memo || '',
+              timestamp: operation.data.timestamp,
+              type: operation.data.type || 'photo'
+            };
+            
+            // Base64 문자열 길이 체크 (Firestore 문자열 필드 제한: 1MB)
+            if (cleanPhotoData.imageData && cleanPhotoData.imageData.length > 1000000) {
+              throw new Error('사진 데이터가 너무 큽니다. Firestore 제한을 초과합니다.');
+            }
+            
+            const updatedPhotos = [cleanPhotoData, ...savedPhotos];
             
             // 문서 존재 여부 확인 후 저장
             if (docSnap.exists()) {
