@@ -9442,9 +9442,11 @@
           // (즉시 UI 반영용 - 실시간 동기화 보완)
           markerInfoData[markerId] = newInfo;
 
+          // 저장 직후 즉시 모든 마커 완전히 재렌더링 (이모지 변경 등 실시간 반영)
+          clearAllRenderedMarkers();
+          drawAllSavedMarkers();
           
           // 성공 메시지
-
           onFirebaseUploadSuccess('마커 정보');
           
           // 편집 다이얼로그 닫기
@@ -9453,12 +9455,10 @@
             editDialog.remove();
           }
           
-          // 정보창을 일반 보기 모드로 되돌리기
-          showMarkerInfoWithData(markerGroupName, index);
-
-          // 저장 직후 모든 마커 완전히 재렌더링 (이모지 중복 방지)
-          clearAllRenderedMarkers();
-          drawAllSavedMarkers();
+          // 정보창을 일반 보기 모드로 되돌리기 (재렌더링 후 업데이트된 정보로)
+          setTimeout(() => {
+            showMarkerInfoWithData(markerGroupName, index);
+          }, 50);
           
         } catch (error) {
           console.error('마커 정보 저장 실패:', error);
@@ -9480,18 +9480,20 @@
           // 로컬 캐시에는 즉시 반영 (사용자 경험 향상)
           markerInfoData[markerId] = newInfo;
           
+          // 오프라인 저장 후에도 즉시 모든 마커 완전히 재렌더링 (이모지 변경 등 실시간 반영)
+          clearAllRenderedMarkers();
+          drawAllSavedMarkers();
+          
           // 편집 다이얼로그 닫기
           const editDialog = document.getElementById('markerEditDialog');
           if (editDialog) {
             editDialog.remove();
           }
           
-          // 정보창을 일반 보기 모드로 되돌리기 (로컬 데이터로)
-          showMarkerInfoWithData(markerGroupName, index);
-          
-          // 오프라인 저장 후에도 모든 마커 완전히 재렌더링 (이모지 중복 방지)
-          clearAllRenderedMarkers();
-          drawAllSavedMarkers();
+          // 정보창을 일반 보기 모드로 되돌리기 (재렌더링 후 업데이트된 정보로)
+          setTimeout(() => {
+            showMarkerInfoWithData(markerGroupName, index);
+          }, 50);
           
           // 구체적인 오류 메시지
           let errorMessage = '마커 정보가 임시 저장되었습니다.';
@@ -9510,12 +9512,12 @@
           // 락 해제
           releaseLock(lockKey);
           
-          // 동기화 플래그 해제 (짧은 지연 후 - Firebase 업데이트 완료 대기)
+          // 동기화 플래그 해제 (재렌더링 완료 후 - 실시간 동기화 허용)
           setTimeout(() => {
             if (typeof isSyncing !== 'undefined') {
               isSyncing = false;
             }
-          }, 300); // 300ms 후 플래그 해제
+          }, 100); // 100ms 후 플래그 해제 (재렌더링 완료 대기)
         }
       }
       
@@ -12483,18 +12485,21 @@
                   
                   // 마커 정보가 다르면 업데이트
                   if (JSON.stringify(currentMarkerInfo) !== JSON.stringify(newMarkerInfo)) {
-                    console.log('마커 정보 변경 감지 - 데이터 업데이트');
+                    console.log('마커 정보 변경 감지 - 데이터 업데이트 및 즉시 반영');
                     markerInfoData = newMarkerInfo;
                     
-                    // 마커 표시 즉시 재렌더링 (이모지 반영)
+                    // 마커 표시 즉시 재렌더링 (이모지 변경 등 실시간 반영)
                     clearAllRenderedMarkers();
                     drawAllSavedMarkers();
                     
-                    // 현재 열린 정보창이 마커 정보창이면 갱신
+                    // 현재 열린 정보창이 마커 정보창이면 갱신 (재렌더링 후 약간의 지연)
                     try {
                       if (window.currentInfoWindow && window.currentInfoWindow.getContent && window.currentOpenMarkerGroup && window.currentOpenMarkerIndex !== undefined) {
                         console.log('현재 열린 마커 정보창 실시간 갱신:', window.currentOpenMarkerGroup, window.currentOpenMarkerIndex);
-                        showMarkerInfoWithData(window.currentOpenMarkerGroup, window.currentOpenMarkerIndex);
+                        // 재렌더링 완료 후 정보창 업데이트
+                        setTimeout(() => {
+                          showMarkerInfoWithData(window.currentOpenMarkerGroup, window.currentOpenMarkerIndex);
+                        }, 50);
                       }
                     } catch (e) {
                       console.log('마커 정보창 갱신 중 오류:', e);
