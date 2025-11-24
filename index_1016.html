@@ -2153,7 +2153,7 @@
     <button id="menuToggleBtn" class="show" onclick="showMenu()" title="메뉴 열기">P</button>
     
     <!-- 오른쪽 상단 토글 버튼 -->
-    <button id="rightMenuToggleBtn" onclick="toggleRightMenu()" title="지도 타입 메뉴 열기">M</button>
+    <button id="rightMenuToggleBtn" title="지도 타입 메뉴 열기">M</button>
     
     <!-- 오른쪽 상단 지도 타입 선택 버튼 -->
     <div id="mapTypeSelector" class="hide">
@@ -2198,7 +2198,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2 onclick="forceReload()" title="새로고침 (캐시 무시)">WMAP</h2>
+      <h2 title="새로고침 (캐시 무시)">WMAP</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="위치검색" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -6811,8 +6811,7 @@
         const isLoading = locationBtn.classList.contains('loading');
 
         if (isLoading) {
-          alert('현재 위치를 가져오는 중입니다.');
-          return;
+          return; // 이미 로딩 중이면 무시
         }
 
         // 기존 마커가 있으면 먼저 제거
