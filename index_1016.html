@@ -2198,7 +2198,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2 onclick="forceReload()" title="새로고침 (캐시 무시)">WMAP0129</h2>
+      <h2 onclick="forceReload()" title="새로고침 (캐시 무시)">WMAP0137</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="위치검색" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -8237,8 +8237,62 @@
                 let markerLongPressTimer = null;
                 let markerLongPressTriggered = false; // 롱프레스가 발생했는지 추적
                 
-                // 마커 클릭 처리 함수
-                function handleMarkerClick() {
+                // 마커 mousedown/touchstart 이벤트 - 롱프레스 감지 시작
+                marker.addListener('mousedown', function(e) {
+                  if (isMarkerMode || isRouteMode) {
+                    return;
+                  }
+                  
+                  markerLongPressTriggered = false;
+                  
+                  // 롱프레스 타이머 시작
+                  markerLongPressTimer = setTimeout(function() {
+                    markerLongPressTriggered = true;
+                    markerLongPressTimer = null;
+                    
+                    // 롱프레스 발생 - 롱프레스 정보창 표시
+                    showLongPressInfoWindow(marker.getPosition());
+                  }, LONG_PRESS_DURATION);
+                  
+                  // 이벤트 전파 방지
+                  if (e && e.domEvent) {
+                    e.domEvent.stopPropagation();
+                  }
+                });
+                
+                // 마커 mouseup/touchend 이벤트 - 롱프레스 타이머 취소만 (클릭 처리 안 함)
+                marker.addListener('mouseup', function(e) {
+                  if (markerLongPressTimer) {
+                    // 롱프레스가 발생하지 않았음 - 타이머만 취소
+                    clearTimeout(markerLongPressTimer);
+                    markerLongPressTimer = null;
+                  }
+                  // 클릭 처리는 click 이벤트에서 처리
+                  
+                  // 이벤트 전파 방지
+                  if (e && e.domEvent) {
+                    e.domEvent.stopPropagation();
+                  }
+                });
+                
+                // 마커 클릭 이벤트 - 클릭 처리 (롱프레스가 아닌 경우만)
+                marker.addListener('click', function(e) {
+                  // 롱프레스가 발생했다면 클릭 무시
+                  if (markerLongPressTriggered) {
+                    markerLongPressTriggered = false;
+                    if (e && e.domEvent) {
+                      e.domEvent.stopPropagation();
+                      e.domEvent.preventDefault();
+                    }
+                    return;
+                  }
+                  
+                  // 롱프레스 타이머가 실행 중이면 클릭 무시 (아직 판단 중)
+                  if (markerLongPressTimer) {
+                    return;
+                  }
+                  
+                  // 일반 클릭 처리
                   // 메뉴창 닫기
                   const customMapMenu = getElement('customMapMenu');
                   const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -8254,50 +8308,11 @@
                   if (isRouteMode) { addUserRoutePoint(marker.getPosition()); return; }
                   
                   showMarkerInfo(markerGroup, markerData, index);
-                }
-                
-                // 마커 mousedown/touchstart 이벤트 - 롱프레스 감지 시작
-                marker.addListener('mousedown', function() {
-                  if (isMarkerMode || isRouteMode) {
-                    return;
-                  }
                   
-                  markerLongPressTriggered = false;
-                  
-                  // 롱프레스 타이머 시작
-                  markerLongPressTimer = setTimeout(function() {
-                    markerLongPressTriggered = true;
-                    markerLongPressTimer = null;
-                    
-                    // 롱프레스 발생 - 롱프레스 정보창 표시
-                    showLongPressInfoWindow(marker.getPosition());
-                  }, LONG_PRESS_DURATION);
-                });
-                
-                // 마커 mouseup/touchend 이벤트 - 롱프레스 타이머 취소 및 클릭 처리
-                marker.addListener('mouseup', function() {
-                  if (markerLongPressTimer) {
-                    // 롱프레스가 발생하지 않았음 - 일반 클릭 처리
-                    clearTimeout(markerLongPressTimer);
-                    markerLongPressTimer = null;
-                    handleMarkerClick();
-                  }
-                  // 롱프레스가 발생했다면 (markerLongPressTriggered === true) 아무것도 하지 않음
-                });
-                
-                // 마커 클릭 이벤트는 기본 클릭 동작만 처리 (롱프레스가 아닌 경우)
-                marker.addListener('click', function(e) {
-                  // 롱프레스가 발생했다면 클릭 무시
-                  if (markerLongPressTriggered) {
-                    markerLongPressTriggered = false;
-                    e.stop(); // 이벤트 전파 중단 (선택사항)
-                    return;
-                  }
-                  
-                  // mouseup에서 처리하지 못한 경우를 대비 (방어적 코드)
-                  // 일반적으로는 mouseup에서 처리되지만, 예외 상황에 대비
-                  if (!markerLongPressTimer) {
-                    handleMarkerClick();
+                  // 이벤트 전파 방지 (경로 클릭 이벤트가 발생하지 않도록)
+                  if (e && e.domEvent) {
+                    e.domEvent.stopPropagation();
+                    e.domEvent.preventDefault();
                   }
                 });
                 
@@ -10133,24 +10148,6 @@
             let routeLongPressTimer = null;
             let routeLongPressTriggered = false; // 롱프레스가 발생했는지 추적
             
-            // 경로 클릭 처리 함수
-            function handleRouteClick(event) {
-              // 메뉴창 닫기
-              const customMapMenu = getElement('customMapMenu');
-              const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
-              
-              if (!customMapMenu.classList.contains('hide')) {
-                hideMenu();
-              }
-              if (rightPanelOpen) {
-                hideRightMenu();
-              }
-              
-              if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
-              if (isMarkerMode) { addCustomMarker(event.latLng); return; }
-              showRouteInfo(route, event.latLng);
-            }
-            
             // 메인 경로
             route.pathElement = new google.maps.Polyline({
               path: path,
@@ -10179,30 +10176,65 @@
                 // 롱프레스 발생 - 롱프레스 정보창 표시
                 showLongPressInfoWindow(routePosition);
               }, LONG_PRESS_DURATION);
+              
+              // 이벤트 전파 방지
+              if (event && event.domEvent) {
+                event.domEvent.stopPropagation();
+              }
             });
             
-            // 경로 mouseup/touchend 이벤트 - 롱프레스 타이머 취소 및 클릭 처리
+            // 경로 mouseup/touchend 이벤트 - 롱프레스 타이머 취소만 (클릭 처리 안 함)
             route.pathElement.addListener('mouseup', function(event) {
               if (routeLongPressTimer) {
-                // 롱프레스가 발생하지 않았음 - 일반 클릭 처리
+                // 롱프레스가 발생하지 않았음 - 타이머만 취소
                 clearTimeout(routeLongPressTimer);
                 routeLongPressTimer = null;
-                handleRouteClick(event);
               }
-              // 롱프레스가 발생했다면 (routeLongPressTriggered === true) 아무것도 하지 않음
+              // 클릭 처리는 click 이벤트에서 처리
+              
+              // 이벤트 전파 방지
+              if (event && event.domEvent) {
+                event.domEvent.stopPropagation();
+              }
             });
             
-            // 경로 클릭 이벤트 (롱프레스가 아닌 경우만)
+            // 경로 클릭 이벤트 - 클릭 처리 (롱프레스가 아닌 경우만)
             route.pathElement.addListener('click', function(event) {
               // 롱프레스가 발생했다면 클릭 무시
               if (routeLongPressTriggered) {
                 routeLongPressTriggered = false;
+                if (event && event.domEvent) {
+                  event.domEvent.stopPropagation();
+                  event.domEvent.preventDefault();
+                }
                 return;
               }
               
-              // mouseup에서 처리하지 못한 경우를 대비 (방어적 코드)
-              if (!routeLongPressTimer) {
-                handleRouteClick(event);
+              // 롱프레스 타이머가 실행 중이면 클릭 무시 (아직 판단 중)
+              if (routeLongPressTimer) {
+                return;
+              }
+              
+              // 일반 클릭 처리
+              // 메뉴창 닫기
+              const customMapMenu = getElement('customMapMenu');
+              const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+              
+              if (!customMapMenu.classList.contains('hide')) {
+                hideMenu();
+              }
+              if (rightPanelOpen) {
+                hideRightMenu();
+              }
+              
+              if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
+              if (isMarkerMode) { addCustomMarker(event.latLng); return; }
+              showRouteInfo(route, event.latLng);
+              
+              // 이벤트 전파 방지
+              if (event && event.domEvent) {
+                event.domEvent.stopPropagation();
+                event.domEvent.preventDefault();
               }
             });
             
@@ -10247,30 +10279,65 @@
                   // 롱프레스 발생 - 롱프레스 정보창 표시
                   showLongPressInfoWindow(routePosition);
                 }, LONG_PRESS_DURATION);
+                
+                // 이벤트 전파 방지
+                if (event && event.domEvent) {
+                  event.domEvent.stopPropagation();
+                }
               });
               
-              // 점선 경로 mouseup/touchend 이벤트 - 롱프레스 타이머 취소 및 클릭 처리
+              // 점선 경로 mouseup/touchend 이벤트 - 롱프레스 타이머 취소만 (클릭 처리 안 함)
               route.dottedPathElement.addListener('mouseup', function(event) {
                 if (routeLongPressTimer) {
-                  // 롱프레스가 발생하지 않았음 - 일반 클릭 처리
+                  // 롱프레스가 발생하지 않았음 - 타이머만 취소
                   clearTimeout(routeLongPressTimer);
                   routeLongPressTimer = null;
-                  handleRouteClick(event);
                 }
-                // 롱프레스가 발생했다면 (routeLongPressTriggered === true) 아무것도 하지 않음
+                // 클릭 처리는 click 이벤트에서 처리
+                
+                // 이벤트 전파 방지
+                if (event && event.domEvent) {
+                  event.domEvent.stopPropagation();
+                }
               });
               
-              // 점선 경로 클릭 이벤트 (롱프레스가 아닌 경우만)
+              // 점선 경로 클릭 이벤트 - 클릭 처리 (롱프레스가 아닌 경우만)
               route.dottedPathElement.addListener('click', function(event) {
                 // 롱프레스가 발생했다면 클릭 무시
                 if (routeLongPressTriggered) {
                   routeLongPressTriggered = false;
+                  if (event && event.domEvent) {
+                    event.domEvent.stopPropagation();
+                    event.domEvent.preventDefault();
+                  }
                   return;
                 }
                 
-                // mouseup에서 처리하지 못한 경우를 대비 (방어적 코드)
-                if (!routeLongPressTimer) {
-                  handleRouteClick(event);
+                // 롱프레스 타이머가 실행 중이면 클릭 무시 (아직 판단 중)
+                if (routeLongPressTimer) {
+                  return;
+                }
+                
+                // 일반 클릭 처리
+                // 메뉴창 닫기
+                const customMapMenu = getElement('customMapMenu');
+                const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
+                
+                if (!customMapMenu.classList.contains('hide')) {
+                  hideMenu();
+                }
+                if (rightPanelOpen) {
+                  hideRightMenu();
+                }
+                
+                if (isRouteMode) { addUserRoutePoint(event.latLng); return; }
+                if (isMarkerMode) { addCustomMarker(event.latLng); return; }
+                showRouteInfo(route, event.latLng);
+                
+                // 이벤트 전파 방지
+                if (event && event.domEvent) {
+                  event.domEvent.stopPropagation();
+                  event.domEvent.preventDefault();
                 }
               });
             }
