@@ -2192,8 +2192,8 @@
         <button id="fullscreenBtn" onclick="toggleFullscreen()" title="전체화면">⛶</button>
     </div>
     
-    <!-- 카메라 입력 (숨김) - iOS에서 네이티브 카메라 앱 사용을 위해 capture 속성 제거 -->
-    <input type="file" id="cameraInput" accept="image/*" style="display: none;">
+    <!-- 카메라 입력 (숨김) - 즉시 카메라 촬영 -->
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
 
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
@@ -4286,7 +4286,7 @@
                             "
                             onmouseover="this.style.background='rgba(59, 130, 246, 0.18)';"
                             onmouseout="this.style.background='rgba(59, 130, 246, 0.12)';">
-                      📷 사진가져오기
+                      📷 사진촬영
                     </button>
                   </div>
                 </div>
@@ -4393,7 +4393,7 @@
                             "
                             onmouseover="this.style.background='rgba(59, 130, 246, 0.18)';"
                             onmouseout="this.style.background='rgba(59, 130, 246, 0.12)';">
-                      📷 사진가져오기
+                      📷 사진촬영
                     </button>
                   </div>
                 </div>
