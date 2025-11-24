@@ -2359,6 +2359,36 @@
       });
       
       // ============================================================================
+      // 📦 NAMESPACE MANAGERS - 기능별 네임스페이스 관리자
+      // ============================================================================
+      
+      // 네임스페이스 객체들 정의 (함수들을 그룹화)
+      const WMAP = {
+        // 유틸리티 함수들
+        Utils: {},
+        // 지도 관리
+        Map: {},
+        // 마커 관리
+        Marker: {},
+        // 경로 관리
+        Route: {},
+        // Firebase 관리
+        Firebase: {},
+        // UI 관리
+        UI: {},
+        // KML 관리
+        KML: {},
+        // 사진 관리
+        Photo: {},
+        // 일정 관리
+        Schedule: {},
+        // 주소 검색 관리
+        Address: {},
+        // 에러 처리
+        Error: {}
+      };
+      
+      // ============================================================================
       // 🛠️ UTILITY FUNCTIONS - 유틸리티 함수
       // ============================================================================
       
@@ -2373,6 +2403,8 @@
         }
         return cachedElements[id];
       }
+      // 네임스페이스에도 할당 (하위 호환성 유지)
+      WMAP.Utils.getElement = getElement;
       
       // 캐시 무효화 함수 (동적 요소 추가 시 사용)
       function invalidateCache(key) {
@@ -2382,6 +2414,7 @@
           cachedElements = {}; // 전체 캐시 클리어
         }
       }
+      WMAP.Utils.invalidateCache = invalidateCache;
       
       // 다이얼로그/요소 제거 헬퍼
       function removeElement(id) {
@@ -2391,11 +2424,13 @@
           invalidateCache(id);
         }
       }
+      WMAP.Utils.removeElement = removeElement;
       
       // 여러 요소 한 번에 제거
       function removeElements(...ids) {
         ids.forEach(id => removeElement(id));
       }
+      WMAP.Utils.removeElements = removeElements;
       
       // ─────────────────────────────────────────────────────────────────────────
       // 스타일 유틸리티 함수 (중복 코드 제거)
@@ -2596,6 +2631,7 @@
           throw error;
         }
       }
+      WMAP.Firebase.updateDoc = updateFirebaseDoc;
       
       // Firebase 문서 가져오기 헬퍼
       async function getFirebaseDoc() {
@@ -2613,6 +2649,7 @@
           throw error;
         }
       }
+      WMAP.Firebase.getDoc = getFirebaseDoc;
       
       // ─────────────────────────────────────────────────────────────────────────
       // 동기화 상태 관리 헬퍼
@@ -2649,6 +2686,7 @@
           }
         }
       }
+      WMAP.Firebase.withSyncStatus = withSyncStatus;
       
       // ─────────────────────────────────────────────────────────────────────────
       // KML/KMZ 파일 처리 유틸리티
@@ -2708,6 +2746,7 @@
           alert('KML/KMZ 파일을 불러오는데 실패했습니다.\n오류: ' + error.message);
         }
       }
+      WMAP.KML.loadFile = loadKmlFile;
       
       // KML 파싱 및 지도 표시 함수
       function parseAndDisplayKml(kmlText, fileName) {
@@ -2840,6 +2879,7 @@
           alert('KML 파일을 표시하는데 실패했습니다.\n오류: ' + error.message);
         }
       }
+      WMAP.KML.parseAndDisplay = parseAndDisplayKml;
       
       // 강제 새로고침 함수 (캐시 무시하고 서버에서 최신 코드 로드)
       function forceReload() {
@@ -2878,6 +2918,7 @@
           }
         }
       }
+      WMAP.KML.clearLayer = clearKmlLayer;
       
       // KML 데이터 분석 함수
       function analyzeKmlData() {
@@ -2949,6 +2990,7 @@
         
         return { points, lines, polygons };
       }
+      WMAP.KML.analyze = analyzeKmlData;
       
       // KML 저장 다이얼로그 표시
       function showKmlSaveDialog() {
@@ -3077,6 +3119,8 @@
       function closeKmlSaveDialog() {
         removeElement('kmlSaveDialog');
       }
+      WMAP.KML.showSaveDialog = showKmlSaveDialog;
+      WMAP.KML.closeSaveDialog = closeKmlSaveDialog;
       
       // KML 데이터를 Firebase에 저장 실행
       async function executeKmlSave(targetLocation) {
@@ -3249,6 +3293,7 @@
           }
         }
       }
+      WMAP.KML.executeSave = executeKmlSave;
       
       // 마커 가시성 최적화 함수
       function optimizeMarkerVisibility() {
@@ -3319,6 +3364,7 @@
         
         return userMessage;
       }
+      WMAP.Error.handle = handleError;
       
       // 안전한 함수 실행 래퍼
       function safeExecute(fn, context = 'Unknown', fallback = null) {
@@ -3337,6 +3383,8 @@
           return fallback;
         });
       }
+      WMAP.Error.safeExecute = safeExecute;
+      WMAP.Error.safePromise = safePromise;
       
       // 통합 이벤트 핸들러 (이벤트 위임 패턴)
       // ─────────────────────────────────────────────────────────────────────────
