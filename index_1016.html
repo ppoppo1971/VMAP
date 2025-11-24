@@ -2578,22 +2578,10 @@
           }
           
           const docRef = window.firestore.doc(window.db, 'users', 'currentUser');
-          
-          // 문서 존재 여부 확인
-          const docSnap = await window.firestore.getDoc(docRef);
-          
-          // 문서가 없으면 setDoc with merge, 있으면 updateDoc 사용
-          if (docSnap.exists()) {
-            await window.firestore.updateDoc(docRef, {
-              ...data,
-              lastUpdated: window.firestore.serverTimestamp()
-            });
-          } else {
-            await window.firestore.setDoc(docRef, {
-              ...data,
-              lastUpdated: window.firestore.serverTimestamp()
-            }, { merge: true });
-          }
+          await window.firestore.updateDoc(docRef, {
+            ...data,
+            lastUpdated: window.firestore.serverTimestamp()
+          });
           
           if (showSuccess && typeof onFirebaseUploadSuccess === 'function') {
             onFirebaseUploadSuccess(successMessage);
@@ -2602,22 +2590,8 @@
           return true;
         } catch (error) {
           console.error('Firebase 업데이트 실패:', error);
-          console.error('에러 상세:', {
-            code: error.code,
-            message: error.message,
-            stack: error.stack
-          });
-          
           if (typeof updateSyncStatus === 'function') {
-            let errorMessage = '저장 실패';
-            if (error.code === 'permission-denied') {
-              errorMessage = '권한이 없습니다. 로그인 상태를 확인해주세요.';
-            } else if (error.code === 'unavailable') {
-              errorMessage = '네트워크 연결을 확인해주세요.';
-            } else if (error.message && error.message.includes('size')) {
-              errorMessage = '데이터가 너무 큽니다. 일부 데이터를 삭제하고 다시 시도해주세요.';
-            }
-            updateSyncStatus(errorMessage, 'error');
+            updateSyncStatus('저장 실패', 'error');
           }
           throw error;
         }
@@ -4564,21 +4538,9 @@
         async function compressImageToOneThird(file) {
           return new Promise((resolve, reject) => {
             const originalSize = file.size; // 원본 파일 크기 (bytes)
-            const targetSizeBytes = originalSize / 3; // 목표 크기: 원본의 1/3 (바이너리)
-            const prefix = 'data:image/jpeg;base64,';
-            const prefixLength = prefix.length; // 약 23자
-            
-            // Base64 인코딩: 바이너리 크기 × 4/3 + 접두사
-            // 목표 Base64 문자열 길이 = (목표 바이너리 크기 × 4/3) + 접두사 길이
-            const targetBase64Length = Math.floor((targetSizeBytes * 4 / 3) + prefixLength);
-            
-            // Base64 문자열에서 실제 바이너리 크기를 계산하는 함수
-            function getBinarySizeFromBase64(base64String) {
-              const base64Data = base64String.startsWith(prefix) 
-                ? base64String.slice(prefixLength) 
-                : base64String;
-              return Math.floor((base64Data.length * 3) / 4);
-            }
+            const targetSizeBytes = originalSize / 3; // 목표 크기: 원본의 1/3
+            // Base64는 원본의 약 1.37배이므로 Base64 문자열 길이 목표 계산
+            const targetBase64Length = Math.floor(targetSizeBytes * 1.37);
             
             console.log(`원본 크기: ${(originalSize / 1024 / 1024).toFixed(2)}MB, 목표 크기: ${(targetSizeBytes / 1024).toFixed(2)}KB`);
             
@@ -4594,7 +4556,7 @@
                 const originalWidth = width;
                 const originalHeight = height;
                 
-                // 초기 해상도는 원본 유지
+                // 초기 해상도는 원본 유지 (너무 작게 시작하지 않음)
                 canvas.width = width;
                 canvas.height = height;
                 
@@ -4604,38 +4566,30 @@
                 // 품질을 조정하며 목표 크기에 맞춤
                 let quality = 0.9;
                 let compressed = canvas.toDataURL('image/jpeg', quality);
-                let currentBinarySize = getBinarySizeFromBase64(compressed);
                 
-                // 목표 바이너리 크기에 맞추기 위해 품질 조정
-                while (currentBinarySize > targetSizeBytes && quality > 0.1) {
+                // 목표 크기에 맞추기 위해 품질 조정
+                while (compressed.length > targetBase64Length && quality > 0.1) {
                   quality -= 0.05;
                   compressed = canvas.toDataURL('image/jpeg', quality);
-                  currentBinarySize = getBinarySizeFromBase64(compressed);
                 }
                 
                 // 품질만으로 목표에 도달하지 못하면 크기를 점진적으로 줄임
-                if (currentBinarySize > targetSizeBytes) {
+                if (compressed.length > targetBase64Length) {
                   let scale = 0.9;
-                  let lastQuality = quality;
-                  while (currentBinarySize > targetSizeBytes && scale > 0.3) {
+                  while (compressed.length > targetBase64Length && scale > 0.3) {
                     width = Math.floor(originalWidth * scale);
                     height = Math.floor(originalHeight * scale);
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
-                    
-                    // 크기 축소 시 품질도 함께 조정
-                    lastQuality = Math.max(0.5, lastQuality - 0.1);
-                    compressed = canvas.toDataURL('image/jpeg', lastQuality);
-                    currentBinarySize = getBinarySizeFromBase64(compressed);
+                    compressed = canvas.toDataURL('image/jpeg', 0.8);
                     scale -= 0.1;
                   }
                 }
                 
-                const finalBinarySize = currentBinarySize;
-                const finalSizeKB = (finalBinarySize / 1024).toFixed(2);
-                const finalSizeMB = (finalBinarySize / 1024 / 1024).toFixed(2);
-                const compressionRatio = ((1 - finalBinarySize / originalSize) * 100).toFixed(1);
+                const finalSizeKB = (compressed.length / 1024).toFixed(2);
+                const finalSizeMB = (compressed.length / 1024 / 1024).toFixed(2);
+                const compressionRatio = ((1 - compressed.length / (originalSize * 1.37)) * 100).toFixed(1);
                 
                 console.log(`이미지 압축 완료: ${finalSizeKB}KB (${finalSizeMB}MB), 원본 대비 ${compressionRatio}% 축소, 품질: ${(quality * 100).toFixed(0)}%, 해상도: ${width}x${height}`);
                 resolve(compressed);
@@ -4720,26 +4674,9 @@
                 </div>
               </div>
               <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                <button onclick="downloadPhoto('${photoId}', '${imageData.replace(/'/g, "\\'")}')" 
-                        style="
-                          flex: 1;
-                          background: rgba(59, 130, 246, 0.12);
-                          color: #2563eb;
-                          border: 1px solid rgba(59, 130, 246, 0.3);
-                          border-radius: 8px;
-                          padding: 8px 16px;
-                          font-size: 13px;
-                          font-weight: 500;
-                          cursor: pointer;
-                          transition: all 0.2s ease;
-                        "
-                        onmouseover="this.style.background='rgba(59, 130, 246, 0.2)';"
-                        onmouseout="this.style.background='rgba(59, 130, 246, 0.12)';">
-                  💾 다운로드
-                </button>
                 <button onclick="deletePhoto('${photoId}')" 
                         style="
-                          flex: 1;
+                          width: 100%;
                           background: rgba(239, 68, 68, 0.12);
                           color: #dc2626;
                           border: 1px solid rgba(239, 68, 68, 0.3);
@@ -4752,7 +4689,7 @@
                         "
                         onmouseover="this.style.background='rgba(239, 68, 68, 0.2)';"
                         onmouseout="this.style.background='rgba(239, 68, 68, 0.12)';">
-                  🗑️ 삭제
+                  🗑️ 사진 삭제
                 </button>
               </div>
             </div>
@@ -4842,28 +4779,6 @@
                     "
                     onmouseover="this.style.background='rgba(255, 255, 255, 0.3)';"
                     onmouseout="this.style.background='rgba(255, 255, 255, 0.2)';">×</button>
-            <button onclick="downloadPhoto('${photoId || ''}', '${imageData.replace(/'/g, "\\'")}'); closePhotoViewer();" 
-                    style="
-                      position: absolute;
-                      bottom: 20px;
-                      left: 50%;
-                      transform: translateX(-50%);
-                      background: rgba(59, 130, 246, 0.9);
-                      color: white;
-                      border: none;
-                      border-radius: 12px;
-                      padding: 12px 24px;
-                      font-size: 16px;
-                      font-weight: 600;
-                      cursor: pointer;
-                      z-index: 10001;
-                      transition: all 0.2s ease;
-                      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-                    "
-                    onmouseover="this.style.background='rgba(59, 130, 246, 1)'; this.style.transform='translateX(-50%) scale(1.05)';"
-                    onmouseout="this.style.background='rgba(59, 130, 246, 0.9)'; this.style.transform='translateX(-50%) scale(1)';">
-              💾 사진 다운로드
-            </button>
             <img src="${imageData}" 
                  style="
                    max-width: 95vw;
@@ -4903,17 +4818,6 @@
           if (existingDialog) {
             existingDialog.remove();
           }
-          
-          // imageData를 전역 변수에 임시 저장 (Base64 문자열이 너무 길어서 HTML 속성에 직접 넣을 수 없음)
-          if (!window.tempPhotoData) {
-            window.tempPhotoData = {};
-          }
-          const tempPhotoId = 'temp_photo_' + Date.now();
-          window.tempPhotoData[tempPhotoId] = {
-            lat: lat,
-            lng: lng,
-            imageData: imageData
-          };
           
           // Firebase에서 현장 목록 가져오기
           const customSchedules = window.db ? [] : [];
@@ -4956,7 +4860,7 @@
               addedTitles.add(scheduleTitle);
               
               locationButtonsHtml += `
-                <button onclick="savePhotoWithLocationFromTemp('${tempPhotoId}', '${scheduleTitle.replace(/'/g, "\\'")}')" 
+                <button onclick="savePhotoWithLocation('${lat}', '${lng}', '${imageData.replace(/'/g, "\\'")}', '${scheduleTitle}')" 
                         style="width: 100%; background: rgba(255, 255, 255, 0.12); color: #000; border: none; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; backdrop-filter: blur(10px);"
                         onmouseover="this.style.background='rgba(255, 255, 255, 0.18)'"
                         onmouseout="this.style.background='rgba(255, 255, 255, 0.12)'">
@@ -4990,20 +4894,6 @@
             dialog.remove();
           }
           
-          // 임시 사진 데이터 정리 (오래된 데이터는 자동 삭제)
-          if (window.tempPhotoData) {
-            const now = Date.now();
-            Object.keys(window.tempPhotoData).forEach(key => {
-              if (key.startsWith('temp_photo_')) {
-                const timestamp = parseInt(key.split('_')[2]);
-                // 5분 이상 된 임시 데이터 삭제
-                if (now - timestamp > 5 * 60 * 1000) {
-                  delete window.tempPhotoData[key];
-                }
-              }
-            });
-          }
-          
           // 롱프레스 마커 제거
           if (longPressMarker) {
             longPressMarker.setMap(null);
@@ -5017,94 +4907,7 @@
           }
         };
         
-        // 임시 저장된 사진 데이터로 저장 (Base64 문자열이 너무 길어서 사용)
-        window.savePhotoWithLocationFromTemp = async function(tempPhotoId, location) {
-          try {
-            if (!window.tempPhotoData || !window.tempPhotoData[tempPhotoId]) {
-              alert('사진 데이터를 찾을 수 없습니다.');
-              return;
-            }
-            
-            const tempData = window.tempPhotoData[tempPhotoId];
-            const lat = tempData.lat;
-            const lng = tempData.lng;
-            const imageData = tempData.imageData;
-            
-            // 로딩 표시
-            const loadingMessage = document.createElement('div');
-            loadingMessage.id = 'photoUploadLoadingMessage';
-            loadingMessage.style.cssText = `
-              position: fixed;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              background: rgba(0, 0, 0, 0.8);
-              color: white;
-              padding: 20px 30px;
-              border-radius: 12px;
-              z-index: 10001;
-              font-size: 16px;
-              text-align: center;
-            `;
-            loadingMessage.textContent = '사진 업로드 중...';
-            document.body.appendChild(loadingMessage);
-            
-            // 임시 데이터 삭제 (에러 발생 시 복구 불가능하므로 저장 성공 후 삭제)
-            // delete window.tempPhotoData[tempPhotoId];
-            
-            // 다이얼로그 닫기
-            closePhotoLocationDialog();
-            
-            // 사진 마커 생성 (롱프레스 마커를 사진 마커로 대체)
-            await createPhotoMarker(parseFloat(lat), parseFloat(lng), imageData, location);
-            
-            // 임시 데이터 삭제 (성공 후)
-            delete window.tempPhotoData[tempPhotoId];
-            
-            // 로딩 메시지 제거
-            loadingMessage.remove();
-            
-            // 롱프레스 마커 제거
-            if (longPressMarker) {
-              longPressMarker.setMap(null);
-              longPressMarker = null;
-            }
-            
-            // 성공 메시지는 savePhotoToFirebase에서 처리
-            
-          } catch (error) {
-            console.error('사진 저장 실패:', error);
-            console.error('에러 상세:', {
-              code: error.code,
-              message: error.message,
-              name: error.name
-            });
-            
-            // 로딩 메시지 제거
-            const loadingMsg = document.getElementById('photoUploadLoadingMessage');
-            if (loadingMsg) loadingMsg.remove();
-            
-            let errorMessage = '사진 저장에 실패했습니다.';
-            if (error.code === 'permission-denied') {
-              errorMessage = '권한이 없습니다. 로그인 상태를 확인해주세요.';
-            } else if (error.code === 'unavailable') {
-              errorMessage = '네트워크 연결을 확인해주세요.';
-            } else if (error.message && error.message.includes('size')) {
-              errorMessage = '사진이 너무 큽니다. 다른 사진을 삭제하고 다시 시도해주세요.';
-            } else if (error.message) {
-              errorMessage = `사진 저장 실패: ${error.message}`;
-            }
-            
-            alert(errorMessage);
-            
-            // 에러 발생 시 임시 데이터 정리
-            if (window.tempPhotoData && window.tempPhotoData[tempPhotoId]) {
-              delete window.tempPhotoData[tempPhotoId];
-            }
-          }
-        };
-        
-        // 선택한 현장에 사진 저장 (기존 함수 유지 - 호환성)
+        // 선택한 현장에 사진 저장
         window.savePhotoWithLocation = async function(lat, lng, imageData, location) {
           try {
             // 다이얼로그 닫기
@@ -5234,62 +5037,6 @@
         };
         
         // 사진 메모 저장
-        // 사진 다운로드 함수
-        window.downloadPhoto = function(photoId, imageData) {
-          try {
-            // photoId로 사진 정보 찾기 (파일명에 사용)
-            const photoData = window.savedPhotoMarkers.find(p => p.id === photoId);
-            let fileName = 'photo';
-            
-            if (photoData) {
-              // 타임스탬프에서 파일명 생성
-              if (photoData.timestamp) {
-                const date = new Date(photoData.timestamp);
-                const dateStr = date.toISOString().replace(/[:.]/g, '-').slice(0, -5);
-                fileName = `WMAP_${dateStr}`;
-              } else {
-                fileName = `WMAP_${photoId}`;
-              }
-              
-              // 위치 정보가 있으면 파일명에 추가
-              if (photoData.location && photoData.location !== '기본') {
-                fileName = `${photoData.location}_${fileName}`;
-              }
-            } else {
-              fileName = `WMAP_${photoId}`;
-            }
-            
-            // Base64 데이터를 Blob으로 변환
-            const base64Data = imageData.split(',')[1] || imageData;
-            const byteCharacters = atob(base64Data);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: 'image/jpeg' });
-            
-            // 다운로드 링크 생성
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${fileName}.jpg`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // 메모리 해제
-            setTimeout(() => {
-              URL.revokeObjectURL(url);
-            }, 100);
-            
-            console.log(`사진 다운로드 완료: ${fileName}.jpg`);
-          } catch (error) {
-            console.error('사진 다운로드 실패:', error);
-            alert('사진 다운로드에 실패했습니다.');
-          }
-        };
-        
         window.savePhotoMemo = async function(photoId) {
           const textarea = document.getElementById('photoMemoInput');
           if (!textarea) return;
@@ -5405,46 +5152,13 @@
           }
         };
         
-        // Firebase 초기화 대기 함수
-        async function waitForFirebaseInit(maxWait = 10000) {
-          const startTime = Date.now();
-          while (!window.db || !window.firestore) {
-            if (Date.now() - startTime > maxWait) {
-              throw new Error('Firebase 초기화 시간 초과');
-            }
-            await new Promise(resolve => setTimeout(resolve, 100));
-          }
-          return true;
-        }
-        
         // Firebase에 사진 저장
         async function savePhotoToFirebase(lat, lng, imageData, marker, location) {
           try {
-            // Firebase 초기화 대기
-            await waitForFirebaseInit();
-            
             if (!window.db || !window.firestore) {
               throw new Error('Firebase가 초기화되지 않았습니다.');
             }
             
-            // Base64 문자열에서 실제 바이너리 크기 계산
-            const prefix = 'data:image/jpeg;base64,';
-            const prefixLength = prefix.length;
-            const base64Data = imageData.startsWith(prefix) 
-              ? imageData.slice(prefixLength) 
-              : imageData;
-            // 실제 바이너리 크기 = (Base64 문자열 길이 × 3) / 4
-            const actualBinarySize = Math.floor((base64Data.length * 3) / 4);
-            const imageDataSizeKB = (actualBinarySize / 1024).toFixed(2);
-            const imageDataSizeMB = (actualBinarySize / 1024 / 1024).toFixed(2);
-            console.log(`사진 데이터 크기: ${imageDataSizeKB}KB (${imageDataSizeMB}MB), Base64 문자열 길이: ${imageData.length} 문자`);
-            
-            // Firestore 문서 크기 제한 체크 (1MB = 1,048,576 bytes)
-            if (actualBinarySize > 800000) { // 약 800KB 이상이면 경고
-              console.warn('사진 데이터가 큽니다. 업로드에 시간이 걸릴 수 있습니다.');
-            }
-            
-            // Firebase에 저장할 사진 데이터 (순수 데이터만, DOM 객체 제외)
             const photoData = {
               id: 'photo_' + Date.now(),
               lat: lat,
@@ -5460,133 +5174,29 @@
             const docSnap = await window.firestore.getDoc(
               window.firestore.doc(window.db, 'users', 'currentUser')
             );
-            let savedPhotos = docSnap.exists() && docSnap.data().savedPhotos 
+            const savedPhotos = docSnap.exists() && docSnap.data().savedPhotos 
               ? docSnap.data().savedPhotos 
               : [];
             
-            // 기존 사진 데이터 정리 (불필요한 속성 제거)
-            savedPhotos = savedPhotos.map(photo => {
-              const cleanPhoto = {
-                id: photo.id,
-                lat: photo.lat,
-                lng: photo.lng,
-                imageData: photo.imageData,
-                location: photo.location || '기본',
-                memo: photo.memo || '',
-                timestamp: photo.timestamp,
-                type: photo.type || 'photo'
-              };
-              return cleanPhoto;
-            });
-            
-            // 전체 문서 크기 예상 (기존 사진들 + 새 사진)
-            const existingPhotosSize = savedPhotos.reduce((total, photo) => {
-              if (!photo.imageData) return total;
-              const photoPrefix = 'data:image/jpeg;base64,';
-              const photoBase64 = photo.imageData.startsWith(photoPrefix) 
-                ? photo.imageData.slice(photoPrefix.length) 
-                : photo.imageData;
-              const photoBinarySize = Math.floor((photoBase64.length * 3) / 4);
-              return total + photoBinarySize;
-            }, 0);
-            const totalSize = existingPhotosSize + actualBinarySize;
-            const totalSizeKB = (totalSize / 1024).toFixed(2);
-            const totalSizeMB = (totalSize / 1024 / 1024).toFixed(2);
-            
-            console.log(`전체 사진 데이터 크기: ${totalSizeKB}KB (${totalSizeMB}MB)`);
-            
-            // Firestore 문서 크기 제한 체크 (1MB = 1,048,576 bytes)
-            if (totalSize > 1000000) { // 1MB 초과 시 에러
-              throw new Error(`전체 사진 데이터가 너무 큽니다 (${totalSizeMB}MB). Firestore 문서 크기 제한(1MB)을 초과합니다. 일부 사진을 삭제하고 다시 시도해주세요.`);
-            }
-            
-            if (totalSize > 900000) { // 약 900KB 이상이면 경고
-              console.warn(`전체 사진 데이터 크기: ${totalSizeKB}KB - Firestore 제한에 근접합니다.`);
-            }
-            
-            // 개별 사진 크기 체크 (Firestore 문자열 필드 제한: 1MB)
-            // Base64 문자열을 UTF-8로 인코딩하면 약 1.4배 크기
-            // 안전하게 1,300,000 문자로 제한 (약 975KB 바이너리)
-            if (imageData.length > 1300000) {
-              throw new Error(`사진이 너무 큽니다 (${imageDataSizeMB}MB). Firestore 제한을 초과합니다. 더 작은 사진을 촬영하거나 압축을 강화해주세요.`);
-            }
-            
             const updatedPhotos = [photoData, ...savedPhotos];
             
-            console.log('Firebase에 사진 저장 시도 중...');
             await updateFirebaseDoc({
               savedPhotos: updatedPhotos
             }, true, '사진 저장 완료');
             
-            // 전역 변수에 마커 저장 (복원용) - markerElement는 여기서만 추가
+            // 전역 변수에 마커 저장 (복원용)
             if (!window.savedPhotoMarkers) {
               window.savedPhotoMarkers = [];
             }
-            const photoDataWithMarker = { ...photoData };
-            photoDataWithMarker.markerElement = marker; // DOM 객체는 전역 변수에만 저장
-            window.savedPhotoMarkers.push(photoDataWithMarker);
+            photoData.markerElement = marker;
+            window.savedPhotoMarkers.push(photoData);
             
             console.log('사진 Firebase 저장 완료');
             onFirebaseUploadSuccess('사진');
             
           } catch (error) {
             console.error('사진 Firebase 저장 실패:', error);
-            console.error('에러 상세:', {
-              code: error.code,
-              message: error.message,
-              name: error.name
-            });
-            
-            // 오프라인이거나 네트워크 오류인 경우 대기 작업으로 저장
-            if (error.code === 'unavailable' || !navigator.onLine) {
-              console.log('오프라인 상태 - 사진 저장을 대기 작업으로 추가');
-              
-              // 대기 작업 추가 (순수 데이터만 저장, markerElement 제외)
-              if (typeof addPendingOperation === 'function') {
-                // Firebase에 저장할 순수 데이터만 추출
-                const cleanPhotoData = {
-                  id: photoData.id,
-                  lat: photoData.lat,
-                  lng: photoData.lng,
-                  imageData: photoData.imageData,
-                  location: photoData.location || '기본',
-                  memo: photoData.memo || '',
-                  timestamp: photoData.timestamp,
-                  type: photoData.type || 'photo'
-                };
-                
-                addPendingOperation({
-                  type: OPERATION_TYPES.PHOTO_SAVE,
-                  data: cleanPhotoData,
-                  timestamp: Date.now()
-                });
-                
-                // 전역 변수에 마커 저장 (복원용) - 오프라인에서도 마커는 표시
-                if (!window.savedPhotoMarkers) {
-                  window.savedPhotoMarkers = [];
-                }
-                const photoDataWithMarker = { ...photoData };
-                photoDataWithMarker.markerElement = marker; // DOM 객체는 전역 변수에만 저장
-                window.savedPhotoMarkers.push(photoDataWithMarker);
-                
-                alert('오프라인 상태입니다. 네트워크 연결 시 자동으로 저장됩니다.');
-                return; // 에러를 throw하지 않고 종료
-              }
-            }
-            
-            let errorMessage = '사진 저장에 실패했습니다.';
-            if (error.code === 'permission-denied') {
-              errorMessage = '권한이 없습니다. 로그인 상태를 확인해주세요.';
-            } else if (error.code === 'unavailable') {
-              errorMessage = '네트워크 연결을 확인해주세요.';
-            } else if (error.message && error.message.includes('size')) {
-              errorMessage = '사진이 너무 큽니다. 다른 사진을 삭제하고 다시 시도해주세요.';
-            } else if (error.message) {
-              errorMessage = `사진 저장 실패: ${error.message}`;
-            }
-            
-            alert(errorMessage);
-            throw error; // 상위 함수에서도 에러 처리할 수 있도록
+            alert('사진 저장에 실패했습니다. 네트워크를 확인해주세요.');
           }
         }
         
@@ -12347,8 +11957,7 @@
         SCHEDULE_ADD: 'scheduleAdd',
         SCHEDULE_UPDATE: 'scheduleUpdate',
         SCHEDULE_DELETE: 'scheduleDelete',
-        SCHEDULE_ORDER: 'scheduleOrder',
-        PHOTO_SAVE: 'photoSave'
+        SCHEDULE_ORDER: 'scheduleOrder'
       };
       
       // 동시 수정 방지를 위한 락 맵
@@ -12615,62 +12224,6 @@
               lastUpdated: window.firestore.serverTimestamp()
             });
             console.log('일정 순서 대기 작업 완료:', operation.id);
-            break;
-            
-          case OPERATION_TYPES.PHOTO_SAVE:
-            // 기존 사진들을 가져와서 맨 앞에 추가
-            const docSnap = await window.firestore.getDoc(userDocRef);
-            let savedPhotos = docSnap.exists() && docSnap.data().savedPhotos 
-              ? docSnap.data().savedPhotos 
-              : [];
-            
-            // 기존 사진 데이터 정리 (불필요한 속성 제거)
-            savedPhotos = savedPhotos.map(photo => {
-              const cleanPhoto = {
-                id: photo.id,
-                lat: photo.lat,
-                lng: photo.lng,
-                imageData: photo.imageData,
-                location: photo.location || '기본',
-                memo: photo.memo || '',
-                timestamp: photo.timestamp,
-                type: photo.type || 'photo'
-              };
-              return cleanPhoto;
-            });
-            
-            // 새 사진 데이터 정리 (operation.data에서 불필요한 속성 제거)
-            const cleanPhotoData = {
-              id: operation.data.id,
-              lat: operation.data.lat,
-              lng: operation.data.lng,
-              imageData: operation.data.imageData,
-              location: operation.data.location || '기본',
-              memo: operation.data.memo || '',
-              timestamp: operation.data.timestamp,
-              type: operation.data.type || 'photo'
-            };
-            
-            // Base64 문자열 길이 체크 (Firestore 문자열 필드 제한: 1MB)
-            if (cleanPhotoData.imageData && cleanPhotoData.imageData.length > 1000000) {
-              throw new Error('사진 데이터가 너무 큽니다. Firestore 제한을 초과합니다.');
-            }
-            
-            const updatedPhotos = [cleanPhotoData, ...savedPhotos];
-            
-            // 문서 존재 여부 확인 후 저장
-            if (docSnap.exists()) {
-              await window.firestore.updateDoc(userDocRef, {
-                savedPhotos: updatedPhotos,
-                lastUpdated: window.firestore.serverTimestamp()
-              });
-            } else {
-              await window.firestore.setDoc(userDocRef, {
-                savedPhotos: updatedPhotos,
-                lastUpdated: window.firestore.serverTimestamp()
-              }, { merge: true });
-            }
-            console.log('사진 저장 대기 작업 완료:', operation.id);
             break;
             
           default:
