@@ -8362,11 +8362,30 @@
         if (isMarkerMode || isRouteMode) {
           return;
         }
-         // 기존 정보창이 있으면 제거
+         // 기존 정보창이 있으면 제거 및 정리
          if (window.currentInfoWindow) {
            window.currentInfoWindow.close();
            window.currentInfoWindow = null;
          }
+         
+         // 기존 외부 클릭 이벤트 리스너 제거 (중요!)
+         if (window.routeInfoOutsideClickHandler) {
+           document.removeEventListener('click', window.routeInfoOutsideClickHandler);
+           window.routeInfoOutsideClickHandler = null;
+         }
+         if (window.markerInfoOutsideClickHandler) {
+           document.removeEventListener('click', window.markerInfoOutsideClickHandler);
+           window.markerInfoOutsideClickHandler = null;
+         }
+         if (window.photoInfoOutsideClickHandler) {
+           document.removeEventListener('click', window.photoInfoOutsideClickHandler);
+           window.photoInfoOutsideClickHandler = null;
+         }
+         
+         // 추적 변수 초기화
+         window.currentOpenRouteId = null;
+         window.currentOpenMarkerGroup = markerGroup.id || markerGroup.name;
+         window.currentOpenMarkerIndex = index;
         
         // 저장된 정보로 정보창 표시 (그룹 id 우선 전달)
         showMarkerInfoWithData(markerGroup.id || markerGroup.name, index);
@@ -8510,10 +8529,30 @@
            </div>
          `;
          
-         // 기존 정보창이 있으면 제거
+         // 기존 정보창이 있으면 제거 및 정리
          if (window.currentInfoWindow) {
            window.currentInfoWindow.close();
+           window.currentInfoWindow = null;
          }
+         
+         // 기존 외부 클릭 이벤트 리스너 제거 (중요!)
+         if (window.routeInfoOutsideClickHandler) {
+           document.removeEventListener('click', window.routeInfoOutsideClickHandler);
+           window.routeInfoOutsideClickHandler = null;
+         }
+         if (window.markerInfoOutsideClickHandler) {
+           document.removeEventListener('click', window.markerInfoOutsideClickHandler);
+           window.markerInfoOutsideClickHandler = null;
+         }
+         if (window.photoInfoOutsideClickHandler) {
+           document.removeEventListener('click', window.photoInfoOutsideClickHandler);
+           window.photoInfoOutsideClickHandler = null;
+         }
+         
+         // 추적 변수 초기화
+         window.currentOpenMarkerGroup = null;
+         window.currentOpenMarkerIndex = null;
+         window.currentOpenRouteId = route.id;
          
          // clickPosition이 null이면 경로의 중간 지점 계산
          let infoPosition = clickPosition;
@@ -9104,6 +9143,11 @@
           return;
         }
         
+        // 동기화 플래그 설정 (실시간 리스너가 덮어쓰는 것 방지)
+        if (typeof isSyncing !== 'undefined') {
+          isSyncing = true;
+        }
+        
         try {
           // Firebase에 먼저 저장 (로컬 캐시 로직 단순화)
           if (!window.db || !window.firestore) {
@@ -9141,16 +9185,20 @@
             lineStyle: selectedLineStyle
           };
           
+          // 저장 직후 즉시 모든 경로 완전히 재렌더링 (색상/스타일 변경 등 실시간 반영)
+          clearAllRenderedRoutes();
+          drawAllSavedRoutes();
+          
+          // 성공 메시지
+          onFirebaseUploadSuccess('경로 정보');
+          
           // 편집 다이얼로그 닫기
           const editDialog = document.getElementById('routeEditDialog');
           if (editDialog) {
             editDialog.remove();
           }
           
-          // 모든 경로를 다시 그려서 스타일 적용 (KML 경로의 실선 유지)
-          drawAllSavedRoutes();
-          
-          // 저장 후 현재 정보창에 내용 표시로 갱신
+          // 저장 후 현재 정보창에 내용 표시로 갱신 (재렌더링 후 업데이트된 정보로)
           const route = savedUserRoutes.find(r => r.id === routeId) || { id: routeId, name: routeName, path: [] };
           // 경로의 중간 지점 계산
           let centerPos = null;
@@ -9159,10 +9207,9 @@
             const midPoint = route.path[midIdx];
             centerPos = new google.maps.LatLng(midPoint.lat, midPoint.lng);
           }
-          showRouteInfo(route, centerPos);
-          
-          // 성공 알림
-
+          setTimeout(() => {
+            showRouteInfo(route, centerPos);
+          }, 50);
           
         } catch (error) {
           console.error('경로 정보 저장 실패:', error);
@@ -9177,7 +9224,17 @@
           
           // 로컬 캐시에는 즉시 반영 (사용자 경험 향상)
           routeInfoData = routeInfoData || {};
-          routeInfoData[routeId] = { content: newContent, link: newLink, color: selectedColor };
+          routeInfoData[routeId] = { 
+            ...existingRouteInfo,
+            content: newContent, 
+            link: newLink, 
+            color: selectedColor,
+            lineStyle: selectedLineStyle
+          };
+          
+          // 오프라인 저장 후에도 즉시 모든 경로 완전히 재렌더링 (색상/스타일 변경 등 실시간 반영)
+          clearAllRenderedRoutes();
+          drawAllSavedRoutes();
           
           // 편집 다이얼로그 닫기
           const editDialog = document.getElementById('routeEditDialog');
@@ -9185,10 +9242,7 @@
             editDialog.remove();
           }
           
-          // 경로 색상 즉시 업데이트
-          updateRouteColor(routeId, selectedColor);
-          
-          // 저장 후 현재 정보창에 내용 표시로 갱신
+          // 저장 후 현재 정보창에 내용 표시로 갱신 (재렌더링 후 업데이트된 정보로)
           const route = savedUserRoutes.find(r => r.id === routeId) || { id: routeId, name: routeName, path: [] };
           // 경로의 중간 지점 계산
           let centerPos = null;
@@ -9197,7 +9251,9 @@
             const midPoint = route.path[midIdx];
             centerPos = new google.maps.LatLng(midPoint.lat, midPoint.lng);
           }
-          showRouteInfo(route, centerPos);
+          setTimeout(() => {
+            showRouteInfo(route, centerPos);
+          }, 50);
           
           // 구체적인 오류 메시지
           let errorMessage = '경로 정보가 임시 저장되었습니다.';
@@ -9208,12 +9264,18 @@
           }
           
           // 성공적인 저장처럼 보이도록 처리
-
           alert(errorMessage);
           
         } finally {
           // 락 해제
           releaseLock(lockKey);
+          
+          // 동기화 플래그 해제 (재렌더링 완료 후 - 실시간 동기화 허용)
+          setTimeout(() => {
+            if (typeof isSyncing !== 'undefined') {
+              isSyncing = false;
+            }
+          }, 100); // 100ms 후 플래그 해제 (재렌더링 완료 대기)
         }
       }
       // 마커 정보 수정 함수
@@ -9845,7 +9907,8 @@
           window.photoInfoOutsideClickHandler = null;
         }
         
-        // 현재 열린 마커 정보 추적
+        // 현재 열린 마커 정보 추적 (경로 정보 초기화)
+        window.currentOpenRouteId = null;
         window.currentOpenMarkerGroup = markerGroupName;
         window.currentOpenMarkerIndex = index;
         
