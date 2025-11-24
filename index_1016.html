@@ -2198,7 +2198,7 @@
     
     <!-- 왼쪽 고정형 사이드바 메뉴 -->
     <div id="customMapMenu" class="hide">
-      <h2 onclick="forceReload()" title="새로고침 (캐시 무시)">WMAP1237</h2>
+      <h2 onclick="forceReload()" title="새로고침 (캐시 무시)">WMAP1256</h2>
       <div class="menu-group">
         <input type="text" id="addressInput" placeholder="위치검색" style="width: 90%; margin-bottom: 4px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; background: rgba(255, 255, 255, 0.1); color: #1a1a1a; font-size: 0.9rem;" onkeydown="if(event.key==='Enter'){searchAddress();}">
       </div>
@@ -4137,13 +4137,17 @@
           const lat = typeof latLng.lat === 'function' ? latLng.lat() : latLng.lat;
           const lng = typeof latLng.lng === 'function' ? latLng.lng() : latLng.lng;
           
-          // 기존 롱프레스 마커 제거
+          // ⚠️ 중요: 기존 마커나 경로를 감지하지 않고 항상 새로운 임시 마커를 생성합니다.
+          // 롱프레스 위치에 기존 마커/경로가 있어도 무시하고 새로운 임시 마커를 생성합니다.
+          
+          // 기존 롱프레스 마커 제거 (이전 롱프레스로 생성된 임시 마커만 제거)
           if (longPressMarker) {
             longPressMarker.setMap(null);
             longPressMarker = null;
           }
           
-          // 임시 마커 생성 (파란색 핀으로 구별)
+          // 항상 새로운 임시 마커 생성 (파란색 핀으로 구별)
+          // 기존 저장된 마커나 경로와 관계없이 항상 새로 생성됩니다.
           longPressMarker = new google.maps.Marker({
             position: latLng,
             map: map,
@@ -4586,6 +4590,13 @@
           
           // 마커 클릭 시 사진 표시
           photoMarker.addListener('click', function() {
+            // 롱프레스가 발생했으면 롱프레스 정보창 표시 (기존 사진 정보창 대신)
+            if (longPressTriggered) {
+              longPressTriggered = false;
+              showLongPressInfoWindow(photoMarker.getPosition());
+              return;
+            }
+            
             // savedPhotoMarkers에서 photoId와 memo 찾기
             const photoData = window.savedPhotoMarkers.find(p => p.markerElement === photoMarker);
             if (photoData) {
@@ -5188,6 +5199,13 @@
                 
                 // 마커 클릭 시 사진 표시 (memo 포함)
                 photoMarker.addListener('click', function() {
+                  // 롱프레스가 발생했으면 롱프레스 정보창 표시 (기존 사진 정보창 대신)
+                  if (longPressTriggered) {
+                    longPressTriggered = false;
+                    showLongPressInfoWindow(photoMarker.getPosition());
+                    return;
+                  }
+                  
                   showPhotoInfoWindow(photoMarker, photo.imageData, photo.lat, photo.lng, photo.id, photo.memo || '');
                 });
                 
@@ -8196,6 +8214,13 @@
                 
                 // 마커 클릭 시 정보 표시 및 줌 15로 중심 이동
                 marker.addListener('click', function() {
+                  // 롱프레스가 발생했으면 롱프레스 정보창 표시 (기존 마커 정보창 대신)
+                  if (longPressTriggered) {
+                    longPressTriggered = false;
+                    showLongPressInfoWindow(marker.getPosition());
+                    return;
+                  }
+                  
                   // 메뉴창 닫기
                   const customMapMenu = getElement('customMapMenu');
                   const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -10054,6 +10079,13 @@
             
             // 경로 클릭 이벤트 추가
             route.pathElement.addListener('click', function(event) {
+              // 롱프레스가 발생했으면 롱프레스 정보창 표시 (기존 경로 정보창 대신)
+              if (longPressTriggered) {
+                longPressTriggered = false;
+                showLongPressInfoWindow(event.latLng);
+                return;
+              }
+              
               // 메뉴창 닫기
               const customMapMenu = getElement('customMapMenu');
               const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -10096,6 +10128,13 @@
               
               // 점선 경로에도 클릭 이벤트 추가
               route.dottedPathElement.addListener('click', function(event) {
+                // 롱프레스가 발생했으면 롱프레스 정보창 표시 (기존 경로 정보창 대신)
+                if (longPressTriggered) {
+                  longPressTriggered = false;
+                  showLongPressInfoWindow(event.latLng);
+                  return;
+                }
+                
                 // 메뉴창 닫기
                 const customMapMenu = getElement('customMapMenu');
                 const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
@@ -10859,6 +10898,13 @@
          });
          
            addressMarker.addListener('click', function() {
+             // 롱프레스가 발생했으면 롱프레스 정보창 표시 (기존 주소 정보창 대신)
+             if (longPressTriggered) {
+               longPressTriggered = false;
+               showLongPressInfoWindow(addressMarker.getPosition());
+               return;
+             }
+             
              // 메뉴창 닫기
              const customMapMenu = getElement('customMapMenu');
              const rightPanelOpen = !getElement('mapTypeSelector').classList.contains('hide');
