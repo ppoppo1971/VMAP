@@ -4507,8 +4507,8 @@
             loadingMessage.textContent = '사진 처리 중...';
             document.body.appendChild(loadingMessage);
             
-            // 이미지 압축 (100kb 목표)
-            const compressedImageData = await compressImageTo100KB(file);
+            // 이미지 압축 (원본 크기의 1/3로 축소)
+            const compressedImageData = await compressImageToOneThird(file);
             
             // 롱프레스 마커 위치 가져오기
             const position = longPressMarker.getPosition();
@@ -4534,9 +4534,16 @@
           }
         });
         
-        // 이미지를 100KB 이하로 압축하는 함수
-        async function compressImageTo100KB(file) {
+        // 이미지를 원본 크기의 1/3로 압축하는 함수
+        async function compressImageToOneThird(file) {
           return new Promise((resolve, reject) => {
+            const originalSize = file.size; // 원본 파일 크기 (bytes)
+            const targetSizeBytes = originalSize / 3; // 목표 크기: 원본의 1/3
+            // Base64는 원본의 약 1.37배이므로 Base64 문자열 길이 목표 계산
+            const targetBase64Length = Math.floor(targetSizeBytes * 1.37);
+            
+            console.log(`원본 크기: ${(originalSize / 1024 / 1024).toFixed(2)}MB, 목표 크기: ${(targetSizeBytes / 1024).toFixed(2)}KB`);
+            
             const reader = new FileReader();
             
             reader.onload = function(e) {
@@ -4546,47 +4553,45 @@
                 const canvas = document.createElement('canvas');
                 let width = img.width;
                 let height = img.height;
+                const originalWidth = width;
+                const originalHeight = height;
                 
-                // 초기 크기 조정 (긴 변이 1024px 이하)
-                const maxDimension = 1024;
-                if (width > height && width > maxDimension) {
-                  height = (height * maxDimension) / width;
-                  width = maxDimension;
-                } else if (height > maxDimension) {
-                  width = (width * maxDimension) / height;
-                  height = maxDimension;
-                }
-                
+                // 초기 해상도는 원본 유지 (너무 작게 시작하지 않음)
                 canvas.width = width;
                 canvas.height = height;
                 
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
                 
-                // 품질을 조정하며 100KB 이하로 압축
+                // 품질을 조정하며 목표 크기에 맞춤
                 let quality = 0.9;
                 let compressed = canvas.toDataURL('image/jpeg', quality);
                 
-                // 100KB = 102400 bytes
-                // Base64는 원본의 약 1.37배이므로 140000자 이하 목표
-                const targetSize = 140000;
-                
-                while (compressed.length > targetSize && quality > 0.1) {
-                  quality -= 0.1;
+                // 목표 크기에 맞추기 위해 품질 조정
+                while (compressed.length > targetBase64Length && quality > 0.1) {
+                  quality -= 0.05;
                   compressed = canvas.toDataURL('image/jpeg', quality);
                 }
                 
-                // 여전히 크면 크기를 줄임
-                if (compressed.length > targetSize) {
-                  width = width * 0.7;
-                  height = height * 0.7;
-                  canvas.width = width;
-                  canvas.height = height;
-                  ctx.drawImage(img, 0, 0, width, height);
-                  compressed = canvas.toDataURL('image/jpeg', 0.7);
+                // 품질만으로 목표에 도달하지 못하면 크기를 점진적으로 줄임
+                if (compressed.length > targetBase64Length) {
+                  let scale = 0.9;
+                  while (compressed.length > targetBase64Length && scale > 0.3) {
+                    width = Math.floor(originalWidth * scale);
+                    height = Math.floor(originalHeight * scale);
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    compressed = canvas.toDataURL('image/jpeg', 0.8);
+                    scale -= 0.1;
+                  }
                 }
                 
-                console.log(`이미지 압축 완료: ${(compressed.length / 1024).toFixed(2)}KB (품질: ${(quality * 100).toFixed(0)}%)`);
+                const finalSizeKB = (compressed.length / 1024).toFixed(2);
+                const finalSizeMB = (compressed.length / 1024 / 1024).toFixed(2);
+                const compressionRatio = ((1 - compressed.length / (originalSize * 1.37)) * 100).toFixed(1);
+                
+                console.log(`이미지 압축 완료: ${finalSizeKB}KB (${finalSizeMB}MB), 원본 대비 ${compressionRatio}% 축소, 품질: ${(quality * 100).toFixed(0)}%, 해상도: ${width}x${height}`);
                 resolve(compressed);
               };
               
