@@ -2157,28 +2157,28 @@
     
     <!-- 오른쪽 상단 지도 타입 선택 버튼 -->
     <div id="mapTypeSelector" class="hide">
-        <input type="file" id="kmlFileInput" accept=".kml,.kmz" onchange="loadKmlFile(event)" style="display: none;">
-        <button class="map-type-btn" onclick="document.getElementById('kmlFileInput').click()" style="background: rgba(99, 102, 241, 0.15); color: #4f46e5; border: 1px solid rgba(99, 102, 241, 0.3);">
+        <input type="file" id="kmlFileInput" accept=".kml,.kmz" style="display: none;">
+        <button class="map-type-btn" style="background: rgba(99, 102, 241, 0.15); color: #4f46e5; border: 1px solid rgba(99, 102, 241, 0.3);">
           📂 KML/KMZ 불러오기
         </button>
-        <button class="map-type-btn" onclick="showKmlSaveDialog()" id="saveKmlBtn" style="display: none; background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3);">
+        <button class="map-type-btn" id="saveKmlBtn" style="display: none; background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3);">
           📥 Firebase에 저장
         </button>
-        <button class="map-type-btn" onclick="clearKmlLayer()" id="clearKmlBtn" style="display: none; background: rgba(239, 68, 68, 0.15); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.3);">
+        <button class="map-type-btn" id="clearKmlBtn" style="display: none; background: rgba(239, 68, 68, 0.15); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.3);">
           🗑️ KML 레이어 제거
         </button>
-        <button class="map-type-btn" onclick="toggleMarkerMode()" id="topMarkerBtn">마커생성</button>
-        <button class="map-type-btn" onclick="toggleRouteMode()" id="topRouteBtn">경로생성</button>
-        <button class="map-type-btn" onclick="toggleRoadmapSubmenu()" id="topRoadmapBtn">+일반</button>
+        <button class="map-type-btn" id="topMarkerBtn">마커생성</button>
+        <button class="map-type-btn" id="topRouteBtn">경로생성</button>
+        <button class="map-type-btn" id="topRoadmapBtn">+일반</button>
         <div id="roadmapSubmenu" style="display: none; margin-left: 8px;">
-            <button class="map-type-btn sub-option" onclick="setMapTypeFromTop('roadmap')" id="topGoogleRoadmapBtn">구글</button>
-            <button class="map-type-btn sub-option" onclick="setMapTypeFromTop('브이월드일반')" id="topVworldRoadmapBtn">브이월드</button>
-        <button class="map-type-btn sub-option" onclick="toggleHybridLabel()" id="topHybridBtn">라벨</button>
+            <button class="map-type-btn sub-option" id="topGoogleRoadmapBtn">구글</button>
+            <button class="map-type-btn sub-option" id="topVworldRoadmapBtn">브이월드</button>
+        <button class="map-type-btn sub-option" id="topHybridBtn">라벨</button>
         </div>
-        <button class="map-type-btn" onclick="toggleSatelliteSubmenu()" id="topSatelliteBtn">+위성</button>
+        <button class="map-type-btn" id="topSatelliteBtn">+위성</button>
         <div id="satelliteSubmenu" style="display: none; margin-left: 8px;">
-            <button class="map-type-btn sub-option" onclick="setMapTypeFromTop('satellite')" id="topGoogleSatelliteBtn">구글</button>
-            <button class="map-type-btn sub-option" onclick="setMapTypeFromTop('브이월드영상')" id="topVworldSatelliteBtn">브이월드</button>
+            <button class="map-type-btn sub-option" id="topGoogleSatelliteBtn">구글</button>
+            <button class="map-type-btn sub-option" id="topVworldSatelliteBtn">브이월드</button>
         </div>
     </div>
     
@@ -3396,57 +3396,95 @@
           kmlFileInput.addEventListener('change', loadKmlFile);
         }
         
+        // KML 파일 입력 이벤트는 별도로 처리 (onchange는 유지)
+        
         // 지도 타입 버튼들 (동적으로 생성되는 버튼은 이벤트 위임 사용)
         document.addEventListener('click', (e) => {
           const target = e.target;
           
           // KML 불러오기 버튼
           if (target.matches('.map-type-btn') && target.textContent.includes('KML/KMZ 불러오기')) {
+            e.preventDefault();
+            e.stopPropagation();
             const kmlInput = getElement('kmlFileInput');
             if (kmlInput) kmlInput.click();
+            return;
           }
           
           // KML 저장 버튼
           if (target.id === 'saveKmlBtn' || (target.matches('.map-type-btn') && target.textContent.includes('Firebase에 저장'))) {
+            e.preventDefault();
+            e.stopPropagation();
             showKmlSaveDialog();
+            return;
           }
           
           // KML 레이어 제거 버튼
           if (target.id === 'clearKmlBtn' || (target.matches('.map-type-btn') && target.textContent.includes('KML 레이어 제거'))) {
+            e.preventDefault();
+            e.stopPropagation();
             clearKmlLayer();
+            return;
           }
           
           // 마커생성 버튼
           if (target.id === 'topMarkerBtn' || (target.matches('.map-type-btn') && target.textContent.includes('마커생성'))) {
+            e.preventDefault();
+            e.stopPropagation();
             toggleMarkerMode();
+            return;
           }
           
           // 경로생성 버튼
           if (target.id === 'topRouteBtn' || (target.matches('.map-type-btn') && target.textContent.includes('경로생성'))) {
+            e.preventDefault();
+            e.stopPropagation();
             toggleRouteMode();
+            return;
           }
           
           // 지도 타입 버튼들
           if (target.id === 'topRoadmapBtn') {
+            e.preventDefault();
+            e.stopPropagation();
             toggleRoadmapSubmenu();
+            return;
           }
           if (target.id === 'topSatelliteBtn') {
+            e.preventDefault();
+            e.stopPropagation();
             toggleSatelliteSubmenu();
+            return;
           }
           if (target.id === 'topGoogleRoadmapBtn') {
+            e.preventDefault();
+            e.stopPropagation();
             setMapTypeFromTop('roadmap');
+            return;
           }
           if (target.id === 'topVworldRoadmapBtn') {
+            e.preventDefault();
+            e.stopPropagation();
             setMapTypeFromTop('브이월드일반');
+            return;
           }
           if (target.id === 'topHybridBtn') {
+            e.preventDefault();
+            e.stopPropagation();
             toggleHybridLabel();
+            return;
           }
           if (target.id === 'topGoogleSatelliteBtn') {
+            e.preventDefault();
+            e.stopPropagation();
             setMapTypeFromTop('satellite');
+            return;
           }
           if (target.id === 'topVworldSatelliteBtn') {
+            e.preventDefault();
+            e.stopPropagation();
             setMapTypeFromTop('브이월드영상');
+            return;
           }
           
           // 경로 초기화 버튼
@@ -3545,6 +3583,11 @@
             target.closest('.marker-info-container') ||
             target.closest('.route-info-container') ||
             target.closest('.gm-style-iw-c')) {
+          return;
+        }
+        
+        // 우측 메뉴 버튼은 이벤트 위임에서 처리하므로 제외
+        if (target.closest('#mapTypeSelector')) {
           return;
         }
         
