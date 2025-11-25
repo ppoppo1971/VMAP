@@ -5428,7 +5428,7 @@
             boundsTimeout = setTimeout(function() {
                 checkAddressMarkerVisibility();
                 checkCurrentLocationMarkerVisibility();
-                optimizeMarkerVisibility(); // 마커 가시성 최적화
+                // optimizeMarkerVisibility(); // 마커 가시성 최적화 - 클러스터링과 충돌하므로 비활성화
             }, CONSTANTS.BOUNDS_DEBOUNCE_DELAY); // 디바운싱 (배터리 절약)
         });
         
@@ -8566,14 +8566,7 @@
             }
             
             if (MarkerClustererLib && MarkerClustererLib.MarkerClusterer) {
-              // 마커를 지도에 표시하지 않고 클러스터에만 추가
-              allMarkers.forEach(marker => {
-                if (marker && marker.setMap) {
-                  marker.setMap(null); // 개별 마커는 지도에서 제거
-                }
-              });
-              
-              // MarkerClusterer 생성
+              // MarkerClusterer 생성 (마커는 클러스터가 자동으로 관리)
               markerClustererInstance = new MarkerClustererLib.MarkerClusterer({
                 map: map,
                 markers: allMarkers,
@@ -10540,10 +10533,12 @@
             // 표시 방식 가져오기 (저장된 경로는 기존 값 유지)
             const lineStyle = routeInfo.lineStyle || (isKmlRoute ? 'solid' : 'dotted');
             
-            // KML 경로는 저장된 스타일 사용, 일반 경로는 표시 방식에 따라 설정
-            const strokeWeight = isKmlRoute ? (routeInfo.strokeWeight || 2.0) : 2;
+            // 저장된 스타일 사용 (색상, 두께, 투명도)
+            const strokeWeight = routeInfo.strokeWeight || (isKmlRoute ? 2.0 : 2);
             // solid면 진하게, dotted면 투명하게
-            const strokeOpacity = lineStyle === 'solid' ? (isKmlRoute ? (routeInfo.strokeOpacity || 0.8) : 0.8) : 0;
+            const strokeOpacity = lineStyle === 'solid' 
+              ? (routeInfo.strokeOpacity !== undefined ? routeInfo.strokeOpacity : (isKmlRoute ? 0.8 : 0.8))
+              : 0;
             
             // 메인 경로
             route.pathElement = new google.maps.Polyline({
@@ -13164,7 +13159,13 @@
           let startIndex = 0;
           let endIndex = VISIBLE_ITEMS + BUFFER;
           
-          // 컨테이너 스타일 설정
+          // 컨테이너 스타일 설정 (기존 스타일 유지)
+          const originalStyles = {
+            height: container.style.height || '',
+            overflowY: container.style.overflowY || '',
+            position: container.style.position || ''
+          };
+          
           container.style.height = '400px';
           container.style.overflowY = 'auto';
           container.style.position = 'relative';
@@ -13228,9 +13229,9 @@
           // 정리 함수 저장
           container._virtualScrollCleanup = () => {
             container.removeEventListener('scroll', handleScroll);
-            container.style.height = '';
-            container.style.overflowY = '';
-            container.style.position = '';
+            container.style.height = originalStyles.height;
+            container.style.overflowY = originalStyles.overflowY;
+            container.style.position = originalStyles.position;
           };
         } else {
           // 가상 스크롤 미적용 (일반 렌더링)
