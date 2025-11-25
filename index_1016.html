@@ -8690,11 +8690,6 @@
               console.log(`   - 클러스터 아이콘: 보라색 원형 아이콘 (숫자 표시)`);
               console.log(`   - 확인 방법: 지도를 축소하면 여러 마커가 하나의 클러스터 아이콘으로 합쳐집니다.`);
               
-              // 사용자에게 클러스터링 상태 표시
-              if (typeof updateSyncStatus === 'function') {
-                updateSyncStatus(`✅ 클러스터링 활성화 (${allMarkers.length}개 마커)`, 'success');
-              }
-              
               // 전역 변수에 클러스터링 상태 저장 (사용자 확인용)
               window.clusterStatus = {
                 enabled: true,
@@ -8706,11 +8701,6 @@
               console.warn('❌ MarkerClusterer 라이브러리가 로드되지 않았습니다.');
               console.warn('일반 마커 모드로 전환합니다.');
               console.warn('CDN 스크립트 태그를 확인하세요: https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js');
-              
-              // 사용자에게 일반 마커 모드 표시
-              if (typeof updateSyncStatus === 'function') {
-                updateSyncStatus('⚠️ 일반 마커 모드 (클러스터링 미사용)', 'warning');
-              }
               
               // 전역 변수에 클러스터링 상태 저장
               window.clusterStatus = {
@@ -8728,11 +8718,6 @@
           } catch (error) {
             console.error('❌ 마커 클러스터링 적용 실패:', error);
             console.error('오류 상세:', error.stack);
-            
-            // 사용자에게 오류 상태 표시
-            if (typeof updateSyncStatus === 'function') {
-              updateSyncStatus('❌ 클러스터링 실패 - 일반 마커 모드', 'error');
-            }
             
             // 전역 변수에 클러스터링 상태 저장
             window.clusterStatus = {
@@ -8758,12 +8743,6 @@
           console.log('ℹ️ 클러스터링 미적용:', reason);
           console.log(`   - 마커 수: ${allMarkers.length}개`);
           console.log(`   - 임계값: ${CONSTANTS.CLUSTER_THRESHOLD}개`);
-          
-          if (allMarkers.length > 0) {
-            if (typeof updateSyncStatus === 'function') {
-              updateSyncStatus(`ℹ️ 일반 마커 모드 (${allMarkers.length}개)`, 'info');
-            }
-          }
           
           // 전역 변수에 클러스터링 상태 저장
           window.clusterStatus = {
