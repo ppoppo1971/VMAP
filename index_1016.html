@@ -5449,7 +5449,7 @@
         // ─────────────────────────────────────────────────────────────────────────
         setupEventListeners();
         
-        // Firebase 초기화 완료 후 동기화 시작
+        // Firebase 초기화 완료 후 동기화 시작 및 데이터 복원
         waitForFirebaseAndStartSync();
         
         // 페이지 로드 시 대기 작업 자동 처리
@@ -5461,16 +5461,32 @@
           }, 2000); // Firebase 초기화 대기
         }
         
-        // 저장된 사용자 경로들 복원
-        restoreSavedUserRoutes().then(() => {
-          // 경로제거 버튼 상태 업데이트
-          updateRouteRemoveButtons();
-          // 마커제거 버튼 상태 업데이트
-          updateMarkerRemoveButtons();
-        });
+        // Firebase 초기화 후 데이터 복원 (초기화 대기)
+        const initDataRestore = async () => {
+          // Firebase 초기화 대기 (최대 5초)
+          let attempts = 0;
+          while ((!window.db || !window.firestore) && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+          }
+          
+          if (window.db && window.firestore) {
+            console.log('Firebase 초기화 완료 - 데이터 복원 시작');
+            // 저장된 사용자 경로들 복원
+            await restoreSavedUserRoutes();
+            // 경로제거 버튼 상태 업데이트
+            updateRouteRemoveButtons();
+            // 마커제거 버튼 상태 업데이트
+            updateMarkerRemoveButtons();
+            
+            // 저장된 사용자 마커들 복원
+            await restoreSavedUserMarkers();
+          } else {
+            console.warn('Firebase 초기화 실패 - 데이터 복원 건너뜀');
+          }
+        };
         
-        // 저장된 사용자 마커들 복원
-        restoreSavedUserMarkers();
+        initDataRestore();
         
         // 저장된 사용자 정의 일정들 복원
         restoreCustomSchedules();
@@ -8396,6 +8412,9 @@
           markerClustererInstance = null;
         }
         
+        // 모든 마커 수집 (클러스터링용)
+        const allMarkers = [];
+        
         // 기존 저장된 마커들 제거 (이벤트 리스너 정리 강화)
         try {
           window.savedUserMarkers.forEach(markerGroup => {
@@ -8427,7 +8446,7 @@
           console.error('마커 제거 중 오류:', error);
         }
         
-        // 저장된 마커들 다시 그리기
+        // 저장된 마커들 다시 그리기 (지연 로딩 적용)
         window.savedUserMarkers.forEach(markerGroup => {
           if (!markerGroup || !markerGroup.markers || !Array.isArray(markerGroup.markers) || markerGroup.markers.length === 0) {
             return; // 유효하지 않은 마커 그룹은 건너뜀
@@ -10646,27 +10665,46 @@
        async function restoreSavedUserRoutes() {
          try {
            // Firebase에서 복원 시도
+           if (!window.db || !window.firestore) {
+             console.warn('Firebase가 초기화되지 않음 - 경로 복원 건너뜀');
+             return;
+           }
+           
            const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
            if (docSnap.exists()) {
              const data = docSnap.data();
+             console.log('Firebase에서 경로 데이터 로드:', {
+               hasRoutes: !!data.savedUserRoutes,
+               routeCount: data.savedUserRoutes?.length || 0,
+               hasRouteInfo: !!data.routeInfoData
+             });
              
              // routeInfoData 먼저 복원 (경로 스타일 정보 포함)
              if (data.routeInfoData) {
                routeInfoData = data.routeInfoData;
+               console.log('경로 정보 데이터 복원 완료:', Object.keys(routeInfoData).length, '개');
              }
              
-             if (data.savedUserRoutes && data.savedUserRoutes.length > 0) {
+             if (data.savedUserRoutes && Array.isArray(data.savedUserRoutes) && data.savedUserRoutes.length > 0) {
                savedUserRoutes = data.savedUserRoutes;
+               console.log('경로 데이터 복원 완료:', savedUserRoutes.length, '개');
                drawAllSavedRoutes();
                // 경로제거 버튼 상태 업데이트
                updateRouteRemoveButtons();
                // 마커제거 버튼 상태 업데이트
                updateMarkerRemoveButtons();
-               return;
+             } else {
+               console.log('저장된 경로가 없습니다.');
+               savedUserRoutes = [];
              }
+           } else {
+             console.log('Firebase 문서가 존재하지 않음 - 빈 배열로 초기화');
+             savedUserRoutes = [];
            }
          } catch (error) {
+           console.error('Firebase 경로 로드 실패:', error);
            handleError(error, 'Firebase 로드');
+           savedUserRoutes = savedUserRoutes || [];
          }
        }
        
@@ -10674,24 +10712,41 @@
        async function restoreSavedUserMarkers() {
          try {
            // Firebase에서 복원 시도
+           if (!window.db || !window.firestore) {
+             console.warn('Firebase가 초기화되지 않음 - 마커 복원 건너뜀');
+             return;
+           }
+           
            const docSnap = await window.firestore.getDoc(window.firestore.doc(window.db, 'users', 'currentUser'));
            if (docSnap.exists()) {
              const data = docSnap.data();
+             console.log('Firebase에서 마커 데이터 로드:', {
+               hasMarkers: !!data.savedUserMarkers,
+               markerCount: data.savedUserMarkers?.length || 0,
+               hasMarkerInfo: !!data.markerInfoData
+             });
+             
              // 마커 정보 데이터(이모지 포함)를 먼저 복원한 뒤 마커를 그린다
              if (data.markerInfoData) {
                markerInfoData = data.markerInfoData;
-             }
-             if (data.savedUserMarkers && data.savedUserMarkers.length > 0) {
-               window.savedUserMarkers = data.savedUserMarkers;
-               drawAllSavedMarkers();
+               console.log('마커 정보 데이터 복원 완료:', Object.keys(markerInfoData).length, '개');
              }
              
-             if (data.savedUserMarkers && data.savedUserMarkers.length > 0) {
-               return;
+             if (data.savedUserMarkers && Array.isArray(data.savedUserMarkers) && data.savedUserMarkers.length > 0) {
+               window.savedUserMarkers = data.savedUserMarkers;
+               console.log('마커 데이터 복원 완료:', window.savedUserMarkers.length, '개 그룹');
+               drawAllSavedMarkers();
+             } else {
+               console.log('저장된 마커가 없습니다.');
+               window.savedUserMarkers = [];
              }
+           } else {
+             console.log('Firebase 문서가 존재하지 않음 - 빈 배열로 초기화');
+             window.savedUserMarkers = [];
            }
          } catch (error) {
            console.error('Firebase 마커 로드 실패:', error);
+           window.savedUserMarkers = window.savedUserMarkers || [];
          }
        }
        
@@ -12805,14 +12860,9 @@
                     // 전역 변수 업데이트
                     window.firebaseUserItems = newItems;
                     
-                    // 현재 활성 섹션에 맞는 항목만 필터링하여 UI 업데이트
-                    const currentSection = window.currentActiveSection || '';
-                    const filteredItems = newItems.filter(item => item.section === currentSection);
-                    
-                    console.log('현재 섹션:', currentSection, '필터링된 항목 수:', filteredItems.length);
-                    
-                    // UI 즉시 업데이트 (실시간 동기화만으로 처리)
-                    displayUserAddedItemsFromFirebase(filteredItems);
+                    // UI 즉시 업데이트 (전체 항목 전달 - 함수 내에서 필터링)
+                    // 현재 활성 섹션이 설정되어 있으면 해당 섹션의 항목만 표시
+                    displayUserAddedItemsFromFirebase(newItems);
                     updateSyncStatus('사용자 항목 동기화 완료', 'success');
                   } else {
                     console.log('사용자 항목 변경 없음 - UI 업데이트 건너뜀');
@@ -12881,6 +12931,11 @@
                     // 기존 렌더 요소를 먼저 제거하고 새 데이터로 갱신
                     clearAllRenderedRoutes();
                     savedUserRoutes = newRoutes;
+                    // 경로 정보 데이터도 함께 확인 (색상, 스타일 등)
+                    if (data.routeInfoData) {
+                      routeInfoData = data.routeInfoData;
+                      console.log('경로 정보 데이터도 함께 업데이트:', Object.keys(routeInfoData).length, '개');
+                    }
                     drawAllSavedRoutes();
                     updateRouteRemoveButtons();
                     updateSyncStatus('경로 동기화 완료', 'success');
@@ -12927,6 +12982,11 @@
                     // 기존 렌더 요소를 먼저 제거하고 새 데이터로 갱신
                     clearAllRenderedMarkers();
                     window.savedUserMarkers = newMarkers;
+                    // 마커 정보 데이터도 함께 확인 (이모지 등)
+                    if (data.markerInfoData) {
+                      markerInfoData = data.markerInfoData;
+                      console.log('마커 정보 데이터도 함께 업데이트:', Object.keys(markerInfoData).length, '개');
+                    }
                     drawAllSavedMarkers();
                     updateMarkerRemoveButtons();
                     updateSyncStatus('마커 동기화 완료', 'success');
@@ -13112,8 +13172,27 @@
       
       // Firebase에서 사용자 항목 표시 (가상 스크롤 적용)
       function displayUserAddedItemsFromFirebase(userItems) {
-        const container = document.getElementById('userAddedItems');
-        if (!container) return;
+        // 컨테이너 찾기 (여러 위치에서 시도)
+        let container = document.getElementById('userAddedItems');
+        if (!container) {
+          // preparationInfo 내부에서 찾기
+          const prepInfo = document.getElementById('preparationInfo');
+          if (prepInfo) {
+            container = prepInfo.querySelector('#userAddedItems');
+          }
+        }
+        
+        if (!container) {
+          // 일정 정보창이 아직 열리지 않은 상태 - 정상적인 상황
+          // 일정을 선택하면 자동으로 표시되므로 경고 없이 조용히 return
+          return;
+        }
+        
+        console.log('displayUserAddedItemsFromFirebase 호출:', {
+          userItemsCount: userItems?.length || 0,
+          currentSection: window.currentActiveSection || '',
+          hasContainer: !!container
+        });
         
         if (!userItems || userItems.length === 0) {
           container.innerHTML = '';
@@ -13128,8 +13207,15 @@
         // 현재 활성 섹션에 맞는 항목만 필터링하고 순서대로 정렬
         const currentSection = window.currentActiveSection || '';
         const filteredItems = userItems
-          .filter(item => item.section === currentSection)
+          .filter(item => item && item.section === currentSection)
           .sort((a, b) => (a.order || 0) - (b.order || 0)); // order 속성으로 정렬
+        
+        console.log('필터링 결과:', {
+          전체항목수: userItems.length,
+          현재섹션: currentSection,
+          필터링된항목수: filteredItems.length,
+          항목목록: filteredItems.map(item => item?.title || '제목없음')
+        });
         
         if (filteredItems.length === 0) {
           container.innerHTML = '';
@@ -13138,6 +13224,7 @@
             container._virtualScrollCleanup();
             delete container._virtualScrollCleanup;
           }
+          console.log('필터링된 항목이 없어서 빈 화면 표시');
           return;
         }
         
@@ -13181,7 +13268,8 @@
           viewport.style.top = '0';
           viewport.style.left = '0';
           viewport.style.right = '0';
-          viewport.style.transform = `translateY(${startIndex * ITEM_HEIGHT}px)`;
+          viewport.style.width = '100%';
+          viewport.style.minHeight = `${filteredItems.length * ITEM_HEIGHT}px`;
           
           // 항목 렌더링 함수
           const renderItems = () => {
@@ -13194,7 +13282,7 @@
                 : `${item.title}`;
               
               html += `
-                <div class="user-added-item" data-item-id="${item.id}" data-item-type="user" style="height: ${ITEM_HEIGHT}px; position: absolute; top: ${actualIndex * ITEM_HEIGHT}px; left: 0; right: 0;">
+                <div class="user-added-item" data-item-id="${item.id}" data-item-type="user" style="height: ${ITEM_HEIGHT}px; position: relative; width: 100%;">
                   <div class="item-content">
                     <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
                     <span>${titleElement}</span>
@@ -13214,6 +13302,7 @@
             if (newStartIndex !== startIndex || newEndIndex !== endIndex) {
               startIndex = newStartIndex;
               endIndex = newEndIndex;
+              viewport.style.transform = `translateY(${startIndex * ITEM_HEIGHT}px)`;
               renderItems();
             }
           }, 16); // 60fps
@@ -13224,7 +13313,9 @@
           container.innerHTML = '';
           container.appendChild(wrapper);
           wrapper.appendChild(viewport);
+          viewport.style.transform = `translateY(${startIndex * ITEM_HEIGHT}px)`;
           renderItems();
+          console.log('가상 스크롤 적용 완료:', filteredItems.length, '개 항목');
           
           // 정리 함수 저장
           container._virtualScrollCleanup = () => {
@@ -13252,6 +13343,7 @@
           });
           
           container.innerHTML = html;
+          console.log('일반 렌더링 완료:', filteredItems.length, '개 항목');
         }
         
         // 클릭 가능한 텍스트 끝에 ❗ 표시 추가
@@ -14115,6 +14207,13 @@
         // 정보창을 지도 위에 표시
         document.body.appendChild(infoDiv);
         
+        // 일정 정보 표시 후 항목 표시 (컨테이너가 생성된 후)
+        setTimeout(() => {
+          if (window.firebaseUserItems && window.firebaseUserItems.length > 0) {
+            displayUserAddedItemsFromFirebase(window.firebaseUserItems);
+          }
+        }, 100);
+        
         // 모바일에서 스크롤 최적화를 위한 추가 설정
         if (isMobile) {
           const infoContent = infoDiv.querySelector('.info-content');
@@ -14751,6 +14850,6 @@
      </script>
     
     <!-- 구글 맵 API 스크립트. API 키와 콜백 함수(initMap) 지정 -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg&libraries=geometry,directions,places&callback=initMap" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDVwJrvIcbqAOX24g9JODhD7DGtTz7z2Pg&libraries=geometry,places&callback=initMap&loading=async" async defer></script>
 </body>
 </html>
