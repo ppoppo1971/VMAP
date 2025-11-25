@@ -14,6 +14,9 @@
     <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     
+    <!-- 마커 클러스터링 라이브러리 (성능 최적화) -->
+    <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
+    
     <style>
         html, body {
             height: 100%;
@@ -2249,6 +2252,7 @@
       let isMarkerMode = false; // 마커생성 모드
       let customMarkers = []; // 사용자가 생성한 마커들
       let markerInfoData = {}; // 마커 정보 저장소 { "groupName-index": { title: "", content: "", link: "" } }
+      let markerClusterer = null; // 마커 클러스터링 객체 (성능 최적화)
       
       // 📷 사진 관련 전역 변수
       let savedPhotoMarkers = []; // 저장된 사진 마커들
@@ -2336,7 +2340,14 @@
         
         // UI 관련
         ANIMATION_DURATION: 300,
-        NOTIFICATION_DURATION: 3000
+        NOTIFICATION_DURATION: 3000,
+        
+        // 성능 최적화 관련
+        CLUSTER_ENABLED: true, // 마커 클러스터링 활성화
+        CLUSTER_THRESHOLD: 50, // 50개 이상 마커일 때 클러스터링 활성화
+        VIRTUAL_SCROLL_THRESHOLD: 30, // 30개 이상 항목일 때 가상 스크롤 활성화
+        LAZY_LOAD_BATCH_SIZE: 20, // 지연 로딩 배치 크기
+        MARKER_LOAD_CHUNK_SIZE: 50 // 마커 로드 청크 크기
       };
       
       // 🎯 성능 최적화 관련 전역 변수
@@ -2391,6 +2402,39 @@
       // ============================================================================
       // 🛠️ UTILITY FUNCTIONS - 유틸리티 함수
       // ============================================================================
+      
+      // ─────────────────────────────────────────────────────────────────────────
+      // 성능 최적화 유틸리티 (디바운싱/쓰로틀링)
+      // ─────────────────────────────────────────────────────────────────────────
+      
+      // 디바운스 함수 (함수 호출을 지연시켜 연속 호출 방지)
+      function debounce(func, wait = CONSTANTS.DEBOUNCE_DELAY) {
+        let timeout;
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
+      }
+      
+      // 쓰로틀 함수 (일정 시간 간격으로만 함수 호출 허용)
+      function throttle(func, limit = CONSTANTS.DEBOUNCE_DELAY) {
+        let inThrottle;
+        return function executedFunction(...args) {
+          if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+          }
+        };
+      }
+      
+      // 네임스페이스에 할당
+      WMAP.Utils.debounce = debounce;
+      WMAP.Utils.throttle = throttle;
       
       // ─────────────────────────────────────────────────────────────────────────
       // DOM 관리 유틸리티
@@ -3295,26 +3339,35 @@
       }
       WMAP.KML.executeSave = executeKmlSave;
       
-      // 마커 가시성 최적화 함수
+      // 마커 가시성 최적화 함수 (성능 개선)
       function optimizeMarkerVisibility() {
         if (!map) return;
         
         const bounds = map.getBounds();
         if (!bounds) return;
         
-        // 현재 지도 범위에 있는 마커들만 표시
-        if (window.savedUserMarkers) {
+        // 현재 지도 범위에 있는 마커들만 표시 (성능 최적화)
+        if (window.savedUserMarkers && window.savedUserMarkers.length > 0) {
           window.savedUserMarkers.forEach(markerGroup => {
-            if (markerGroup.markerElements) {
+            if (markerGroup && markerGroup.markerElements && Array.isArray(markerGroup.markerElements)) {
               markerGroup.markerElements.forEach(marker => {
                 if (marker && marker.getPosition) {
-                  const isVisible = bounds.contains(marker.getPosition());
-                  if (isVisible) {
-                    visibleMarkers.add(marker);
-                    marker.setVisible(true);
-                  } else {
-                    visibleMarkers.delete(marker);
-                    marker.setVisible(false);
+                  try {
+                    const isVisible = bounds.contains(marker.getPosition());
+                    // Set을 사용하여 중복 체크 최소화
+                    if (isVisible) {
+                      if (!visibleMarkers.has(marker)) {
+                        visibleMarkers.add(marker);
+                        marker.setVisible(true);
+                      }
+                    } else {
+                      if (visibleMarkers.has(marker)) {
+                        visibleMarkers.delete(marker);
+                        marker.setVisible(false);
+                      }
+                    }
+                  } catch (error) {
+                    console.warn('마커 가시성 확인 오류:', error);
                   }
                 }
               });
@@ -3322,6 +3375,7 @@
           });
         }
       }
+      WMAP.Marker.optimizeVisibility = optimizeMarkerVisibility;
       
       // 마커 메모리 정리 함수
       function cleanupMarkerMemory(marker) {
@@ -4731,6 +4785,7 @@
           
           return photoMarker;
         }
+        WMAP.Photo.createMarker = createPhotoMarker;
         
         // 사진 정보창 표시
         function showPhotoInfoWindow(marker, imageData, lat, lng, photoId, memo) {
@@ -4822,6 +4877,7 @@
           infoWindow.open(map, marker);
           currentInfoWindow = infoWindow;
         }
+        WMAP.Photo.showInfoWindow = showPhotoInfoWindow;
         
         // 사진 뷰어 열기 (전체 화면)
         window.openPhotoViewer = function(imageData, photoId) {
@@ -5123,6 +5179,7 @@
             }, 200);
           }
         };
+        WMAP.Photo.editMemo = window.editPhotoMemo;
         
         // 사진 메모 저장
         window.savePhotoMemo = async function(photoId) {
@@ -5195,6 +5252,8 @@
             alert('메모 저장에 실패했습니다.');
           }
         };
+        WMAP.Photo.saveMemo = window.savePhotoMemo;
+        
         // 사진 삭제
         window.deletePhoto = async function(photoId) {
           if (!confirm('이 사진을 삭제하시겠습니까?')) {
@@ -5239,6 +5298,7 @@
             alert('사진 삭제에 실패했습니다.');
           }
         };
+        WMAP.Photo.delete = window.deletePhoto;
         
         // Firebase에 사진 저장
         async function savePhotoToFirebase(lat, lng, imageData, marker, location) {
@@ -5338,6 +5398,8 @@
             console.error('사진 마커 복원 실패:', error);
           }
         }
+        WMAP.Photo.saveToFirebase = savePhotoToFirebase;
+        WMAP.Photo.restore = restoreSavedPhotos;
         
         // 오른쪽 상단 버튼 초기 상태 설정
         updateTopButtonStates('roadmap');
@@ -5365,17 +5427,13 @@
             }, CONSTANTS.BOUNDS_DEBOUNCE_DELAY); // 디바운싱 (배터리 절약)
         });
         
-        // 창 크기 조정 시 스와이프 상태 해제, 사이드패널 닫기, 검색 마커 제거
-        let resizeTimeout;
-        window.addEventListener('resize', function() {
-            // 디바운싱으로 성능 최적화
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(function() {
-                clearAllSwipeStates();
-                closeSidePanel();
-                clearAllAddressMarkers();
-            }, CONSTANTS.RESIZE_DEBOUNCE_DELAY); // 디바운싱 (배터리 절약)
-        });
+        // 창 크기 조정 시 스와이프 상태 해제, 사이드패널 닫기, 검색 마커 제거 (디바운스 유틸리티 사용)
+        const handleResize = debounce(function() {
+            clearAllSwipeStates();
+            closeSidePanel();
+            clearAllAddressMarkers();
+        }, CONSTANTS.RESIZE_DEBOUNCE_DELAY);
+        window.addEventListener('resize', handleResize);
         
         // 초기 줌 레벨 표시
         const initialZoom = map.getZoom();
@@ -6023,6 +6081,8 @@
         getElement('customMapMenu').classList.remove('hide');
         getElement('menuToggleBtn').classList.remove('show');
       }
+      WMAP.UI.hideMenu = hideMenu;
+      WMAP.UI.showMenu = showMenu;
 
       // 오른쪽 메뉴 토글 함수
       function toggleRightMenu() {
@@ -6045,6 +6105,8 @@
         }
       }
       
+      WMAP.UI.toggleRightMenu = toggleRightMenu;
+      
       // 오른쪽 메뉴 숨기기 함수
       function hideRightMenu() {
         getElement('mapTypeSelector').classList.add('hide');
@@ -6066,7 +6128,8 @@
         const userItems = window.firebaseUserItems || [];
         displayUserAddedItemsFromFirebase(userItems);
       }
-      
+      WMAP.Schedule.displayItems = displayUserAddedItems;
+      WMAP.Schedule.displayItemsFromFirebase = displayUserAddedItemsFromFirebase;
 
       // 모든 스와이프 상태를 해제하는 공통 함수
       function clearAllSwipeStates() {
@@ -6402,6 +6465,8 @@
         });
       }
 
+      WMAP.UI.hideRightMenu = hideRightMenu;
+      
       // 사이드패널을 닫는 함수
       function closeSidePanel() {
         const customMapMenu = document.getElementById('customMapMenu');
@@ -6409,6 +6474,7 @@
           hideMenu();
         }
       }
+      WMAP.UI.closeSidePanel = closeSidePanel;
       
       // 일정창만 닫는 함수
       function closeScheduleInfo() {
@@ -6420,6 +6486,7 @@
         // 현재 활성 섹션 초기화 (화면은 그대로 유지)
         window.currentActiveSection = '';
       }
+      WMAP.UI.closeScheduleInfo = closeScheduleInfo;
       
       // 전체 지도를 모든 마커와 경로가 보이도록 조정하는 함수
       function resetMapToShowAllItems() {
@@ -7699,6 +7766,7 @@
           showRouteSaveDialog();
         }
       }
+      WMAP.Route.toggleMode = toggleRouteMode;
       
       // 경로 저장 위치 선택 다이얼로그
       function showRouteSaveDialog() {
@@ -8008,6 +8076,7 @@
         
         alert('모든 경로가 초기화되었습니다.');
       }
+      WMAP.Route.clear = clearUserRoute;
       
       // 경로 초기화 버튼 표시/숨김 함수
       function updateClearRouteButton() {
@@ -8040,6 +8109,8 @@
       function closeRouteSaveDialog() {
         removeElement('routeSaveDialog');
       }
+      WMAP.Route.showSaveDialog = showRouteSaveDialog;
+      WMAP.Route.closeSaveDialog = closeRouteSaveDialog;
       
       // 선택된 위치에 경로 저장 (개선된 버전)
       async function saveRouteToLocation(location) {
@@ -8262,8 +8333,15 @@
         }
         }, '마커 저장 중...');
         
-        // 임시 마커들 제거
+        // 임시 마커들 제거 (이벤트 리스너 정리 포함)
         customMarkers.forEach(marker => {
+          if (marker && google.maps && google.maps.event) {
+            google.maps.event.clearInstanceListeners(marker);
+          }
+          if (marker && marker.titleLabel && google.maps && google.maps.event) {
+            google.maps.event.clearInstanceListeners(marker.titleLabel);
+            marker.titleLabel.setMap(null);
+          }
           marker.setMap(null);
         });
         customMarkers = [];
@@ -8303,15 +8381,23 @@
           return;
         }
         
-        // 기존 저장된 마커들 제거
+        // 기존 저장된 마커들 제거 (이벤트 리스너 정리 강화)
         try {
           window.savedUserMarkers.forEach(markerGroup => {
             if (markerGroup && markerGroup.markerElements && Array.isArray(markerGroup.markerElements)) {
               markerGroup.markerElements.forEach(marker => {
                 try {
                   if (marker && marker.setMap) {
-                    // 타이틀 라벨도 함께 제거
+                    // 이벤트 리스너 정리 (메모리 누수 방지)
+                    if (google.maps && google.maps.event) {
+                      google.maps.event.clearInstanceListeners(marker);
+                    }
+                    
+                    // 타이틀 라벨도 함께 제거 (이벤트 리스너 정리 포함)
                     if (marker.titleLabel) {
+                      if (google.maps && google.maps.event) {
+                        google.maps.event.clearInstanceListeners(marker.titleLabel);
+                      }
                       marker.titleLabel.setMap(null);
                     }
                     marker.setMap(null);
@@ -8443,6 +8529,7 @@
                 });
                 
                 markerGroup.markerElements.push(marker);
+                allMarkers.push(marker); // 클러스터링을 위해 마커 수집
               });
             }
           } catch (error) {
@@ -8450,17 +8537,96 @@
             // 개별 마커 그룹 오류는 무시하고 계속 진행
           }
         });
+        
+        // 마커 클러스터링 적용 (성능 최적화)
+        if (CONSTANTS.CLUSTER_ENABLED && allMarkers.length >= CONSTANTS.CLUSTER_THRESHOLD) {
+          try {
+            // @googlemaps/markerclusterer 라이브러리 확인
+            if (typeof markerClusterer !== 'undefined' && markerClusterer.MarkerClusterer) {
+              // 마커를 지도에 표시하지 않고 클러스터에만 추가
+              allMarkers.forEach(marker => {
+                if (marker && marker.setMap) {
+                  marker.setMap(null); // 개별 마커는 지도에서 제거
+                }
+              });
+              
+              // MarkerClusterer 생성
+              markerClusterer = new markerClusterer.MarkerClusterer({
+                map: map,
+                markers: allMarkers,
+                algorithm: new markerClusterer.GridAlgorithm({ gridSize: 60 }),
+                renderer: {
+                  render: ({ count, position }) => {
+                    return new google.maps.Marker({
+                      position: position,
+                      icon: {
+                        url: `data:image/svg+xml;base64,${btoa(`
+                          <svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="20" cy="20" r="18" fill="#8b5cf6" stroke="#fff" stroke-width="2"/>
+                            <text x="20" y="26" font-size="14" font-weight="bold" fill="white" text-anchor="middle">${count}</text>
+                          </svg>
+                        `)}`,
+                        scaledSize: new google.maps.Size(40, 40),
+                        anchor: new google.maps.Point(20, 20)
+                      },
+                      label: {
+                        text: count.toString(),
+                        color: 'white',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      },
+                      zIndex: 1001
+                    });
+                  }
+                }
+              });
+              
+              console.log(`마커 클러스터링 적용: ${allMarkers.length}개 마커`);
+            } else {
+              // 라이브러리가 로드되지 않았을 때 일반 표시
+              console.warn('MarkerClusterer 라이브러리가 로드되지 않았습니다. 일반 마커로 표시합니다.');
+              allMarkers.forEach(marker => {
+                if (marker && !marker.getMap()) {
+                  marker.setMap(map);
+                }
+              });
+            }
+          } catch (error) {
+            console.warn('마커 클러스터링 적용 실패:', error);
+            // 클러스터링 실패 시 일반 마커 표시
+            allMarkers.forEach(marker => {
+              if (marker && !marker.getMap()) {
+                marker.setMap(map);
+              }
+            });
+          }
+        } else {
+          // 클러스터링 비활성화 또는 마커 수가 적을 때 일반 표시
+          allMarkers.forEach(marker => {
+            if (marker && !marker.getMap()) {
+              marker.setMap(map);
+            }
+          });
+        }
       }
 
-      // 현재 지도에 그려진 모든 사용자 마커를 제거 (실시간 동기화용)
+      // 현재 지도에 그려진 모든 사용자 마커를 제거 (실시간 동기화용) - 성능 최적화
       function clearAllRenderedMarkers() {
         try {
           (window.savedUserMarkers || []).forEach(function(markerGroup) {
             if (markerGroup && markerGroup.markerElements) {
               markerGroup.markerElements.forEach(function(marker) {
                 if (marker) {
-                  // 타이틀 라벨도 함께 제거
+                  // 이벤트 리스너 정리 (메모리 누수 방지)
+                  if (google.maps && google.maps.event) {
+                    google.maps.event.clearInstanceListeners(marker);
+                  }
+                  
+                  // 타이틀 라벨도 함께 제거 (이벤트 리스너 정리 포함)
                   if (marker.titleLabel) {
+                    if (google.maps && google.maps.event) {
+                      google.maps.event.clearInstanceListeners(marker.titleLabel);
+                    }
                     marker.titleLabel.setMap(null);
                   }
                   marker.setMap(null);
@@ -9417,6 +9583,11 @@
           }, 200); // 200ms 후 플래그 해제 (재렌더링 및 정보창 업데이트 완료 대기)
         }
       }
+      WMAP.Route.edit = editRouteInfo;
+      WMAP.Route.saveInfo = saveRouteInfo;
+      WMAP.Route.selectColor = selectRouteColor;
+      WMAP.Route.selectLineStyle = selectRouteLineStyle;
+      
       // 마커 정보 수정 함수
       function editMarkerInfo(markerGroupName, index) {
         // group id 우선 키 사용 (하위 호환으로 name-index 유지)
@@ -10411,6 +10582,7 @@
           }
         });
       }
+      WMAP.Route.drawAll = drawAllSavedRoutes;
 
       // 현재 지도에 그려진 모든 경로 요소를 제거 (실시간 동기화용)
       function clearAllRenderedRoutes() {
@@ -10834,12 +11006,13 @@
            addressMarker = null;
          }
          
-         // 포괄적 검색 실행
-         performComprehensiveSearch(searchQuery, searchBtn, originalText);
-       }
-       
-       // 포괄적 검색 실행 함수
-       function performComprehensiveSearch(query, searchBtn, originalText) {
+        // 포괄적 검색 실행
+        performComprehensiveSearch(searchQuery, searchBtn, originalText);
+      }
+      WMAP.Address.search = searchAddress;
+      
+      // 포괄적 검색 실행 함수
+      function performComprehensiveSearch(query, searchBtn, originalText) {
          
          // 검색 결과를 수집할 배열
          let allResults = [];
@@ -11067,10 +11240,13 @@
              </button>
            `;
          });
-         list.innerHTML = html;
-       }
-       // 주소 마커 생성 함수
-       function createAddressMarker(result, originalQuery) {
+        list.innerHTML = html;
+      }
+      WMAP.Address.showSelection = showAddressSelection;
+      WMAP.Address.showEnhancedSelection = showEnhancedAddressSelection;
+      
+      // 주소 마커 생성 함수
+      function createAddressMarker(result, originalQuery) {
          const location = result.geometry.location;
          const name = result.name || originalQuery;
          const address = result.formatted_address || result.vicinity || '';
@@ -11502,11 +11678,13 @@
          
          // 사용자에게 알림
          const message = `"${originalQuery}" 검색 결과 ${markersCreated}개 장소가 지도에 표시되었습니다.`;
-         showSearchResultNotification(message);
-       }
-       
-       // 모든 주소 검색 마커 제거 함수
-       function clearAllAddressMarkers() {
+        showSearchResultNotification(message);
+      }
+      WMAP.Address.createMarker = createAddressMarker;
+      WMAP.Address.createMultipleMarkers = createMultipleAddressMarkers;
+      
+      // 모든 주소 검색 마커 제거 함수
+      function clearAllAddressMarkers() {
          // 기존 단일 마커 제거
          if (addressMarker) {
            addressMarker.setMap(null);
@@ -11673,11 +11851,13 @@
        // 주소 마커 제거 함수 (수동 제거용)
        function clearAddressMarker() {
          // 새로운 여러 마커 제거 함수 호출
-         clearAllAddressMarkers();
-       }
-       
-       // 현재 위치 마커 제거 함수 (수동 제거용)
-       function clearCurrentLocationMarker() {
+        clearAllAddressMarkers();
+      }
+      WMAP.Address.clearAll = clearAllAddressMarkers;
+      WMAP.Address.clear = clearAddressMarker;
+      
+      // 현재 위치 마커 제거 함수 (수동 제거용)
+      function clearCurrentLocationMarker() {
          if (currentLocationMarker) {
            // 열린 정보창 닫기
            if (currentInfoWindow) {
@@ -11698,6 +11878,7 @@
         var dialog = document.getElementById('addressSelectDialog');
         if (dialog) dialog.remove();
       }
+      WMAP.Address.closeSelection = closeAddressSelection;
 
       function chooseAddressResult(index) {
         try {
@@ -12894,13 +13075,18 @@
         alert('모든 데이터가 초기화되었습니다.');
       }
       
-      // Firebase에서 사용자 항목 표시
+      // Firebase에서 사용자 항목 표시 (가상 스크롤 적용)
       function displayUserAddedItemsFromFirebase(userItems) {
         const container = document.getElementById('userAddedItems');
         if (!container) return;
         
         if (!userItems || userItems.length === 0) {
           container.innerHTML = '';
+          // 가상 스크롤 정리
+          if (container._virtualScrollCleanup) {
+            container._virtualScrollCleanup();
+            delete container._virtualScrollCleanup;
+          }
           return;
         }
         
@@ -12912,28 +13098,120 @@
         
         if (filteredItems.length === 0) {
           container.innerHTML = '';
+          // 가상 스크롤 정리
+          if (container._virtualScrollCleanup) {
+            container._virtualScrollCleanup();
+            delete container._virtualScrollCleanup;
+          }
           return;
         }
         
         console.log('순서대로 정렬된 항목들:', filteredItems.map(item => `${item.title}(order:${item.order})`));
         
-        let html = '';
-        filteredItems.forEach(item => {
-          const titleElement = item.link 
-            ? `<span onclick="openUserItemLink('${item.link}')" style="cursor: pointer;">${item.title}</span>`
-            : `${item.title}`;
+        // 가상 스크롤 적용 (30개 이상 항목일 때)
+        if (filteredItems.length >= CONSTANTS.VIRTUAL_SCROLL_THRESHOLD) {
+          // 기존 가상 스크롤 정리
+          if (container._virtualScrollCleanup) {
+            container._virtualScrollCleanup();
+          }
           
-          html += `
-            <div class="user-added-item" data-item-id="${item.id}" data-item-type="user">
-              <div class="item-content">
-                <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
-                <span>${titleElement}</span>
+          // 가상 스크롤 구현
+          const ITEM_HEIGHT = 40; // 각 항목의 예상 높이
+          const VISIBLE_ITEMS = 10; // 화면에 보이는 항목 수
+          const BUFFER = 5; // 버퍼 항목 수
+          
+          let scrollTop = 0;
+          let startIndex = 0;
+          let endIndex = VISIBLE_ITEMS + BUFFER;
+          
+          // 컨테이너 스타일 설정
+          container.style.height = '400px';
+          container.style.overflowY = 'auto';
+          container.style.position = 'relative';
+          
+          // 래퍼 생성
+          const wrapper = document.createElement('div');
+          wrapper.style.height = `${filteredItems.length * ITEM_HEIGHT}px`;
+          wrapper.style.position = 'relative';
+          
+          // 가시 영역 생성
+          const viewport = document.createElement('div');
+          viewport.style.position = 'absolute';
+          viewport.style.top = '0';
+          viewport.style.left = '0';
+          viewport.style.right = '0';
+          viewport.style.transform = `translateY(${startIndex * ITEM_HEIGHT}px)`;
+          
+          // 항목 렌더링 함수
+          const renderItems = () => {
+            const visibleItems = filteredItems.slice(startIndex, endIndex);
+            let html = '';
+            visibleItems.forEach((item, idx) => {
+              const actualIndex = startIndex + idx;
+              const titleElement = item.link 
+                ? `<span onclick="openUserItemLink('${item.link}')" style="cursor: pointer;">${item.title}</span>`
+                : `${item.title}`;
+              
+              html += `
+                <div class="user-added-item" data-item-id="${item.id}" data-item-type="user" style="height: ${ITEM_HEIGHT}px; position: absolute; top: ${actualIndex * ITEM_HEIGHT}px; left: 0; right: 0;">
+                  <div class="item-content">
+                    <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
+                    <span>${titleElement}</span>
+                  </div>
+                </div>
+              `;
+            });
+            viewport.innerHTML = html;
+          };
+          
+          // 스크롤 이벤트 핸들러
+          const handleScroll = throttle(() => {
+            scrollTop = container.scrollTop;
+            const newStartIndex = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - BUFFER);
+            const newEndIndex = Math.min(filteredItems.length, newStartIndex + VISIBLE_ITEMS + BUFFER * 2);
+            
+            if (newStartIndex !== startIndex || newEndIndex !== endIndex) {
+              startIndex = newStartIndex;
+              endIndex = newEndIndex;
+              renderItems();
+            }
+          }, 16); // 60fps
+          
+          container.addEventListener('scroll', handleScroll);
+          
+          // 초기 렌더링
+          container.innerHTML = '';
+          container.appendChild(wrapper);
+          wrapper.appendChild(viewport);
+          renderItems();
+          
+          // 정리 함수 저장
+          container._virtualScrollCleanup = () => {
+            container.removeEventListener('scroll', handleScroll);
+            container.style.height = '';
+            container.style.overflowY = '';
+            container.style.position = '';
+          };
+        } else {
+          // 가상 스크롤 미적용 (일반 렌더링)
+          let html = '';
+          filteredItems.forEach(item => {
+            const titleElement = item.link 
+              ? `<span onclick="openUserItemLink('${item.link}')" style="cursor: pointer;">${item.title}</span>`
+              : `${item.title}`;
+            
+            html += `
+              <div class="user-added-item" data-item-id="${item.id}" data-item-type="user">
+                <div class="item-content">
+                  <input type="checkbox" id="${item.id}" class="prep-checkbox" onchange="saveCheckboxStates()" ${item.checked ? 'checked' : ''}>
+                  <span>${titleElement}</span>
+                </div>
               </div>
-            </div>
-          `;
-        });
-        
-        container.innerHTML = html;
+            `;
+          });
+          
+          container.innerHTML = html;
+        }
         
         // 클릭 가능한 텍스트 끝에 ❗ 표시 추가
         if (typeof appendExclamationToLinks === 'function') {
@@ -14170,6 +14448,9 @@
           alert('일정 수정에 실패했습니다. 다시 시도해주세요.');
         }
       }
+      WMAP.Schedule.showAddDialog = showAddScheduleDialog;
+      WMAP.Schedule.edit = editSchedule;
+      WMAP.Schedule.saveEdit = saveScheduleEdit;
       
       // 일정 삭제 함수
       async function deleteSchedule(scheduleId, scheduleTitle) {
@@ -14362,6 +14643,10 @@
           alert('일정 삭제에 실패했습니다. 다시 시도해주세요.');
         }
       }
+      WMAP.Schedule.delete = deleteSchedule;
+      WMAP.Schedule.deleteItem = deleteUserItem;
+      WMAP.Schedule.editItem = editUserItem;
+      WMAP.Schedule.saveItem = saveEditedItem;
 
     </script>
 
