@@ -2252,7 +2252,7 @@
       let isMarkerMode = false; // 마커생성 모드
       let customMarkers = []; // 사용자가 생성한 마커들
       let markerInfoData = {}; // 마커 정보 저장소 { "groupName-index": { title: "", content: "", link: "" } }
-      let markerClusterer = null; // 마커 클러스터링 객체 (성능 최적화)
+      let markerClustererInstance = null; // 마커 클러스터링 객체 (성능 최적화)
       
       // 📷 사진 관련 전역 변수
       let savedPhotoMarkers = []; // 저장된 사진 마커들
@@ -4805,9 +4805,14 @@
             <div style="padding: 12px; max-width: 300px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
               <h4 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #1f2937;">📷 촬영한 사진</h4>
               <img src="${imageData}" 
+                   loading="lazy"
                    style="width: 100%; max-width: 280px; border-radius: 8px; cursor: pointer; margin-bottom: 8px;"
                    onclick="openPhotoViewer('${imageData.replace(/'/g, "\\'")}', '${photoId}')"
-                   title="클릭하여 크게 보기">
+                   title="클릭하여 크게 보기"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+              <div style="display: none; padding: 20px; text-align: center; color: #6b7280; font-size: 12px;">
+                이미지를 불러올 수 없습니다.
+              </div>
               <div style="font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 8px; margin-bottom: 8px;">
                 <div style="margin-bottom: 4px; font-weight: 600; color: #374151;">메모:</div>
                 <div id="photo-memo-display-${photoId}" 
@@ -8381,6 +8386,16 @@
           return;
         }
         
+        // 기존 클러스터 제거
+        if (markerClustererInstance) {
+          try {
+            markerClustererInstance.clearMarkers();
+          } catch (e) {
+            console.warn('클러스터 제거 오류:', e);
+          }
+          markerClustererInstance = null;
+        }
+        
         // 기존 저장된 마커들 제거 (이벤트 리스너 정리 강화)
         try {
           window.savedUserMarkers.forEach(markerGroup => {
@@ -8541,8 +8556,16 @@
         // 마커 클러스터링 적용 (성능 최적화)
         if (CONSTANTS.CLUSTER_ENABLED && allMarkers.length >= CONSTANTS.CLUSTER_THRESHOLD) {
           try {
-            // @googlemaps/markerclusterer 라이브러리 확인
-            if (typeof markerClusterer !== 'undefined' && markerClusterer.MarkerClusterer) {
+            // @googlemaps/markerclusterer 라이브러리 확인 (전역 객체 확인)
+            // 라이브러리는 window.markerClusterer 또는 전역 markerClusterer로 제공됨
+            let MarkerClustererLib = null;
+            if (typeof window !== 'undefined' && window.markerClusterer && window.markerClusterer.MarkerClusterer) {
+              MarkerClustererLib = window.markerClusterer;
+            } else if (typeof markerClusterer !== 'undefined' && markerClusterer && markerClusterer.MarkerClusterer) {
+              MarkerClustererLib = markerClusterer;
+            }
+            
+            if (MarkerClustererLib && MarkerClustererLib.MarkerClusterer) {
               // 마커를 지도에 표시하지 않고 클러스터에만 추가
               allMarkers.forEach(marker => {
                 if (marker && marker.setMap) {
@@ -8551,10 +8574,10 @@
               });
               
               // MarkerClusterer 생성
-              markerClusterer = new markerClusterer.MarkerClusterer({
+              markerClustererInstance = new MarkerClustererLib.MarkerClusterer({
                 map: map,
                 markers: allMarkers,
-                algorithm: new markerClusterer.GridAlgorithm({ gridSize: 60 }),
+                algorithm: new MarkerClustererLib.GridAlgorithm({ gridSize: 60 }),
                 renderer: {
                   render: ({ count, position }) => {
                     return new google.maps.Marker({
@@ -8582,9 +8605,17 @@
               });
               
               console.log(`마커 클러스터링 적용: ${allMarkers.length}개 마커`);
+              // 사용자에게 클러스터링 상태 표시
+              if (typeof updateSyncStatus === 'function') {
+                updateSyncStatus(`마커 클러스터링 활성화 (${allMarkers.length}개)`, 'success');
+              }
             } else {
               // 라이브러리가 로드되지 않았을 때 일반 표시
               console.warn('MarkerClusterer 라이브러리가 로드되지 않았습니다. 일반 마커로 표시합니다.');
+              // 사용자에게 일반 마커 모드 표시
+              if (typeof updateSyncStatus === 'function') {
+                updateSyncStatus('일반 마커 모드 (클러스터링 미사용)', 'warning');
+              }
               allMarkers.forEach(marker => {
                 if (marker && !marker.getMap()) {
                   marker.setMap(map);
@@ -8593,6 +8624,10 @@
             }
           } catch (error) {
             console.warn('마커 클러스터링 적용 실패:', error);
+            // 사용자에게 오류 상태 표시
+            if (typeof updateSyncStatus === 'function') {
+              updateSyncStatus('클러스터링 실패 - 일반 마커 모드', 'error');
+            }
             // 클러스터링 실패 시 일반 마커 표시
             allMarkers.forEach(marker => {
               if (marker && !marker.getMap()) {
@@ -8602,6 +8637,11 @@
           }
         } else {
           // 클러스터링 비활성화 또는 마커 수가 적을 때 일반 표시
+          if (allMarkers.length > 0) {
+            if (typeof updateSyncStatus === 'function') {
+              updateSyncStatus(`일반 마커 모드 (${allMarkers.length}개)`, 'info');
+            }
+          }
           allMarkers.forEach(marker => {
             if (marker && !marker.getMap()) {
               marker.setMap(map);
