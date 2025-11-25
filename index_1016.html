@@ -8900,10 +8900,9 @@
           
           // 일정 라벨 마커 생성 (한글 문자 처리를 위해 encodeURIComponent 사용)
           const svgContent = `
-            <svg width="120" height="60" xmlns="http://www.w3.org/2000/svg">
-              <rect x="0" y="0" width="120" height="60" rx="30" fill="#3b82f6" fill-opacity="0.9" stroke="#fff" stroke-width="2"/>
-              <text x="60" y="25" font-size="12" font-weight="bold" fill="white" text-anchor="middle">${group.location}</text>
-              <text x="60" y="42" font-size="10" fill="white" text-anchor="middle">${totalCount}개</text>
+            <svg width="30" height="15" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="30" height="15" rx="7" fill="#3b82f6" fill-opacity="0.9" stroke="#fff" stroke-width="1"/>
+              <text x="15" y="10" font-size="6" font-weight="bold" fill="white" text-anchor="middle">${group.location}</text>
             </svg>
           `.trim();
           
@@ -8915,11 +8914,11 @@
           const labelMarker = new google.maps.Marker({
             position: center,
             map: map,
-            title: `${group.location} (경로: ${routeCount}개, 마커: ${markerCount}개)`,
+            title: `${group.location}`,
             icon: {
               url: `data:image/svg+xml;charset=utf-8,${encodedSvg}`,
-              scaledSize: new google.maps.Size(120, 60),
-              anchor: new google.maps.Point(60, 30)
+              scaledSize: new google.maps.Size(30, 15),
+              anchor: new google.maps.Point(15, 8)
             },
             zIndex: 2000,
             optimized: false
