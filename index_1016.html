@@ -2255,6 +2255,7 @@
       let markerClustererInstance = null; // 마커 클러스터링 객체 (성능 최적화)
       let scheduleLabelMarkers = []; // 일정별 라벨 마커들 (일정 클러스터링)
       let scheduleClusterMode = false; // 일정 클러스터 모드 활성화 여부
+      let isUpdatingScheduleLabels = false; // 일정 라벨 업데이트 중 플래그 (무한 루프 방지)
       
       // 📷 사진 관련 전역 변수
       let savedPhotoMarkers = []; // 저장된 사진 마커들
@@ -4052,31 +4053,42 @@
         
         geocoder = new google.maps.Geocoder(); // Geocoder 객체 생성
         
-        // 줌 레벨 변경 시 일정 클러스터 라벨 업데이트
+        // 줌 레벨 변경 시 일정 클러스터 라벨 업데이트 (throttle 적용)
+        let zoomChangeTimeout = null;
         map.addListener('zoom_changed', function() {
           if (CONSTANTS.SCHEDULE_CLUSTER_ENABLED) {
-            updateScheduleClusterLabels();
-            // 일정 클러스터 모드일 때는 개별 마커/경로 숨기기
-            if (scheduleClusterMode) {
-              // 개별 마커와 경로 숨기기
-              (window.savedUserMarkers || []).forEach(markerGroup => {
-                if (markerGroup.markerElements) {
-                  markerGroup.markerElements.forEach(marker => {
-                    if (marker && marker.setMap) {
-                      marker.setMap(null);
+            // throttle 적용 (무한 루프 방지)
+            if (zoomChangeTimeout) {
+              clearTimeout(zoomChangeTimeout);
+            }
+            zoomChangeTimeout = setTimeout(() => {
+              const previousMode = scheduleClusterMode;
+              updateScheduleClusterLabels(true); // skipRedraw=true로 무한 루프 방지
+              
+              // 모드가 변경되었을 때만 마커/경로 표시 상태 업데이트
+              if (scheduleClusterMode !== previousMode) {
+                if (scheduleClusterMode) {
+                  // 일정 클러스터 모드로 전환: 개별 마커와 경로 숨기기
+                  (window.savedUserMarkers || []).forEach(markerGroup => {
+                    if (markerGroup.markerElements) {
+                      markerGroup.markerElements.forEach(marker => {
+                        if (marker && marker.setMap) {
+                          marker.setMap(null);
+                        }
+                      });
                     }
                   });
+                  savedUserRoutes.forEach(route => {
+                    if (route.pathElement) route.pathElement.setMap(null);
+                    if (route.dottedPathElement) route.dottedPathElement.setMap(null);
+                  });
+                } else {
+                  // 개별 표시 모드로 전환: 개별 마커와 경로 표시
+                  drawAllSavedMarkers();
+                  drawAllSavedRoutes();
                 }
-              });
-              savedUserRoutes.forEach(route => {
-                if (route.pathElement) route.pathElement.setMap(null);
-                if (route.dottedPathElement) route.dottedPathElement.setMap(null);
-              });
-            } else {
-              // 개별 마커와 경로 표시
-              drawAllSavedMarkers();
-              drawAllSavedRoutes();
-            }
+              }
+            }, 100); // 100ms throttle
           }
         });
         
@@ -5516,6 +5528,13 @@
             
             // 저장된 사용자 마커들 복원
             await restoreSavedUserMarkers();
+            
+            // 일정 클러스터 라벨 업데이트 (초기 로드 후)
+            if (CONSTANTS.SCHEDULE_CLUSTER_ENABLED) {
+              setTimeout(() => {
+                updateScheduleClusterLabels();
+              }, 500);
+            }
           } else {
             console.warn('Firebase 초기화 실패 - 데이터 복원 건너뜀');
           }
@@ -8764,35 +8783,56 @@
         console.log('=== 클러스터링 상태 확인 완료 ===');
         console.log('상태 확인: window.clusterStatus 객체를 확인하세요');
         
-        // 일정 클러스터 라벨 업데이트
+        // 일정 클러스터 라벨 업데이트 (항상 실행, skipRedraw=true로 무한 루프 방지)
         if (CONSTANTS.SCHEDULE_CLUSTER_ENABLED) {
-          updateScheduleClusterLabels();
+          updateScheduleClusterLabels(true);
         }
       }
       
+      // 초기 로드 시 일정 클러스터 라벨 표시
+      if (CONSTANTS.SCHEDULE_CLUSTER_ENABLED && map) {
+        setTimeout(() => {
+          updateScheduleClusterLabels();
+        }, 500);
+      }
+      
       // 일정별 클러스터링: 일정 라벨 마커 생성 및 관리
-      function updateScheduleClusterLabels() {
-        if (!CONSTANTS.SCHEDULE_CLUSTER_ENABLED || !map) {
+      function updateScheduleClusterLabels(skipRedraw = false) {
+        // 무한 루프 방지
+        if (isUpdatingScheduleLabels) {
           return;
         }
         
-        const currentZoom = map.getZoom();
-        const shouldShowLabels = currentZoom <= CONSTANTS.SCHEDULE_CLUSTER_ZOOM_THRESHOLD;
-        
-        // 기존 일정 라벨 제거
-        scheduleLabelMarkers.forEach(marker => {
-          if (marker && marker.setMap) {
-            marker.setMap(null);
-          }
-        });
-        scheduleLabelMarkers = [];
-        
-        if (!shouldShowLabels) {
+        if (!CONSTANTS.SCHEDULE_CLUSTER_ENABLED || !map) {
           scheduleClusterMode = false;
           return;
         }
         
-        scheduleClusterMode = true;
+        isUpdatingScheduleLabels = true;
+        
+        try {
+          const currentZoom = map.getZoom();
+          const shouldShowLabels = currentZoom <= CONSTANTS.SCHEDULE_CLUSTER_ZOOM_THRESHOLD;
+          
+          // 기존 일정 라벨 제거
+          scheduleLabelMarkers.forEach(marker => {
+            if (marker && marker.setMap) {
+              marker.setMap(null);
+            }
+          });
+          scheduleLabelMarkers = [];
+          
+          if (!shouldShowLabels) {
+            scheduleClusterMode = false;
+            // 줌 레벨이 높으면 개별 마커/경로 표시 (skipRedraw가 false일 때만)
+            if (!skipRedraw) {
+              drawAllSavedMarkers();
+              drawAllSavedRoutes();
+            }
+            return;
+          }
+          
+          scheduleClusterMode = true;
         
         // 일정별로 마커와 경로 그룹화
         const scheduleGroups = {};
@@ -8858,19 +8898,26 @@
             return;
           }
           
-          // 일정 라벨 마커 생성
+          // 일정 라벨 마커 생성 (한글 문자 처리를 위해 encodeURIComponent 사용)
+          const svgContent = `
+            <svg width="120" height="60" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="120" height="60" rx="30" fill="#3b82f6" fill-opacity="0.9" stroke="#fff" stroke-width="2"/>
+              <text x="60" y="25" font-size="12" font-weight="bold" fill="white" text-anchor="middle">${group.location}</text>
+              <text x="60" y="42" font-size="10" fill="white" text-anchor="middle">${totalCount}개</text>
+            </svg>
+          `.trim();
+          
+          // 한글 문자를 포함한 SVG를 안전하게 인코딩
+          const encodedSvg = encodeURIComponent(svgContent)
+            .replace(/'/g, '%27')
+            .replace(/"/g, '%22');
+          
           const labelMarker = new google.maps.Marker({
             position: center,
             map: map,
             title: `${group.location} (경로: ${routeCount}개, 마커: ${markerCount}개)`,
             icon: {
-              url: `data:image/svg+xml;base64,${btoa(`
-                <svg width="120" height="60" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="0" y="0" width="120" height="60" rx="30" fill="#3b82f6" fill-opacity="0.9" stroke="#fff" stroke-width="2"/>
-                  <text x="60" y="25" font-size="12" font-weight="bold" fill="white" text-anchor="middle">${group.location}</text>
-                  <text x="60" y="42" font-size="10" fill="white" text-anchor="middle">${totalCount}개</text>
-                </svg>
-              `)}`,
+              url: `data:image/svg+xml;charset=utf-8,${encodedSvg}`,
               scaledSize: new google.maps.Size(120, 60),
               anchor: new google.maps.Point(60, 30)
             },
@@ -8900,6 +8947,9 @@
         });
         
         console.log(`일정 라벨 생성: ${scheduleLabelMarkers.length}개 (줌 레벨: ${currentZoom})`);
+        } finally {
+          isUpdatingScheduleLabels = false;
+        }
       }
 
       // 현재 지도에 그려진 모든 사용자 마커를 제거 (실시간 동기화용) - 성능 최적화
