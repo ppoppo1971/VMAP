@@ -8898,6 +8898,13 @@
             return;
           }
           
+          // 라벨 텍스트에서 앞부분 날짜(숫자) 제거
+          let labelText = group.location || '';
+          const trimmedLabel = (labelText || '').replace(/^\d+/, '').trim();
+          if (trimmedLabel.length > 0) {
+            labelText = trimmedLabel;
+          }
+          
           // 디바이스에 따라 적절한 크기 계산
           const labelWidth = isMobile ? 90 : 60;
           const labelHeight = isMobile ? 34 : 24;
@@ -8909,7 +8916,7 @@
           const svgContent = `
             <svg width="${labelWidth}" height="${labelHeight}" xmlns="http://www.w3.org/2000/svg">
               <rect x="0" y="0" width="${labelWidth}" height="${labelHeight}" rx="${labelRadius}" fill="#3b82f6" fill-opacity="0.9" stroke="#fff" stroke-width="1.2"/>
-              <text x="${labelWidth / 2}" y="${textY}" font-size="${fontSize}" font-weight="bold" fill="white" text-anchor="middle">${group.location}</text>
+              <text x="${labelWidth / 2}" y="${textY}" font-size="${fontSize}" font-weight="bold" fill="white" text-anchor="middle">${labelText}</text>
             </svg>
           `.trim();
           
@@ -8921,7 +8928,7 @@
           const labelMarker = new google.maps.Marker({
             position: center,
             map: map,
-            title: `${group.location}`,
+            title: `${labelText}`,
             icon: {
               url: `data:image/svg+xml;charset=utf-8,${encodedSvg}`,
               scaledSize: new google.maps.Size(labelWidth, labelHeight),
