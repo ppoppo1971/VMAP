@@ -2253,6 +2253,8 @@
       let customMarkers = []; // 사용자가 생성한 마커들
       let markerInfoData = {}; // 마커 정보 저장소 { "groupName-index": { title: "", content: "", link: "" } }
       let markerClustererInstance = null; // 마커 클러스터링 객체 (성능 최적화)
+      let scheduleLabelMarkers = []; // 일정별 라벨 마커들 (일정 클러스터링)
+      let scheduleClusterMode = false; // 일정 클러스터 모드 활성화 여부
       
       // 📷 사진 관련 전역 변수
       let savedPhotoMarkers = []; // 저장된 사진 마커들
@@ -2347,7 +2349,10 @@
         CLUSTER_THRESHOLD: 50, // 50개 이상 마커일 때 클러스터링 활성화
         VIRTUAL_SCROLL_THRESHOLD: 30, // 30개 이상 항목일 때 가상 스크롤 활성화
         LAZY_LOAD_BATCH_SIZE: 20, // 지연 로딩 배치 크기
-        MARKER_LOAD_CHUNK_SIZE: 50 // 마커 로드 청크 크기
+        MARKER_LOAD_CHUNK_SIZE: 50, // 마커 로드 청크 크기
+        // 일정 클러스터링 관련
+        SCHEDULE_CLUSTER_ENABLED: true, // 일정별 클러스터링 활성화
+        SCHEDULE_CLUSTER_ZOOM_THRESHOLD: 12 // 이 줌 레벨 이하에서 일정 라벨 표시
       };
       
       // 🎯 성능 최적화 관련 전역 변수
@@ -3240,6 +3245,7 @@
               link: '',
               color: line.color || '#3b82f6',
               isKmlRoute: true,
+              lineStyle: 'solid', // KML 경로는 기본적으로 실선
               strokeWeight: 2.0,
               strokeOpacity: parseFloat(line.strokeOpacity) || 0.8
             };
@@ -3266,6 +3272,7 @@
               link: '',
               color: polygon.color || '#3b82f6',
               isKmlRoute: true,
+              lineStyle: 'solid', // KML 경로는 기본적으로 실선
               strokeWeight: 2.0,
               strokeOpacity: parseFloat(polygon.strokeOpacity) || 0.8
             };
@@ -4044,6 +4051,34 @@
         });
         
         geocoder = new google.maps.Geocoder(); // Geocoder 객체 생성
+        
+        // 줌 레벨 변경 시 일정 클러스터 라벨 업데이트
+        map.addListener('zoom_changed', function() {
+          if (CONSTANTS.SCHEDULE_CLUSTER_ENABLED) {
+            updateScheduleClusterLabels();
+            // 일정 클러스터 모드일 때는 개별 마커/경로 숨기기
+            if (scheduleClusterMode) {
+              // 개별 마커와 경로 숨기기
+              (window.savedUserMarkers || []).forEach(markerGroup => {
+                if (markerGroup.markerElements) {
+                  markerGroup.markerElements.forEach(marker => {
+                    if (marker && marker.setMap) {
+                      marker.setMap(null);
+                    }
+                  });
+                }
+              });
+              savedUserRoutes.forEach(route => {
+                if (route.pathElement) route.pathElement.setMap(null);
+                if (route.dottedPathElement) route.dottedPathElement.setMap(null);
+              });
+            } else {
+              // 개별 마커와 경로 표시
+              drawAllSavedMarkers();
+              drawAllSavedRoutes();
+            }
+          }
+        });
         
         // 브이월드 일반 지도(기본 지도) 타일 레이어 정의
         var vworldRoadmapType = new google.maps.ImageMapType({
@@ -8573,15 +8608,30 @@
         });
         
         // 마커 클러스터링 적용 (성능 최적화)
+        console.log('=== 마커 클러스터링 상태 확인 ===');
+        console.log('클러스터링 활성화:', CONSTANTS.CLUSTER_ENABLED);
+        console.log('마커 수:', allMarkers.length);
+        console.log('클러스터링 임계값:', CONSTANTS.CLUSTER_THRESHOLD);
+        console.log('클러스터링 적용 조건:', CONSTANTS.CLUSTER_ENABLED && allMarkers.length >= CONSTANTS.CLUSTER_THRESHOLD);
+        
         if (CONSTANTS.CLUSTER_ENABLED && allMarkers.length >= CONSTANTS.CLUSTER_THRESHOLD) {
           try {
             // @googlemaps/markerclusterer 라이브러리 확인 (전역 객체 확인)
             // 라이브러리는 window.markerClusterer 또는 전역 markerClusterer로 제공됨
             let MarkerClustererLib = null;
+            console.log('라이브러리 확인 중...');
+            console.log('window.markerClusterer:', typeof window !== 'undefined' ? window.markerClusterer : 'undefined');
+            console.log('전역 markerClusterer:', typeof markerClusterer !== 'undefined' ? markerClusterer : 'undefined');
+            
             if (typeof window !== 'undefined' && window.markerClusterer && window.markerClusterer.MarkerClusterer) {
               MarkerClustererLib = window.markerClusterer;
+              console.log('✅ window.markerClusterer에서 라이브러리 발견');
             } else if (typeof markerClusterer !== 'undefined' && markerClusterer && markerClusterer.MarkerClusterer) {
               MarkerClustererLib = markerClusterer;
+              console.log('✅ 전역 markerClusterer에서 라이브러리 발견');
+            } else {
+              console.warn('❌ MarkerClusterer 라이브러리를 찾을 수 없습니다.');
+              console.warn('CDN에서 라이브러리가 로드되었는지 확인하세요: https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js');
             }
             
             if (MarkerClustererLib && MarkerClustererLib.MarkerClusterer) {
@@ -8616,18 +8666,40 @@
                 }
               });
               
-              console.log(`마커 클러스터링 적용: ${allMarkers.length}개 마커`);
+              console.log('✅ 마커 클러스터링 적용 성공!');
+              console.log(`   - 마커 수: ${allMarkers.length}개`);
+              console.log(`   - 클러스터 아이콘: 보라색 원형 아이콘 (숫자 표시)`);
+              console.log(`   - 확인 방법: 지도를 축소하면 여러 마커가 하나의 클러스터 아이콘으로 합쳐집니다.`);
+              
               // 사용자에게 클러스터링 상태 표시
               if (typeof updateSyncStatus === 'function') {
-                updateSyncStatus(`마커 클러스터링 활성화 (${allMarkers.length}개)`, 'success');
+                updateSyncStatus(`✅ 클러스터링 활성화 (${allMarkers.length}개 마커)`, 'success');
               }
+              
+              // 전역 변수에 클러스터링 상태 저장 (사용자 확인용)
+              window.clusterStatus = {
+                enabled: true,
+                markerCount: allMarkers.length,
+                instance: markerClustererInstance
+              };
             } else {
               // 라이브러리가 로드되지 않았을 때 일반 표시
-              console.warn('MarkerClusterer 라이브러리가 로드되지 않았습니다. 일반 마커로 표시합니다.');
+              console.warn('❌ MarkerClusterer 라이브러리가 로드되지 않았습니다.');
+              console.warn('일반 마커 모드로 전환합니다.');
+              console.warn('CDN 스크립트 태그를 확인하세요: https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js');
+              
               // 사용자에게 일반 마커 모드 표시
               if (typeof updateSyncStatus === 'function') {
-                updateSyncStatus('일반 마커 모드 (클러스터링 미사용)', 'warning');
+                updateSyncStatus('⚠️ 일반 마커 모드 (클러스터링 미사용)', 'warning');
               }
+              
+              // 전역 변수에 클러스터링 상태 저장
+              window.clusterStatus = {
+                enabled: false,
+                reason: '라이브러리 미로드',
+                markerCount: allMarkers.length
+              };
+              
               allMarkers.forEach(marker => {
                 if (marker && !marker.getMap()) {
                   marker.setMap(map);
@@ -8635,11 +8707,22 @@
               });
             }
           } catch (error) {
-            console.warn('마커 클러스터링 적용 실패:', error);
+            console.error('❌ 마커 클러스터링 적용 실패:', error);
+            console.error('오류 상세:', error.stack);
+            
             // 사용자에게 오류 상태 표시
             if (typeof updateSyncStatus === 'function') {
-              updateSyncStatus('클러스터링 실패 - 일반 마커 모드', 'error');
+              updateSyncStatus('❌ 클러스터링 실패 - 일반 마커 모드', 'error');
             }
+            
+            // 전역 변수에 클러스터링 상태 저장
+            window.clusterStatus = {
+              enabled: false,
+              reason: '오류 발생',
+              error: error.message,
+              markerCount: allMarkers.length
+            };
+            
             // 클러스터링 실패 시 일반 마커 표시
             allMarkers.forEach(marker => {
               if (marker && !marker.getMap()) {
@@ -8649,17 +8732,174 @@
           }
         } else {
           // 클러스터링 비활성화 또는 마커 수가 적을 때 일반 표시
+          const reason = !CONSTANTS.CLUSTER_ENABLED 
+            ? '클러스터링 비활성화됨' 
+            : `마커 수 부족 (${allMarkers.length} < ${CONSTANTS.CLUSTER_THRESHOLD})`;
+          
+          console.log('ℹ️ 클러스터링 미적용:', reason);
+          console.log(`   - 마커 수: ${allMarkers.length}개`);
+          console.log(`   - 임계값: ${CONSTANTS.CLUSTER_THRESHOLD}개`);
+          
           if (allMarkers.length > 0) {
             if (typeof updateSyncStatus === 'function') {
-              updateSyncStatus(`일반 마커 모드 (${allMarkers.length}개)`, 'info');
+              updateSyncStatus(`ℹ️ 일반 마커 모드 (${allMarkers.length}개)`, 'info');
             }
           }
+          
+          // 전역 변수에 클러스터링 상태 저장
+          window.clusterStatus = {
+            enabled: false,
+            reason: reason,
+            markerCount: allMarkers.length,
+            threshold: CONSTANTS.CLUSTER_THRESHOLD
+          };
+          
           allMarkers.forEach(marker => {
             if (marker && !marker.getMap()) {
               marker.setMap(map);
             }
           });
         }
+        
+        console.log('=== 클러스터링 상태 확인 완료 ===');
+        console.log('상태 확인: window.clusterStatus 객체를 확인하세요');
+        
+        // 일정 클러스터 라벨 업데이트
+        if (CONSTANTS.SCHEDULE_CLUSTER_ENABLED) {
+          updateScheduleClusterLabels();
+        }
+      }
+      
+      // 일정별 클러스터링: 일정 라벨 마커 생성 및 관리
+      function updateScheduleClusterLabels() {
+        if (!CONSTANTS.SCHEDULE_CLUSTER_ENABLED || !map) {
+          return;
+        }
+        
+        const currentZoom = map.getZoom();
+        const shouldShowLabels = currentZoom <= CONSTANTS.SCHEDULE_CLUSTER_ZOOM_THRESHOLD;
+        
+        // 기존 일정 라벨 제거
+        scheduleLabelMarkers.forEach(marker => {
+          if (marker && marker.setMap) {
+            marker.setMap(null);
+          }
+        });
+        scheduleLabelMarkers = [];
+        
+        if (!shouldShowLabels) {
+          scheduleClusterMode = false;
+          return;
+        }
+        
+        scheduleClusterMode = true;
+        
+        // 일정별로 마커와 경로 그룹화
+        const scheduleGroups = {};
+        
+        // 경로 그룹화
+        savedUserRoutes.forEach(route => {
+          if (route && route.location) {
+            if (!scheduleGroups[route.location]) {
+              scheduleGroups[route.location] = {
+                location: route.location,
+                routes: [],
+                markers: [],
+                bounds: new google.maps.LatLngBounds()
+              };
+            }
+            scheduleGroups[route.location].routes.push(route);
+            if (route.path && route.path.length > 0) {
+              route.path.forEach(point => {
+                scheduleGroups[route.location].bounds.extend(
+                  new google.maps.LatLng(point.lat, point.lng)
+                );
+              });
+            }
+          }
+        });
+        
+        // 마커 그룹화
+        (window.savedUserMarkers || []).forEach(markerGroup => {
+          if (markerGroup && markerGroup.location) {
+            if (!scheduleGroups[markerGroup.location]) {
+              scheduleGroups[markerGroup.location] = {
+                location: markerGroup.location,
+                routes: [],
+                markers: [],
+                bounds: new google.maps.LatLngBounds()
+              };
+            }
+            scheduleGroups[markerGroup.location].markers.push(markerGroup);
+            if (markerGroup.markers && markerGroup.markers.length > 0) {
+              markerGroup.markers.forEach(marker => {
+                scheduleGroups[markerGroup.location].bounds.extend(
+                  new google.maps.LatLng(marker.lat, marker.lng)
+                );
+              });
+            }
+          }
+        });
+        
+        // 각 일정에 대해 라벨 마커 생성
+        Object.values(scheduleGroups).forEach(group => {
+          if (group.bounds.isEmpty()) {
+            return;
+          }
+          
+          const center = group.bounds.getCenter();
+          const routeCount = group.routes.length;
+          const markerCount = group.markers.reduce((sum, mg) => 
+            sum + (mg.markers ? mg.markers.length : 0), 0
+          );
+          const totalCount = routeCount + markerCount;
+          
+          if (totalCount === 0) {
+            return;
+          }
+          
+          // 일정 라벨 마커 생성
+          const labelMarker = new google.maps.Marker({
+            position: center,
+            map: map,
+            title: `${group.location} (경로: ${routeCount}개, 마커: ${markerCount}개)`,
+            icon: {
+              url: `data:image/svg+xml;base64,${btoa(`
+                <svg width="120" height="60" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="0" width="120" height="60" rx="30" fill="#3b82f6" fill-opacity="0.9" stroke="#fff" stroke-width="2"/>
+                  <text x="60" y="25" font-size="12" font-weight="bold" fill="white" text-anchor="middle">${group.location}</text>
+                  <text x="60" y="42" font-size="10" fill="white" text-anchor="middle">${totalCount}개</text>
+                </svg>
+              `)}`,
+              scaledSize: new google.maps.Size(120, 60),
+              anchor: new google.maps.Point(60, 30)
+            },
+            zIndex: 2000,
+            optimized: false
+          });
+          
+          // 일정 라벨 클릭 시 해당 일정으로 확대
+          labelMarker.addListener('click', function() {
+            // 일정 정보창 표시
+            if (typeof showScheduleInfo === 'function') {
+              showScheduleInfo(group.location);
+            }
+            
+            // 해당 일정의 마커와 경로로 확대
+            if (typeof fitScheduleItemsToScreen === 'function') {
+              fitScheduleItemsToScreen(group.location);
+            } else {
+              // 기본 확대
+              map.fitBounds(group.bounds, {
+                padding: { top: 100, bottom: 100, left: 250, right: 100 }
+              });
+            }
+          });
+          
+          scheduleLabelMarkers.push(labelMarker);
+        });
+        
+        console.log(`일정 라벨 생성: ${scheduleLabelMarkers.length}개 (줌 레벨: ${currentZoom})`);
       }
 
       // 현재 지도에 그려진 모든 사용자 마커를 제거 (실시간 동기화용) - 성능 최적화
@@ -10532,6 +10772,11 @@
         console.log('[drawAllSavedRoutes] routeInfoData:', routeInfoData);
         console.log('[drawAllSavedRoutes] savedUserRoutes count:', savedUserRoutes.length);
         
+        // 일정 클러스터 모드일 때는 경로를 그리지 않음
+        if (scheduleClusterMode) {
+          return;
+        }
+        
         // 저장된 경로들 다시 그리기
         savedUserRoutes.forEach(route => {
           if (!route || !route.path || !Array.isArray(route.path) || route.path.length < 2) {
@@ -10547,10 +10792,35 @@
             const isKmlRoute = routeInfo.isKmlRoute || false;
             
             // 디버깅: 각 경로의 스타일 정보 출력
-            console.log(`[Route ${route.id}] isKmlRoute:`, isKmlRoute, 'routeInfo:', routeInfo);
+            console.log(`[Route ${route.id}]`, {
+              routeInfo: routeInfo,
+              hasLineStyle: 'lineStyle' in routeInfo,
+              lineStyle: routeInfo.lineStyle,
+              isKmlRoute: isKmlRoute,
+              color: routeColor
+            });
             
-            // 표시 방식 가져오기 (저장된 경로는 기존 값 유지)
-            const lineStyle = routeInfo.lineStyle || (isKmlRoute ? 'solid' : 'dotted');
+            // 표시 방식 가져오기
+            // routeInfo에 lineStyle이 명시적으로 저장되어 있으면 사용, 없으면 기본값
+            let lineStyle;
+            if (routeInfo.lineStyle !== undefined && routeInfo.lineStyle !== null) {
+              // Firebase에 저장된 lineStyle 사용
+              lineStyle = routeInfo.lineStyle;
+              console.log(`[Route ${route.id}] 저장된 lineStyle 사용:`, lineStyle);
+            } else {
+              // lineStyle이 없으면 기본값 (KML 경로는 solid, 일반 경로는 dotted)
+              // isKmlRoute가 true이거나 route.id가 'route_kml_'로 시작하면 KML 경로로 간주
+              const isKmlRouteById = route.id && route.id.startsWith('route_kml_');
+              const shouldBeSolid = isKmlRoute || isKmlRouteById;
+              lineStyle = shouldBeSolid ? 'solid' : 'dotted';
+              
+              if (shouldBeSolid && !isKmlRoute) {
+                // ID로 KML 경로로 판단되었지만 isKmlRoute가 false인 경우 경고
+                console.warn(`[Route ${route.id}] ID로 KML 경로로 판단되었지만 isKmlRoute가 false입니다. lineStyle을 'solid'로 설정합니다.`);
+              } else {
+                console.warn(`[Route ${route.id}] lineStyle이 없어 기본값 사용:`, lineStyle, '(isKmlRoute:', isKmlRoute, ', ID:', route.id, ')');
+              }
+            }
             
             // 저장된 스타일 사용 (색상, 두께, 투명도)
             const strokeWeight = routeInfo.strokeWeight || (isKmlRoute ? 2.0 : 2);
@@ -10683,11 +10953,21 @@
              if (data.routeInfoData) {
                routeInfoData = data.routeInfoData;
                console.log('경로 정보 데이터 복원 완료:', Object.keys(routeInfoData).length, '개');
+               // 디버깅: routeInfoData 내용 확인
+               console.log('routeInfoData 상세:', JSON.stringify(routeInfoData, null, 2));
+             } else {
+               console.warn('routeInfoData가 Firebase에 없습니다. 빈 객체로 초기화합니다.');
+               routeInfoData = {};
              }
              
              if (data.savedUserRoutes && Array.isArray(data.savedUserRoutes) && data.savedUserRoutes.length > 0) {
                savedUserRoutes = data.savedUserRoutes;
                console.log('경로 데이터 복원 완료:', savedUserRoutes.length, '개');
+               
+               // 디버깅: 경로 ID와 routeInfoData 키 매칭 확인
+               console.log('경로 ID 목록:', savedUserRoutes.map(r => r.id));
+               console.log('routeInfoData 키 목록:', Object.keys(routeInfoData));
+               
                drawAllSavedRoutes();
                // 경로제거 버튼 상태 업데이트
                updateRouteRemoveButtons();
